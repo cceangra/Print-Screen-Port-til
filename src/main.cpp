@@ -241,7 +241,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.4.1 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.4.2 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--show-config") {
             PrintRcSettings options;
@@ -337,6 +337,21 @@ int main(int argc,char** argv) {
         XDestroyImage(dim);XDestroyImage(original);XCloseDisplay(display);return 4;
     }
     int keyboard_grab=XGrabKeyboard(display,overlay,False,GrabModeAsync,GrabModeAsync,CurrentTime);
+    if (keyboard_grab!=GrabSuccess) {
+        // Sem o teclado exclusivo, Esc nao e confiavel. Nao manter overlay nem mouse capturado.
+        std::cerr << "Print RC: nao foi possivel capturar o teclado X11 (codigo "
+                  << keyboard_grab << "). Outro aplicativo pode estar usando a tecla.\n";
+        XUngrabPointer(display,CurrentTime);
+        XUnmapWindow(display,overlay);
+        XDestroyWindow(display,overlay);
+        XFreeGC(display,gc);
+        XFreeCursor(display,cross); XFreeCursor(display,pencil); XFreeCursor(display,arrow);
+        XDestroyImage(dim);
+        XDestroyImage(original);
+        XSync(display,False);
+        XCloseDisplay(display);
+        return 4;
+    }
     enum class Tool { Area, Pencil };
     Tool tool=Tool::Area;
     InkDrawing strokes;
@@ -537,7 +552,7 @@ int main(int argc,char** argv) {
         }
     }
     XUngrabPointer(display,CurrentTime);
-    if (keyboard_grab==GrabSuccess) XUngrabKeyboard(display,CurrentTime);
+    XUngrabKeyboard(display,CurrentTime);
     XUnmapWindow(display,overlay);
     XDestroyWindow(display,overlay);
     XFreeGC(display,gc);XFreeCursor(display,cross);
