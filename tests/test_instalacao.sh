@@ -13,24 +13,29 @@ make_source() {
     local d="$1"
     mkdir -p -- "$d"
     cp -a -- "$ROOT/instalar.sh" "$ROOT/iniciar.sh" "$ROOT/desinstalar.sh" \
-      "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" \
+      "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" \
       "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
 }
 echo '[1] Mantendo a pasta extraida: nao instalar pacotes nem criar segunda copia'
 make_source "$TEMP/origem1"
-printf '\nn\n' | bash "$TEMP/origem1/instalar.sh"
+printf '\n\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
 test -x "$TEMP/origem1/bin/print-rc"
 test -f "$TEMP/origem1/.print-rc-installation"
+test -f "$TEMP/origem1/config/opcoes.conf"
+grep -Fx "save_dir=$TEMP/origem1/capturas" "$TEMP/origem1/config/opcoes.conf"
+grep -Fx "copy_clipboard=1" "$TEMP/origem1/config/opcoes.conf"
 test "$(sed -n '2p' "$TEMP/origem1/.print-rc-installation")" = "$TEMP/origem1"
 
 echo '[2] Movendo a pasta inteira para um destino com espacos'
 make_source "$TEMP/origem2"
 FINAL="$TEMP/pasta final/Print RC"
-printf '%s\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
+printf '%s\ns\n\n\n\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
 test ! -e "$TEMP/origem2"
 test -x "$FINAL/bin/print-rc"
 test -f "$FINAL/src/main.cpp"
 test -f "$FINAL/instalar.sh"
+test -f "$FINAL/configurar.sh"
+test -f "$FINAL/config/opcoes.conf"
 test "$(sed -n '2p' "$FINAL/.print-rc-installation")" = "$FINAL"
 
 echo '[3] Recusar sobrescrever pasta existente'
