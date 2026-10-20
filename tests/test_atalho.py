@@ -114,6 +114,80 @@ class ShortcutTests(unittest.TestCase):
                 if previous_desktop is None: os.environ.pop("XDG_CURRENT_DESKTOP",None)
                 else: os.environ["XDG_CURRENT_DESKTOP"]=previous_desktop
 
+    def test_nao_sobrescreve_alteracao_de_outro_app_durante_perguntas(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                def answer(question):
+                    if 'Registrar a tecla Print' in question:
+                        atalho.FILE.write_text(OLD.replace('NaoAlterar=ok','NaoAlterar=outro-app'))
+                    return True
+                atalho.yes=answer
+                base=tmp/'app'
+                atalho.install(base,base/'iniciar.sh')
+                self.assertEqual(atalho.FILE.read_text(),OLD.replace('NaoAlterar=ok','NaoAlterar=outro-app'))
+                self.assertFalse((base/'config/atalho-state.json').exists())
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
+    def test_nao_remove_secoes_parecidas_criadas_por_terceiros(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                base=tmp/'app'
+                atalho.install(base,base/'iniciar.sh')
+                import json
+                state=json.loads((base/'config/atalho-state.json').read_text())
+                foreign=f"[{state['group']}ActionsPersonal]\nDado=nao-remover\n"
+                with atalho.FILE.open('a') as append:
+                    append.write(foreign)
+                self.assertTrue(atalho.remove(base))
+                final=atalho.FILE.read_text()
+                self.assertIn(foreign,final)
+                self.assertIn('Name=Capturador antigo',final)
+                self.assertNotIn('Name=Print RC',final)
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
+    def test_nao_reutiliza_indice_residual_de_atalho(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD+'\n[Data_2Triggers0]\nKey=Ctrl+F11\n')
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                base=tmp/'app'
+                atalho.install(base,base/'iniciar.sh')
+                import json
+                state=json.loads((base/'config/atalho-state.json').read_text())
+                self.assertEqual(state['group'],'Data_3')
+                self.assertIn('[Data_2Triggers0]',atalho.FILE.read_text())
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
     def test_no_conflict(self):
         self.assertEqual(atalho.conflicts('[Data_1Triggers0]\nKey=Shift+Print\n'),[])
         self.assertEqual(len(atalho.conflicts('[Data_1Triggers0]\nKey=Print\n')),1)
