@@ -22,7 +22,13 @@ int main() {
                   (static_cast<unsigned long>(seed)&(image->red_mask|image->green_mask|image->blue_mask)));
     }
     GC gc=XCreateGC(d,root,0,nullptr);
-    XPutImage(d,root,gc,image,0,0,0,0,w,h);
+    // Preenche pixmap RETIDO e coloca-o como fundo persistente da raiz.
+    // XPutImage diretamente em root pode ser apagado quando o cliente encerra.
+    Pixmap bg=XCreatePixmap(d,root,w,h,DefaultDepth(d,screen));
+    XPutImage(d,bg,gc,image,0,0,0,0,w,h);
+    XSetWindowBackgroundPixmap(d,root,bg);
+    XClearWindow(d,root);
+    XSetCloseDownMode(d,RetainPermanent);
     XSync(d,False);
     XFreeGC(d,gc);
     XDestroyImage(image);
