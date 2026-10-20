@@ -17,18 +17,21 @@ echo 'Se escolher uma pasta FORA do Print RC, as imagens'
 echo 'serao arquivos externos e nao serao apagadas na desinstalacao.'
 echo
 echo "Pasta padrao DENTRO do aplicativo: $DEFAULT_DIR"
-if [[ -f "$CONFIG" ]]; then
+PREVIOUS_DIR=''
+PREVIOUS_CLIP=''
+if [[ -f "$CONFIG" && ! -L "$CONFIG" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
         case "$line" in
-            save_dir=*) echo "Pasta atualmente configurada: ${line#save_dir=}" ;;
-            copy_clipboard=1) echo 'Copia para area de transferencia: SIM' ;;
-            copy_clipboard=0) echo 'Copia para area de transferencia: NAO' ;;
+            save_dir=*) PREVIOUS_DIR="${line#save_dir=}"; echo "Pasta atualmente configurada: $PREVIOUS_DIR" ;;
+            copy_clipboard=1) PREVIOUS_CLIP=1; echo 'Copia para area de transferencia: SIM' ;;
+            copy_clipboard=0) PREVIOUS_CLIP=0; echo 'Copia para area de transferencia: NAO' ;;
         esac
     done < "$CONFIG"
 fi
 
-read -r -p 'Digite o CAMINHO COMPLETO da pasta das imagens (Enter = padrao): ' supplied || true
-TARGET="${supplied:-$DEFAULT_DIR}"
+echo 'Enter mantem a pasta anterior, quando houver.'
+read -r -p 'Digite o CAMINHO COMPLETO da pasta das imagens (Enter = manter anterior/padrao): ' supplied || true
+TARGET="${supplied:-${PREVIOUS_DIR:-$DEFAULT_DIR}}"
 if [[ "$TARGET" != /* || "$TARGET" == *$'\n'* || "$TARGET" == *$'\r'* ]]; then
     echo 'ERRO: informe um caminho ABSOLUTO iniciado por /, sem quebras de linha.'
     echo 'Nenhuma configuracao foi modificada.'
@@ -69,10 +72,12 @@ echo
 echo 'Copiar CADA captura para a AREA DE TRANSFERENCIA?'
 echo 'SIM: tambem permite colar a imagem com Ctrl+V.'
 echo 'NAO: salva apenas o arquivo PNG, sem manter o processo de clipboard.'
+echo 'Enter mantem a escolha anterior; em instalacoes novas, o padrao e SIM.'
 while :; do
-    read -r -p 'Deseja copiar automaticamente para Ctrl+V? [S/n]: ' choice || true
+    read -r -p 'Deseja copiar automaticamente para Ctrl+V? [s/n, Enter=manter]: ' choice || true
     case "${choice,,}" in
-        ''|s|sim) CLIP=1; break ;;
+        '') CLIP="${PREVIOUS_CLIP:-1}"; break ;;
+        s|sim) CLIP=1; break ;;
         n|nao|não) CLIP=0; break ;;
         *) echo 'Responda s (sim) ou n (nao).' ;;
     esac
