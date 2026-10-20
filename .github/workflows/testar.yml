@@ -54,12 +54,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.3.0 >/dev/null 2>&1; then
-            gh release upload v0.3.0 Print-RC-Linux-x86_64.zip --clobber
+          if gh release view v0.4.0 >/dev/null 2>&1; then
+            gh release upload v0.4.0 Print-RC-Linux-x86_64.zip --clobber
           else
-            gh release create v0.3.0 Print-RC-Linux-x86_64.zip \
-              --title 'Print RC v0.3.0 - Salvar imagens e Ctrl+V configuravel' \
-              --notes 'ZIP com executavel C++ estatico, configuracao por terminal do diretorio absoluto das capturas PNG e opcao de copiar para Ctrl+V. Descompactar e executar bash instalar.sh. Sem apt ou compilador. Requer Linux x86_64 com X11.'
+            gh release create v0.4.0 Print-RC-Linux-x86_64.zip \
+              --title 'Print RC v0.4.0 - Barra compacta e desenho livre' \
+              --notes 'ZIP com executavel C++ estatico, barra curta Area/Tela/Lapis/Desfazer/Sair, captura tela inteira com um clique e anotacoes antes de selecionar. Configuracao de pasta PNG e Ctrl+V por terminal. Descompactar e executar bash instalar.sh. Sem apt ou compilador. Requer Linux x86_64 com X11.'
           fi
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
