@@ -1,6 +1,16 @@
-# Print RC v0.4.1 — Linux X11 / pasta unica
+# Print RC v0.4.2 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Correcoes de seguranca da v0.4.2
+
+- **Teclado ocupado:** caso outro aplicativo ja esteja capturando o teclado no X11, a janela de selecao fecha e o mouse e imediatamente liberado. O Print RC nao salva imagem nem fica aberto sem a tecla Esc. O fluxo e testado em servidor X11 virtual.
+- **Atalho Trinity:** verifica novamente `khotkeysrc` antes de escrever, inclusive depois das confirmacoes. Se outro processo alterar o arquivo, **cancela sem sobrescrever configuracoes de terceiros**. Reconhece `TDEHOME`, se definido. Na desinstalacao remove SOMENTE as secoes do proprio Print RC e tenta restaurar a tecla anterior.
+- **Arquivos pessoais:** o instalador novo registra em `config/arquivos-instalados.sha256` os checksums SHA-256 de seus proprios arquivos, sem incluir fotos ou arquivos desconhecidos. A desinstalacao remove somente arquivos presentes no inventario que continuem **identicos**. Se um codigo, README ou configuracao for editado/substituido pelo usuario, e preservado.
+- **Capturas protegidas:** nenhum `*.png`, `*.jpg` ou outro print pessoal e apagado, mesmo dentro de `Print-RC/capturas/`. Diretorios nao vazios continuam no disco.
+- **Instalacoes antigas:** se a pasta antiga **nao** tem inventario SHA-256, a desinstalacao pode restaurar a tecla registrada, mas se recusa a apagar os arquivos locais sem prova da sua origem. Isso evita excluir arquivos pessoais de instalacoes anteriores.
+
+O inventario e apenas um pequeno arquivo de texto dentro da pasta do Print RC, nao um servico adicional. O app nao precisa de compilador ou apt para funcionar.
 
 ## BAIXAR: pacote pronto, sem `apt install`
 
@@ -140,7 +150,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. O instalador pede a palavra **DESINSTALAR**. A desinstalacao da v0.4.1 **NUNCA exclui imagens**: remove apenas os arquivos conhecidos do Print RC (executavel, codigo, configuracoes e instaladores) e desfaz o atalho Print quando foi configurado por este programa. **Nao existe mais o comando `rm -rf` para apagar a pasta inteira e nenhuma opcao de apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.2 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
