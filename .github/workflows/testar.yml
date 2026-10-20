@@ -24,7 +24,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.3'
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.4'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -57,6 +57,9 @@ jobs:
           mkdir -p /tmp/Print-RC/bin
           cp -a Makefile LICENSE README.md instalar.sh iniciar.sh desinstalar.sh configurar.sh src scripts /tmp/Print-RC/
           cp bin/print-rc /tmp/Print-RC/bin/print-rc
+          # Confirmar permissoes corretas do lancador no ZIP, sem alterar o PC.
+          test -x iniciar.sh
+          test -x /tmp/Print-RC/iniciar.sh
           (cd /tmp && zip -qr "$GITHUB_WORKSPACE/Print-RC-Linux-x86_64.zip" Print-RC)
           unzip -l Print-RC-Linux-x86_64.zip | grep 'Print-RC/bin/print-rc'
       - name: Salvar pacote como artefato do GitHub
@@ -66,18 +69,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.3.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.4.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.3 >/dev/null 2>&1; then
-            echo 'Release v0.4.3 ja publicada: mantendo ZIP original.'
+          if gh release view v0.4.4 >/dev/null 2>&1; then
+            echo 'v0.4.4 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.4.3 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.3 - Captura e clipboard robustos' \
-            --notes 'Corrige duas capturas simultaneas com bloqueio X11 sem arquivos extras; Ctrl+V funciona se salvar PNG falhar; testa clipboard INCR grande; preserva configuracao no Enter; permite reinstalar sem sobrescrever prints; desinstalacao identifica somente processos desta instalacao. Executavel C++ estatico, Linux X11 x86_64.'
+          gh release create v0.4.4 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.4 - Tecla Print no Trinity corrigida' \
+            --notes 'Corrige inicializador sem bit +x e registra atalho via /bin/bash para suportar caminhos com espacos. Notifica khotkeysd via DCOP sem reiniciar o desktop, permite reparar somente atalhos legados com confirmacao e preserva prints, backup e desinstalacao seletiva. Linux X11 x86_64, binario C++ estatico.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
