@@ -63,8 +63,8 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view v0.4.2 >/dev/null 2>&1; then
-            echo 'A tag v0.4.2 ja existe. Nao substituirei um ZIP publicado.'
-            exit 1
+            echo 'A tag v0.4.2 ja existe: manter ZIP publicado sem sobrescrever.'
+            exit 0
           fi
           gh release create v0.4.2 Print-RC-Linux-x86_64.zip \
             --title 'Print RC v0.4.2 - Teclado e atalho seguros' \
