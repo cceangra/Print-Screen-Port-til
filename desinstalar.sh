@@ -18,6 +18,13 @@ esac
 
 STATE="$BASE/config/atalho-state.json"
 EXTERNAL="$HOME/.trinity/share/config/khotkeysrc"
+OPTIONS="$BASE/config/opcoes.conf"
+IMAGE_DIR=''
+if [[ -f "$OPTIONS" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        case "$line" in save_dir=*) IMAGE_DIR="${line#save_dir=}" ;; esac
+    done < "$OPTIONS"
+fi
 
 echo '========================================================'
 echo '          DESINSTALADOR PRINT RC'
@@ -35,10 +42,33 @@ if [[ -f "$STATE" ]]; then
 else
     echo '  NENHUM registrado por esta instalacao: nada sera alterado fora da pasta.'
 fi
-echo 'Capturas, configuracoes e backups dentro da pasta serao excluidos.'
+echo '---------------- IMAGENS SALVAS ----------------'
+if [[ -n "$IMAGE_DIR" ]]; then
+    echo "Pasta de imagens configurada: $IMAGE_DIR"
+    if [[ "$IMAGE_DIR" == "$BASE/"* ]]; then
+        echo 'INTERNA: dentro da pasta do aplicativo.'
+        echo 'A desinstalacao pode APAGAR estas imagens; exigirei confirmacao separada.'
+    else
+        echo 'EXTERNA: imagens e diretorio serao PRESERVADOS na desinstalacao.'
+    fi
+else
+    echo 'Nenhuma pasta de imagem registrada nesta instalacao.'
+fi
+echo '-----------------------------------------------'
 echo 'O Linux/X11, outros programas e dependencias do sistema NAO serao removidos.'
 echo '========================================================'
-read -r -p 'Para confirmar digite exatamente REMOVER: ' answer || true
+if [[ -n "$IMAGE_DIR" && "$IMAGE_DIR" == "$BASE/"* && -d "$IMAGE_DIR" ]]; then
+    if [[ -n "$(find "$IMAGE_DIR" -type f -print -quit 2>/dev/null)" ]]; then
+        echo 'ATENCAO: imagens reais estao dentro da pasta do aplicativo.'
+        echo 'Para preservar, COPIE/MOVA suas imagens para outra pasta antes de desinstalar.'
+        read -r -p 'Se deseja apagar essas imagens, digite APAGAR IMAGENS: ' imgs || true
+        [[ "$imgs" == 'APAGAR IMAGENS' ]] || {
+            echo 'Desinstalacao CANCELADA. Suas imagens foram preservadas.'
+            exit 1
+        }
+    fi
+fi
+read -r -p 'Para confirmar a desinstalacao digite exatamente REMOVER: ' answer || true
 [[ "$answer" == REMOVER ]] || { echo 'Cancelado. Nada removido.'; exit 1; }
 
 if [[ -f "$STATE" ]]; then
