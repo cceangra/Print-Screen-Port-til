@@ -82,7 +82,7 @@ if [[ "${1:-}" != '--continuar' ]]; then
             echo 'Somente novos arquivos do aplicativo serao acrescentados.'
             read -r -p 'Confirma reinstalacao sem sobrescrever arquivos? [s/N]: ' conf || true
             [[ "${conf,,}" == s || "${conf,,}" == sim ]] || {
-                echo 'Cancelado; nenhuma mudanca.'; exit 0;
+                echo 'Cancelado; nenhuma mudanca.'; exit 1;
             }
             for item in "${contents[@]}"; do
                 rel="${item#"$source_dir"/}"
