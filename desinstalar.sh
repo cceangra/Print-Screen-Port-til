@@ -57,16 +57,18 @@ fi
 echo '-----------------------------------------------'
 echo 'O Linux/X11, outros programas e dependencias do sistema NAO serao removidos.'
 echo '========================================================'
-if [[ -n "$IMAGE_DIR" && "$IMAGE_DIR" == "$BASE/"* && -d "$IMAGE_DIR" ]]; then
-    if [[ -n "$(find "$IMAGE_DIR" -type f -print -quit 2>/dev/null)" ]]; then
-        echo 'ATENCAO: imagens reais estao dentro da pasta do aplicativo.'
-        echo 'Para preservar, COPIE/MOVA suas imagens para outra pasta antes de desinstalar.'
-        read -r -p 'Se deseja apagar essas imagens, digite APAGAR IMAGENS: ' imgs || true
-        [[ "$imgs" == 'APAGAR IMAGENS' ]] || {
-            echo 'Desinstalacao CANCELADA. Suas imagens foram preservadas.'
-            exit 1
-        }
-    fi
+mapfile -d '' -t IMGFILES < <(find "$BASE" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' \) -print0)
+if (( ${#IMGFILES[@]} > 0 )); then
+    echo "ATENCAO: ${#IMGFILES[@]} imagem(ns) encontrada(s) na pasta INTEIRA do Print RC."
+    echo 'Inclui capturas anteriores, mesmo se a configuracao mudou.'
+    for ((i=0; i<${#IMGFILES[@]} && i<15; i++)); do printf '  %s\n' "${IMGFILES[i]}"; done
+    if (( ${#IMGFILES[@]} > 15 )); then echo "  e mais $(("${#IMGFILES[@]}"-15)) imagem(ns)"; fi
+    echo 'Cancele para mover suas imagens a um local seguro antes de desinstalar.'
+    read -r -p 'Para apagar essas imagens digite APAGAR IMAGENS: ' imgs || true
+    [[ "$imgs" == 'APAGAR IMAGENS' ]] || {
+        echo 'Desinstalacao CANCELADA. Suas imagens foram preservadas.'
+        exit 1
+    }
 fi
 read -r -p 'Para confirmar a desinstalacao digite exatamente REMOVER: ' answer || true
 [[ "$answer" == REMOVER ]] || { echo 'Cancelado. Nada removido.'; exit 1; }
