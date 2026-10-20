@@ -1,8 +1,8 @@
-# Print RC v0.4.3 — Linux X11 / pasta unica
+# Print RC v0.4.4 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
 
-## Correcoes de seguranca da v0.4.3
+## Correcoes de seguranca da v0.4.4
 
 - **Teclado ocupado:** caso outro aplicativo ja esteja capturando o teclado no X11, a janela de selecao fecha e o mouse e imediatamente liberado. O Print RC nao salva imagem nem fica aberto sem a tecla Esc. O fluxo e testado em servidor X11 virtual.
 - **Atalho Trinity:** verifica novamente `khotkeysrc` antes de escrever, inclusive depois das confirmacoes. Se outro processo alterar o arquivo, **cancela sem sobrescrever configuracoes de terceiros**. Reconhece `TDEHOME`, se definido. Na desinstalacao remove SOMENTE as secoes do proprio Print RC e tenta restaurar a tecla anterior.
@@ -12,7 +12,7 @@ Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, sel
 
 O inventario e apenas um pequeno arquivo de texto dentro da pasta do Print RC, nao um servico adicional. O app nao precisa de compilador ou apt para funcionar.
 
-## Novidades da v0.4.3
+## Novidades da v0.4.4
 
 - **Capturas simultaneas:** o Print RC usa uma selecao propria do X11 para nao permitir dois overlays de captura ao mesmo tempo. Esse bloqueio NAO cria arquivos, processos residentes nem servicos.
 - **Salvar + colar independentes:** se um diretorio ficar sem permissao ou o disco nao puder salvar o PNG, o Print RC ainda disponibiliza o print em Ctrl+V quando essa preferencia esta ativada. Uma mensagem de erro informa que o arquivo nao foi gravado.
@@ -23,6 +23,16 @@ O inventario e apenas um pequeno arquivo de texto dentro da pasta do Print RC, n
 - **Desempenho e visual:** em formatos X11 RGB888 de 32 bits, a conversao para PNG usa acesso direto a pixels, o desenho evita repintar tracos fora da area alterada e a barra fica menor em telas estreitas.
 
 **Nenhum pacote adicional e instalado no Q4OS.** Os testes usam ferramentas adicionais apenas no GitHub Actions, no ambiente de construcao.
+
+## Tecla Print Screen — corrigida na v0.4.4
+
+Na versao anterior, `iniciar.sh` podia ser distribuido sem permissao de execucao e o Trinity tentava executa-lo diretamente. **Isso impedia a tecla Print de funcionar, embora `bash iniciar.sh` funcionasse.** O novo pacote traz o arquivo com bit executavel, o instalador confere/corrige SOMENTE a permissao do arquivo interno e o atalho Trinity usa `/bin/bash 'caminho-com-espacos/iniciar.sh'`. Isso permite caminhos com espacos e funciona mesmo se um descompactador perder a permissao.
+
+Depois de registrar ou reparar a tecla, o instalador solicita ao servico **`khotkeysd`** a releitura da configuracao via DCOP, sem reiniciar ou encerrar processos do desktop. Se DCOP nao estiver disponivel, informa que pode ser necessario encerrar a sessao e entrar novamente. O usuario deve apertar a tecla Print para verificar; a resposta do servico nao comprova sozinha que o atalho realmente acionou o aplicativo.
+
+**Reparar uma instalacao anterior com o script atualizado:** no diretorio do aplicativo, execute `python3 scripts/atalho.py repair --base "$PWD" --launcher "$PWD/iniciar.sh"`. O reparo compara o registro interno com o arquivo do Trinity, mostra a mudanca proposta, pede consentimento e altera SOMENTE o comando do atalho Print RC. Preserva todos os prints, os atalhos de terceiros e o backup original. Esse comando exige que o `scripts/atalho.py` da versao 0.4.4 esteja realmente na pasta. Nao copie a nova versao por cima da antiga sem verificar conflitos e proteger os arquivos existentes.
+
+Em outros desktops X11, o capturador funciona, mas atalhos globais precisam ser associados pelo gerenciador de teclas do ambiente; Wayland nao e suportado por esta versao.
 
 ## BAIXAR: pacote pronto, sem `apt install`
 
@@ -114,7 +124,7 @@ bash iniciar.sh --show-config
 
 **Efeito na RAM:** com a copia para Ctrl+V desligada, o processo sai logo apos salvar o PNG; com a copia ligada, o processo pode continuar dormindo por ate 30 minutos para atender o clipboard X11.
 
-## Interface compacta Print RC 0.4.1
+## Interface compacta Print RC 0.4.4
 
 Ao pressionar **Print** (apos configurar o atalho no Trinity) ou iniciar manualmente, uma **barra curta de 280 px** aparece na parte superior da tela. Ela e desenhada em C++/Xlib e nao instala toolkit grafico pesado.
 
@@ -148,7 +158,7 @@ O capturador so inicia quando chamado; apos a selecao, a interface some. Em X11,
 
 ### Tecla Print Screen
 
-No Trinity, `instalar.sh` oferece registrar a tecla `Print` no atalho global. O instalador examina conflitos conhecidos em `~/.trinity/share/config/khotkeysrc`, apresenta acoes que encontrou e pede autorizacao antes de modificar qualquer registro. Os backups ficam em `Print-RC/backups/` e a desinstalacao tenta restaurar as alteracoes. Pode ser necessario sair e entrar novamente no Trinity.
+No Trinity, `instalar.sh` oferece registrar a tecla `Print` no atalho global. O instalador examina conflitos conhecidos no arquivo `khotkeysrc` de `TDEHOME`, informa as acoes detectadas e pede autorizacao antes de modificar qualquer registro. Ele executa o launcher por `/bin/bash`, notifica o `khotkeysd` para reler a configuracao e permite reparo de instalacoes anteriores. Os backups continuam dentro de `Print-RC/backups/` e a desinstalacao tenta restaurar alteracoes sem apagar imagens.
 
 A configuracao automatica do atalho usa `python3` **do sistema, se existir**; caso contrario, nao altera o atalho, e voce pode associa-lo manualmente pelo painel do desktop.
 
@@ -162,7 +172,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.3 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.4 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
