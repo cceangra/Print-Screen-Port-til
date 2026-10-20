@@ -15,11 +15,15 @@ make_source() {
     cp -a -- "$ROOT/instalar.sh" "$ROOT/iniciar.sh" "$ROOT/desinstalar.sh" \
       "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" \
       "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
+    # Simular ZIP que perdeu bit de execucao, como ocorreu no Q4OS.
+    chmod 644 "$d/iniciar.sh"
 }
 echo '[1] Mantendo a pasta extraida: nao instalar pacotes nem criar segunda copia'
 make_source "$TEMP/origem1"
 printf '\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
 test -x "$TEMP/origem1/bin/print-rc"
+test -x "$TEMP/origem1/iniciar.sh"
+test "$(stat -c %a "$TEMP/origem1/iniciar.sh")" = 744
 test -f "$TEMP/origem1/.print-rc-installation"
 test -f "$TEMP/origem1/config/opcoes.conf"
 test -f "$TEMP/origem1/config/arquivos-instalados.sha256"
@@ -35,6 +39,7 @@ FINAL="$TEMP/pasta final/Print RC"
 printf '%s\ns\n\n\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
 test ! -e "$TEMP/origem2"
 test -x "$FINAL/bin/print-rc"
+test -x "$FINAL/iniciar.sh"
 test -f "$FINAL/src/main.cpp"
 test -f "$FINAL/instalar.sh"
 test -f "$FINAL/configurar.sh"
@@ -69,6 +74,7 @@ printf 'CONFIG PESSOAL\n' > "$FINAL5/config/meus-dados.txt"
 printf '%s\ns\n\n\ns\nn\n' "$FINAL5" | bash "$TEMP/origem5/instalar.sh"
 test ! -e "$TEMP/origem5"
 test -x "$FINAL5/bin/print-rc"
+test -x "$FINAL5/iniciar.sh"
 test -f "$FINAL5/config/arquivos-instalados.sha256"
 test "$(cat "$FINAL5/capturas/print-antigo.png")" = 'PRINT IMPORTANTE'
 test "$(cat "$FINAL5/src/arquivo-pessoal.png")" = 'DESENHO PROPRIO'
