@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
+import subprocess
 import tempfile
 import uuid
 
@@ -107,6 +109,84 @@ def yes(question):
         return False
 
 
+def command_for_launcher(command):
+    return '/bin/bash ' + shlex.quote(str(command))
+
+def legacy_command_for_launcher(command):
+    return shlex.quote(str(command))
+
+def reload_trinity_shortcuts():
+    """Notificar somente o servico de atalhos; nao reiniciar desktop."""
+    dcop=shutil.which('dcop')
+    if dcop is None:
+        print('dcop nao encontrado: entre novamente na sessao Trinity para ativar.')
+        return False
+    try:
+        result=subprocess.run(
+            [dcop,'kded','khotkeysd','reread_configuration'],
+            capture_output=True,text=True,timeout=5
+        )
+    except (OSError,subprocess.TimeoutExpired) as exc:
+        print('Nao foi possivel recarregar atalhos:',exc)
+        return False
+    if result.returncode:
+        print('Trinity nao confirmou recarga:',(result.stderr or result.stdout).strip()[:200])
+        return False
+    print('khotkeysd notificado para reler a tecla Print nesta sessao.')
+    return True
+
+def repair(base, command):
+    """Atualizar SOMENTE o comando proprio, respeitando mudancas de terceiros."""
+    statepath=base/'config/atalho-state.json'
+    try:
+        state=json.loads(statepath.read_text(encoding='utf-8'))
+    except (OSError,ValueError) as exc:
+        print('Registro de atalho indisponivel:',exc)
+        return False
+    if state.get('status')!='installed' or state.get('file')!=str(FILE):
+        print('Registro nao pertence a uma integracao ativa neste Trinity.')
+        return False
+    if state.get('launcher')!=str(command):
+        print('Inicializador registrado e diferente. Nada alterado.')
+        return False
+    try:
+        original=safe_current_text()
+    except (OSError,UnicodeError,RuntimeError) as exc:
+        print('Nao foi possivel ler atalho com seguranca:',exc)
+        return False
+    sections=parse(original)
+    root=state.get('group')
+    if not isinstance(root,str) or get_value(sections.get(root,''),'Name')!=NAME:
+        print('Atalho original ausente ou alterado por terceiros.')
+        return False
+    action_section=root+'Actions0'
+    block=sections.get(action_section,'')
+    current=get_value(block,'CommandURL')
+    desired=command_for_launcher(command)
+    if current==desired:
+        print('Atalho Print RC ja usa /bin/bash.')
+        reload_trinity_shortcuts()
+        return True
+    if current!=legacy_command_for_launcher(command):
+        print('Comando do atalho foi modificado pelo usuario. Nada alterado.')
+        return False
+    print('REPARAR SOMENTE O ATALHO PRINT RC')
+    print('Arquivo a modificar:',FILE)
+    print('Antes:',current)
+    print('Depois:',desired)
+    print('O atalho original e todos os backups permanecerao preservados.')
+    if not yes('Confirma reparo deste comando?'):
+        print('Reparo cancelado.')
+        return False
+    if not check_unchanged(original): return False
+    updated=replace_block(original,action_section,set_value(block,'CommandURL',desired))
+    if not check_unchanged(original): return False
+    write_atomic(FILE,updated)
+    print('Atalho proprio reparado sem alterar outras secoes.')
+    reload_trinity_shortcuts()
+    print('Pressione Print para testar.')
+    return True
+
 def install(base, command):
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
@@ -119,11 +199,12 @@ def install(base, command):
         except (ValueError,OSError):
             print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
             return
-        print('Atalho ja gerenciado por esta instalacao. Nenhuma alteracao adicional.')
+        print('Atalho ja gerenciado; verificando se precisa de reparo.')
+        repair(base,command)
         return
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
         print('Desktop diferente de Trinity: configure manualmente a tecla Print para:')
-        print(shlex.quote(str(command)))
+        print(command_for_launcher(command))
         return
     # O caminho externo e informado ANTES de qualquer autorizacao.
     # Nao criar ~/.trinity nem seus subdiretorios: isso geraria residuos externos.
@@ -184,7 +265,7 @@ def install(base, command):
     else:
         updated='[Data]\nDataCount='+str(index)+'\n\n'+updated
     # Usar o caminho sem interpretacao de shell quando nao ha espacos especiais.
-    action=shlex.quote(str(command))
+    action=command_for_launcher(command)
     created=(
         f'[{root}]\nComment=Captura por area com o Print RC\nEnabled=true\n'
         f'Name={NAME}\nType=SIMPLE_ACTION_DATA\n\n'
@@ -224,7 +305,8 @@ def install(base, command):
     print('\nOPERACAO EXTERNA REALIZADA:', 'CRIADO' if not existed else 'MODIFICADO', FILE)
     print('Backup interno:', backup)
     print('Na desinstalacao o proprio script vai desfazer a integracao.')
-    print('Encerre a sessao e entre novamente para carregar.')
+    reload_trinity_shortcuts()
+    print('Pressione Print para testar. Se preciso, saia e entre na sessao.')
     print('Nao reinicie nem mate processos do desktop a forca.')
 
 
@@ -263,8 +345,8 @@ def remove(base):
     ours_action=sections.get(root+'Actions0','')
     launcher=state.get('launcher')
     if launcher:
-        expected=shlex.quote(launcher)
-        if get_value(ours_action,'CommandURL')!=expected:
+        allowed={command_for_launcher(launcher),legacy_command_for_launcher(launcher)}
+        if get_value(ours_action,'CommandURL') not in allowed:
             print('Comando de inicializacao mudou; nenhuma secao sera removida.')
             return False
     elif 'print-rc' not in ours_action.casefold() and 'iniciar.sh' not in ours_action:
@@ -314,13 +396,14 @@ def remove(base):
         write_atomic(path,content)
         print('ARQUIVO EXTERNO ORIGINAL: MANTIDO. Atalho Print RC removido:',path)
     statepath.unlink()
-    print('Integracao removida. Reinicie a sessao Trinity para aplicar.')
+    reload_trinity_shortcuts()
+    print('Integracao removida. Saia e entre no Trinity se necessario.')
     return True
 
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('command',choices=('install','remove','inspect'))
+    parser.add_argument('command',choices=('install','remove','repair','inspect'))
     parser.add_argument('--base',required=True,type=Path)
     parser.add_argument('--launcher',type=Path)
     args=parser.parse_args()
@@ -333,6 +416,9 @@ def main():
     elif args.command=='install':
         if args.launcher is None: parser.error('--launcher obrigatorio')
         install(base,args.launcher.resolve())
+    elif args.command=='repair':
+        if args.launcher is None: parser.error('--launcher obrigatorio')
+        if not repair(base,args.launcher.resolve()): raise SystemExit(1)
     else:
         if not remove(base): raise SystemExit(1)
 
