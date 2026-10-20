@@ -1,4 +1,4 @@
-# Print RC v0.3.0 — Linux X11 / pasta unica
+# Print RC v0.4.0 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
 
@@ -91,6 +91,26 @@ bash iniciar.sh --show-config
 ```
 
 **Efeito na RAM:** com a copia para Ctrl+V desligada, o processo sai logo apos salvar o PNG; com a copia ligada, o processo pode continuar dormindo por ate 30 minutos para atender o clipboard X11.
+
+## Interface compacta Print RC 0.4
+
+Ao pressionar **Print** (apos configurar o atalho no Trinity) ou iniciar manualmente, uma **barra curta de 280 px** aparece na parte superior da tela. Ela e desenhada em C++/Xlib e nao instala toolkit grafico pesado.
+
+| Botao | Funcao |
+|---|---|
+| **AREA** | Arrastar mouse para selecionar uma parte da tela, com fundo escurecido e borda azul |
+| **TELA** | **Um clique** e ja salva a captura de tela inteira |
+| **LAPIS** | Desenhar tracos azuis com o mouse sobre a tela, ANTES de selecionar |
+| **DESF** | Remover o ultimo traco desenhado |
+| **X** | Fechar/cancelar sem salvar |
+
+**Exemplo para desenhar e capturar:** aperte Print, clique em **LAPIS**, desenhe com o mouse, clique em **AREA** e arraste para escolher uma regiao; os tracos dentro da selecao sao incluidos no PNG. Como alternativa, clique em **TELA** apos desenhar e grave a tela inteira anotada. **Esc** ou clique direito cancela.
+
+A tela fora da selecao fica escurecida, e a parte escolhida volta ao brilho original. O formato salvo continua PNG, com copia automatica para **Ctrl+V** apenas quando essa opcao foi ativada em configurar.sh.
+
+**Tempo limite:** a interface de selecao fecha sozinha apos 120 segundos sem concluir a captura, e nao deixa overlay agarrando teclado e mouse. Se Ctrl+V estiver ativado, o processo pode permanecer adormecido ate 30 minutos para disponibilizar o PNG no clipboard; sem Ctrl+V, encerra apos salvar.
+
+**Otimizacao:** em tela X11 convencional de 32 bits, escurecimento trabalha diretamente nos bytes da imagem; outras combinacoes usam o codigo generico. Existe teste de UI no Xvfb (tela virtual) para clicar nos botoes TELA e LAPIS/AREA e conferir que o desenho aparece no PNG. Ainda e recomendado testar no Trinity fisico, especialmente jogos fullscreen.
 
 ## Usar
 
