@@ -47,14 +47,64 @@ if [[ "${1:-}" != '--continuar' ]]; then
             echo 'Destino amplo demais. Selecione uma subpasta exclusiva.'; exit 2;;
     esac
     if [[ "$dest" != "$source_dir" ]]; then
-        [[ ! -e "$dest" && ! -L "$dest" ]] || {
-            echo "A pasta de destino JA EXISTE: $dest"
-            echo 'Nao sobrescrevo dados. Escolha uma pasta ainda inexistente.'
-            exit 2
-        }
         case "$dest/" in "$source_dir/"*)
             echo 'O destino nao pode estar dentro da pasta original.'; exit 2;;
         esac
+        case "$source_dir/" in "$dest/"*)
+            echo 'A pasta extraida nao pode estar dentro do destino escolhido.'; exit 2;;
+        esac
+        if [[ -e "$dest" || -L "$dest" ]]; then
+            [[ -d "$dest" && ! -L "$dest" ]] || {
+                echo 'Destino ja existe e nao e uma pasta comum. Nenhuma mudanca.'; exit 2;
+            }
+            # Reinstalacao apos desinstalar: o destino pode conter capturas pessoais.
+            # Verificar TODOS os caminhos antes de mover qualquer arquivo.
+            mapfile -d '' -t contents < <(find "$source_dir" -mindepth 1 -print0)
+            for item in "${contents[@]}"; do
+                rel="${item#"$source_dir"/}"
+                target_path="$dest/$rel"
+                if [[ -d "$item" && ! -L "$item" ]]; then
+                    if [[ -e "$target_path" || -L "$target_path" ]]; then
+                        [[ -d "$target_path" && ! -L "$target_path" ]] || {
+                            echo "CONFLITO: $target_path (arquivo do usuario preservado)."
+                            echo 'Reinstalacao cancelada sem mover arquivos.'; exit 2;
+                        }
+                    fi
+                else
+                    if [[ -e "$target_path" || -L "$target_path" ]]; then
+                        echo "CONFLITO: $target_path (arquivo existente preservado)."
+                        echo 'Reinstalacao cancelada sem mover arquivos.'; exit 2;
+                    fi
+                fi
+            done
+            echo "REINSTALAR em pasta EXISTENTE preservando dados: $dest"
+            echo 'O Print RC NAO sobrescrevera, movera ou excluira capturas anteriores.'
+            echo 'Somente novos arquivos do aplicativo serao acrescentados.'
+            read -r -p 'Confirma reinstalacao sem sobrescrever arquivos? [s/N]: ' conf || true
+            [[ "${conf,,}" == s || "${conf,,}" == sim ]] || {
+                echo 'Cancelado; nenhuma mudanca.'; exit 0;
+            }
+            for item in "${contents[@]}"; do
+                rel="${item#"$source_dir"/}"
+                target_path="$dest/$rel"
+                if [[ -d "$item" && ! -L "$item" ]]; then
+                    mkdir -p -- "$target_path"
+                else
+                    if [[ -e "$target_path" || -L "$target_path" ]]; then
+                        echo "CONFLITO SURGIU DURANTE A REINSTALACAO: $target_path"
+                        echo 'Processo interrompido. Nenhum arquivo existente foi sobrescrito.'
+                        exit 2
+                    fi
+                    mv -n -- "$item" "$target_path"
+                    [[ ! -e "$item" && ! -L "$item" ]] || {
+                        echo "Falha ao mover $item. Arquivos pessoais continuam preservados."
+                        exit 2
+                    }
+                fi
+            done
+            find "$source_dir" -depth -type d -empty -delete
+            exec bash "$dest/instalar.sh" --continuar
+        fi
         echo
         echo "MOVER A PASTA INTEIRA: $source_dir"
         echo "PARA: $dest"
