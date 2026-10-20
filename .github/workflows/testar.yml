@@ -62,6 +62,11 @@ jobs:
           test -x /tmp/Print-RC/iniciar.sh
           (cd /tmp && zip -qr "$GITHUB_WORKSPACE/Print-RC-Linux-x86_64.zip" Print-RC)
           unzip -l Print-RC-Linux-x86_64.zip | grep 'Print-RC/bin/print-rc'
+          mkdir -p "$RUNNER_TEMP/verificar-zip"
+          unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
+          test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
+          test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.4'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
