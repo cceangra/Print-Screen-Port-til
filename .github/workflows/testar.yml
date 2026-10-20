@@ -15,6 +15,10 @@ jobs:
         run: make test
       - name: Testar integracao conservadora do Trinity (ambiente simulado)
         run: python3 -m unittest discover -s tests -v
+      - name: Conferir sintaxe do instalador
+        run: bash -n instalar.sh && bash -n desinstalar.sh && bash -n iniciar.sh
+      - name: Testar pasta unica e mudanca de destino
+        run: bash tests/test_instalacao.sh
       - name: Disponibilizar binario experimental Linux x86_64
         uses: actions/upload-artifact@v4
         with:
