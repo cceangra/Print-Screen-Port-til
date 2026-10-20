@@ -8,9 +8,9 @@ STATIC_LIBS := $(shell pkg-config --static --libs $(PKGS))
 .PHONY: all portable clean test
 all: bin/print-rc
 
-bin/print-rc: src/main.cpp
+bin/print-rc: src/main.cpp src/settings.hpp
 	@mkdir -p bin
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) src/main.cpp -o $@ $(LDLIBS)
 
 # Usado na distribuicao; nenhuma biblioteca dinamica exigida pelo ELF.
 # O servidor grafico X11 e o kernel continuam sendo requisitos do sistema.
