@@ -90,7 +90,27 @@ def install(base, command):
         print('Desktop diferente de Trinity: configure manualmente a tecla Print para:')
         print(shlex.quote(str(command)))
         return
-    original=FILE.read_text(encoding='utf-8') if FILE.exists() else ''
+    # O caminho externo e informado ANTES de qualquer autorizacao.
+    # Nao criar ~/.trinity nem seus subdiretorios: isso geraria residuos externos.
+    if not FILE.parent.is_dir():
+        print('Pasta de configuracao do Trinity nao existe:', FILE.parent)
+        print('Registro automatico cancelado SEM criar arquivos ou diretorios externos.')
+        return
+    existed=FILE.exists()
+    if existed and (not FILE.is_file() or FILE.is_symlink()):
+        print('O caminho do atalho nao e arquivo regular seguro:', FILE)
+        print('Registro cancelado.')
+        return
+    original=FILE.read_text(encoding='utf-8') if existed else ''
+    print('\n'+'='*60)
+    print('INTEGRACAO EXTERNA — LISTA COMPLETA DE ARQUIVOS')
+    print(('MODIFICAR arquivo existente: ' if existed else 'CRIAR arquivo novo: ')+str(FILE))
+    print('Arquivos novos fora da pasta: '+('NENHUM' if existed else str(FILE)))
+    print('Outros arquivos externos modificados: NENHUM')
+    print('Backup e registro de alteracoes: DENTRO de '+str(base))
+    print('Na desinstalacao: '+('remover somente o atalho Print RC e restaurar teclas anteriores' if existed else 'APAGAR o arquivo criado, se nao tiver dados adicionados por terceiros'))
+    print('Nada sera alterado sem confirmacao expressa.')
+    print('='*60)
     entries=conflicts(original)
     if entries:
         print('\nATENCAO: atalhos que usam Print no arquivo do Trinity:')
@@ -101,8 +121,6 @@ def install(base, command):
             return
     else:
         print('Nenhum atalho Print reconhecido em khotkeysrc.')
-    print('Arquivo externo que sera editado:', FILE)
-    print('Backup integral dentro da pasta Print RC: backups/khotkeysrc.antes')
     print('AVISO: outros atalhos fora deste arquivo podem nao ser identificados.')
     if not yes('Registrar a tecla Print para executar o Print RC?'):
         print('Atalho nao alterado.')
@@ -143,13 +161,16 @@ def install(base, command):
     os.chmod(backup,0o600)
     state={
         'file':str(FILE),'group':root,'conflicts':entries,
-        'created_file':not FILE.exists(),
+        'created_file':not existed,
         'original_datacount':get_value(parse(original).get('Data',''),'DataCount') if 'Data' in parse(original) else None,
     }
     write_atomic(FILE,updated)
     statepath.write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     os.chmod(statepath,0o600)
-    print('\nAtalho gravado no Trinity. Encerre a sessao e entre novamente para carregar.')
+    print('\nOPERACAO EXTERNA REALIZADA:', 'CRIADO' if not existed else 'MODIFICADO', FILE)
+    print('Backup interno:', backup)
+    print('Na desinstalacao o proprio script vai desfazer a integracao.')
+    print('Encerre a sessao e entre novamente para carregar.')
     print('Nao reinicie nem mate processos do desktop a forca.')
 
 
@@ -167,6 +188,9 @@ def remove(base):
         print('Arquivo Trinity ausente; integracao ja nao existe.')
         statepath.unlink()
         return True
+    if path.is_symlink() or not path.is_file():
+        print('Arquivo externo inesperado (nao e arquivo regular). Nada removido.')
+        return False
     content=path.read_text(encoding='utf-8')
     sections=parse(content)
     root=state['group']
@@ -202,15 +226,21 @@ def remove(base):
         data=sections['Data']
         # Nao reduz contagens se outros atalhos tiverem sido adicionados depois.
         content=replace_block(content,'Data',set_value(data,'DataCount',max(indices,default=0)))
-    if state['created_file'] and not indices:
-        # Somente remova o arquivo se ele contiver apenas Data/DataCount.
+    if state['created_file']:
+        # O arquivo nao existia antes da instalacao: apaga-lo por completo.
+        # Se alguem acrescentou dados, NAO remover nem modificar: preservar o backup.
         remaining=content.strip()
-        if re.fullmatch(r'\[Data\]\s*DataCount=0\s*',remaining):
-            path.unlink()
-        else:
-            write_atomic(path,content)
+        if not re.fullmatch(r'\[Data\]\s*DataCount=0\s*',remaining):
+            print('NAO FOI POSSIVEL EXCLUIR COM SEGURANCA:', path)
+            print('O arquivo foi criado pelo Print RC, mas recebeu outras configuracoes.')
+            print('Nada foi apagado. A desinstalacao manterá a pasta e os backups.')
+            return False
+        path.unlink()
+        print('ARQUIVO EXTERNO CRIADO PELO PRINT RC: EXCLUIDO:',path)
     else:
+        # O arquivo ja existia: nunca apaga-lo.
         write_atomic(path,content)
+        print('ARQUIVO EXTERNO ORIGINAL: MANTIDO. Atalho Print RC removido:',path)
     statepath.unlink()
     print('Integracao removida. Reinicie a sessao Trinity para aplicar.')
     return True
