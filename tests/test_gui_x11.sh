@@ -28,6 +28,15 @@ echo '[1] Captura de TELA inteira por um clique'
 "$ROOT/bin/print-rc" > "$TEMP/log" 2>&1 &
 PID=$!
 sleep 0.8
+echo '[0] Segunda captura simultanea nao deve roubar teclado/mouse'
+if "$ROOT/bin/print-rc" > "$TEMP/segunda.log" 2>&1; then
+  echo 'ERRO: segunda instancia aceitou captura simultanea.'
+  exit 1
+else
+  status=$?
+  test "$status" -eq 7 || { echo "Segundo print retornou codigo inesperado: $status"; exit 1; }
+fi
+grep -q 'ja existe uma captura em andamento' "$TEMP/segunda.log"
 # Em 1024x768: barra 280px centrada em x=372, botao TELA em x=458.
 xdotool mousemove --sync 458 35 click 1
 finished
