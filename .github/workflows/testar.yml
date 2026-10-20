@@ -1,26 +1,69 @@
-name: Compilar e testar Print RC
+name: Compilar e empacotar Print RC portatil
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   compilar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Instalar bibliotecas de compilacao
-        run: sudo apt-get update && sudo apt-get install -y g++ make pkg-config libx11-dev libpng-dev python3
-      - name: Compilar e verificar PNG
-        run: make test
-      - name: Testar integracao conservadora do Trinity (ambiente simulado)
+      - name: Bibliotecas necessarias somente no ambiente de construcao do GitHub
+        run: sudo apt-get update && sudo apt-get install -y g++ make binutils file pkg-config libx11-dev libpng-dev python3 zip
+      - name: Compilar executavel estatico x86_64
+        run: |
+          make portable
+          ./bin/print-rc --self-test
+          ./bin/print-rc --version
+          test "$(uname -m)" = x86_64
+          ! readelf -l bin/print-rc | grep -q INTERP
+          file bin/print-rc | grep -q 'statically linked'
+      - name: Testar atalhos do Trinity em ambiente simulado
         run: python3 -m unittest discover -s tests -v
-      - name: Conferir sintaxe do instalador
-        run: bash -n instalar.sh && bash -n desinstalar.sh && bash -n iniciar.sh
-      - name: Testar pasta unica e mudanca de destino
-        run: bash tests/test_instalacao.sh
-      - name: Disponibilizar binario experimental Linux x86_64
+      - name: Testar instalacao em pasta unica sem pacotes
+        run: |
+          bash -n instalar.sh desinstalar.sh iniciar.sh
+          bash tests/test_instalacao.sh
+      - name: Criar pacote em ZIP com um unico diretorio e executavel incluido
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/Print-RC/bin
+          cp -a Makefile LICENSE README.md instalar.sh iniciar.sh desinstalar.sh src scripts /tmp/Print-RC/
+          cp bin/print-rc /tmp/Print-RC/bin/print-rc
+          (cd /tmp && zip -qr "$GITHUB_WORKSPACE/Print-RC-Linux-x86_64.zip" Print-RC)
+          unzip -l Print-RC-Linux-x86_64.zip | grep 'Print-RC/bin/print-rc'
+      - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: print-rc-linux-x86_64
-          path: bin/print-rc
+          name: Print-RC-Linux-x86_64
+          path: Print-RC-Linux-x86_64.zip
+          if-no-files-found: error
+      - name: Publicar o ZIP na aba Releases
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.2.0 >/dev/null 2>&1; then
+            gh release upload v0.2.0 Print-RC-Linux-x86_64.zip --clobber
+          else
+            gh release create v0.2.0 Print-RC-Linux-x86_64.zip \
+              --title 'Print RC v0.2.0 - Linux X11 x86_64 portatil' \
+              --notes 'ZIP com um unico diretorio Print-RC e executavel C++ estatico. Descompactar e executar bash instalar.sh. Nao requer apt, compilador ou instalacao de bibliotecas do aplicativo. Requer Linux x86_64 com X11; atalhos globais dependem do Trinity.'
+          fi
+      - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f -- bin/print-rc
+          if ! git diff --cached --quiet; then
+            git commit -m 'Empacotar executavel estatico no repositorio [skip ci]'
+            git push origin HEAD:main
+          fi
