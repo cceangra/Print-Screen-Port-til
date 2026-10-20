@@ -84,6 +84,15 @@ def yes(question):
 def install(base, command):
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
+        try:
+            old_state=json.loads(statepath.read_text(encoding='utf-8'))
+            if old_state.get('status')=='prepared':
+                print('Existe registro de instalacao interrompida; nao farei nova alteracao.')
+                print('Execute desinstalar.sh para recuperar o atalho com seguranca.')
+                return
+        except (ValueError,OSError):
+            print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
+            return
         print('Atalho ja gerenciado por esta instalacao. Nenhuma alteracao adicional.')
         return
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
@@ -164,9 +173,13 @@ def install(base, command):
         'created_file':not existed,
         'original_datacount':get_value(parse(original).get('Data',''),'DataCount') if 'Data' in parse(original) else None,
     }
+    # Gravar PRIMEIRO o registro de recuperacao dentro da pasta.
+    # Se a sessao cair na metade da escrita externa, o desinstalador sabera reverter.
+    state['status']='prepared'
+    write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
     write_atomic(FILE,updated)
-    statepath.write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    os.chmod(statepath,0o600)
+    state['status']='installed'
+    write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
     print('\nOPERACAO EXTERNA REALIZADA:', 'CRIADO' if not existed else 'MODIFICADO', FILE)
     print('Backup interno:', backup)
     print('Na desinstalacao o proprio script vai desfazer a integracao.')
@@ -196,7 +209,15 @@ def remove(base):
     root=state['group']
     ours=sections.get(root,'')
     if not ours or get_value(ours,'Name')!=NAME:
-        print('Atalho mudou desde a instalacao. Restaure manualmente usando backups/khotkeysrc.antes.')
+        if state.get('status')=='prepared':
+            # Nenhuma alteracao externa ocorreu: descartar apenas o estado interno.
+            backup=base/'backups/khotkeysrc.antes'
+            if backup.exists() and content==backup.read_text(encoding='utf-8'):
+                print('Instalacao anterior parou ANTES de modificar o atalho externo.')
+                statepath.unlink()
+                return True
+        print('Atalho mudou ou houve interrupcao ambigua.')
+        print('Nada externo foi apagado. Verifique backups/khotkeysrc.antes.')
         return False
     ours_action=sections.get(root+'Actions0','')
     if 'print-rc' not in ours_action.casefold() and 'iniciar.sh' not in ours_action:
