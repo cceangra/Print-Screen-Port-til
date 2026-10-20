@@ -18,7 +18,7 @@ make_source() {
 }
 echo '[1] Mantendo a pasta extraida: nao instalar pacotes nem criar segunda copia'
 make_source "$TEMP/origem1"
-printf '\n\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
+printf '\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
 test -x "$TEMP/origem1/bin/print-rc"
 test -f "$TEMP/origem1/.print-rc-installation"
 test -f "$TEMP/origem1/config/opcoes.conf"
@@ -29,7 +29,7 @@ test "$(sed -n '2p' "$TEMP/origem1/.print-rc-installation")" = "$TEMP/origem1"
 echo '[2] Movendo a pasta inteira para um destino com espacos'
 make_source "$TEMP/origem2"
 FINAL="$TEMP/pasta final/Print RC"
-printf '%s\ns\n\n\n\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
+printf '%s\ns\n\n\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
 test ! -e "$TEMP/origem2"
 test -x "$FINAL/bin/print-rc"
 test -f "$FINAL/src/main.cpp"
