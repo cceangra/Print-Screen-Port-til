@@ -1,8 +1,8 @@
-# Print RC v0.4.2 — Linux X11 / pasta unica
+# Print RC v0.4.3 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
 
-## Correcoes de seguranca da v0.4.2
+## Correcoes de seguranca da v0.4.3
 
 - **Teclado ocupado:** caso outro aplicativo ja esteja capturando o teclado no X11, a janela de selecao fecha e o mouse e imediatamente liberado. O Print RC nao salva imagem nem fica aberto sem a tecla Esc. O fluxo e testado em servidor X11 virtual.
 - **Atalho Trinity:** verifica novamente `khotkeysrc` antes de escrever, inclusive depois das confirmacoes. Se outro processo alterar o arquivo, **cancela sem sobrescrever configuracoes de terceiros**. Reconhece `TDEHOME`, se definido. Na desinstalacao remove SOMENTE as secoes do proprio Print RC e tenta restaurar a tecla anterior.
@@ -11,6 +11,18 @@ Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, sel
 - **Instalacoes antigas:** se a pasta antiga **nao** tem inventario SHA-256, a desinstalacao pode restaurar a tecla registrada, mas se recusa a apagar os arquivos locais sem prova da sua origem. Isso evita excluir arquivos pessoais de instalacoes anteriores.
 
 O inventario e apenas um pequeno arquivo de texto dentro da pasta do Print RC, nao um servico adicional. O app nao precisa de compilador ou apt para funcionar.
+
+## Novidades da v0.4.3
+
+- **Capturas simultaneas:** o Print RC usa uma selecao propria do X11 para nao permitir dois overlays de captura ao mesmo tempo. Esse bloqueio NAO cria arquivos, processos residentes nem servicos.
+- **Salvar + colar independentes:** se um diretorio ficar sem permissao ou o disco nao puder salvar o PNG, o Print RC ainda disponibiliza o print em Ctrl+V quando essa preferencia esta ativada. Uma mensagem de erro informa que o arquivo nao foi gravado.
+- **Clipboard grande:** testes reais com xclip no servidor grafico X11 virtual, incluindo transferencias incrementais INCR de imagens maiores que 64 KiB, sem adicionar xclip como dependencia no notebook.
+- **Reinstalacao preservando prints:** o instalador permite escolher uma pasta existente com imagens antigas. Verifica antecipadamente todos os caminhos, nao sobrescreve arquivos pessoais e pede confirmacao antes de incorporar os arquivos novos. Arquivos existentes em conflito impedem a reinstalacao.
+- **Desinstalacao com clipboard ativo:** apenas processos cujo executavel corresponde exatamente ao Print RC daquela pasta sao encerrados com SIGTERM, apos confirmacao. Isso encerra o clipboard que o aplicativo estivesse servindo; prints JA SALVOS nao sao apagados.
+- **Configurar:** pressionar Enter mantem a pasta de imagens e a preferencia de Ctrl+V anteriores; a nova instalacao ainda tem `capturas/` como padrao.
+- **Desempenho e visual:** em formatos X11 RGB888 de 32 bits, a conversao para PNG usa acesso direto a pixels, o desenho evita repintar tracos fora da area alterada e a barra fica menor em telas estreitas.
+
+**Nenhum pacote adicional e instalado no Q4OS.** Os testes usam ferramentas adicionais apenas no GitHub Actions, no ambiente de construcao.
 
 ## BAIXAR: pacote pronto, sem `apt install`
 
@@ -38,7 +50,7 @@ Escolha:
 - **Enter**: manter tudo nesta unica pasta;
 - Digitar `/home/rc/Apps/Print-RC`: mover **a propria pasta inteira** para esse destino, desde que ele nao exista.
 
-O instalador NAO cria segunda copia, nao instala pacotes e nao sobrescreve pastas existentes. Pergunta separadamente se deseja registrar o atalho Print do Trinity, com confirmacao e backup.
+O instalador NAO cria segunda copia, nao instala pacotes e nunca sobrescreve arquivos existentes. Pode mesclar de forma conservadora a nova instalacao em uma pasta que ainda contenha prints preservados, com confirmacao. Se houver conflito com arquivo pessoal, cancela sem sobrescrever. Pergunta separadamente se deseja registrar o atalho Print do Trinity, com confirmacao e backup.
 
 **O ZIP original baixado pelo navegador e outro arquivo.** Se quiser 100% dos arquivos do download dentro da mesma pasta, guarde esse ZIP dentro de `Print-RC/` ou apague-o manualmente apos extrair. O instalador nao apaga documentos do usuario sem autorizacao.
 
@@ -150,7 +162,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.2 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.3 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
