@@ -80,6 +80,16 @@ if [[ -f "$dest/.print-rc-installation" ]]; then
 fi
 
 mkdir -p -- "$dest/config" "$dest/backups" "$dest/capturas"
+echo
+echo 'A seguir, informe o CAMINHO COMPLETO da pasta das imagens'
+echo 'e escolha se cada captura tambem deve ser copiada para Ctrl+V.'
+echo 'As preferencias ficam dentro da pasta Print RC.'
+if ! bash "$dest/configurar.sh"; then
+    echo 'Configuracao cancelada. Nenhum atalho foi modificado.'
+    echo "A pasta continua em: $dest"
+    echo "Para configurar posteriormente: bash \"$dest/configurar.sh\""
+    exit 1
+fi
 printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"
 
 echo
