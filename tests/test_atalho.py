@@ -217,6 +217,96 @@ class ShortcutTests(unittest.TestCase):
                 if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
                 else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
 
+    def test_comando_funciona_com_espacos_sem_permissao_executavel(self):
+        import shlex
+        import subprocess
+        with tempfile.TemporaryDirectory() as temporary:
+            base=Path(temporary)/'pasta com espacos/Print RC'
+            base.mkdir(parents=True)
+            script=base/'iniciar.sh'
+            script.write_text('#!/bin/bash\necho TESTE-ATALHO-OK\n',encoding='utf-8')
+            script.chmod(0o644)
+            self.assertFalse(os.access(script,os.X_OK))
+            command=atalho.command_for_launcher(script)
+            self.assertEqual(
+                shlex.split(command), ['/bin/bash',str(script)]
+            )
+            result=subprocess.run(shlex.split(command),capture_output=True,text=True,check=True)
+            self.assertIn('TESTE-ATALHO-OK',result.stdout)
+
+    def test_reparar_atribuicao_antiga_preserva_atalhos_e_backup(self):
+        import json
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                base=tmp/'pasta com espacos/app'
+                command=base/'iniciar.sh'
+                with patch.object(atalho,'reload_trinity_shortcuts',return_value=True):
+                    atalho.install(base,command)
+                    state=json.loads((base/'config/atalho-state.json').read_text())
+                    section=state['group']+'Actions0'
+                    content=atalho.FILE.read_text()
+                    block=atalho.parse(content)[section]
+                    original_command=atalho.legacy_command_for_launcher(command)
+                    current_command=atalho.command_for_launcher(command)
+                    self.assertIn(current_command,block)
+                    content=atalho.replace_block(
+                        content,section,atalho.set_value(block,'CommandURL',original_command)
+                    )
+                    atalho.FILE.write_text(content)
+                    backup=(base/'backups/khotkeysrc.antes').read_text()
+                    self.assertTrue(atalho.repair(base,command))
+                    latest=atalho.FILE.read_text()
+                    self.assertIn('CommandURL='+current_command,latest)
+                    self.assertIn('NaoAlterar=ok',latest)
+                    self.assertEqual((base/'backups/khotkeysrc.antes').read_text(),backup)
+                    self.assertEqual(json.loads((base/'config/atalho-state.json').read_text()),state)
+                    self.assertTrue(atalho.remove(base))
+                    self.assertEqual(atalho.get_value(
+                        atalho.parse(atalho.FILE.read_text())['Data_1Triggers0'],'Key'
+                    ),'Print')
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
+    def test_reparo_recusa_comando_modificado_por_terceiros(self):
+        from unittest.mock import patch
+        import json
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                base=tmp/'app'
+                with patch.object(atalho,'reload_trinity_shortcuts',return_value=True):
+                    atalho.install(base,base/'iniciar.sh')
+                    state=json.loads((base/'config/atalho-state.json').read_text())
+                    key=state['group']+'Actions0'
+                    data=atalho.FILE.read_text()
+                    block=atalho.parse(data)[key]
+                    altered=atalho.replace_block(data,key,atalho.set_value(block,'CommandURL','app-de-outra-pessoa'))
+                    atalho.FILE.write_text(altered)
+                    self.assertFalse(atalho.repair(base,base/'iniciar.sh'))
+                    self.assertEqual(atalho.FILE.read_text(),altered)
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
     def test_no_conflict(self):
         self.assertEqual(atalho.conflicts('[Data_1Triggers0]\nKey=Shift+Print\n'),[])
         self.assertEqual(len(atalho.conflicts('[Data_1Triggers0]\nKey=Print\n')),1)
