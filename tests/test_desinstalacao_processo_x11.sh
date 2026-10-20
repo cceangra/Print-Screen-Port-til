@@ -17,6 +17,7 @@ printf 'PRINT-RC\n%s\n' "$APP" > "$APP/.print-rc-installation"
 printf 'save_dir=%s\ncopy_clipboard=1\n' "$APP/capturas" > "$APP/config/opcoes.conf"
 source "$ROOT/scripts/inventario.sh"
 print_rc_criar_inventario "$APP"
+export PRINT_RC_CONFIG="$APP/config/opcoes.conf"
 "$APP/bin/print-rc" > "$TEMP/run.log" 2>&1 &
 PID=$!
 sleep 0.8
