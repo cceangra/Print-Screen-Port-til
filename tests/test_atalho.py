@@ -138,6 +138,35 @@ class ShortcutTests(unittest.TestCase):
                 if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
                 else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
 
+    def test_corrida_no_momento_da_escrita_nao_deixa_backup_travando_instalacao(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes,old_check=atalho.FILE,atalho.yes,atalho.check_unchanged
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                counter=[0]
+                def check(original):
+                    counter[0]+=1
+                    if counter[0]==2:
+                        atalho.FILE.write_text(OLD.replace('NaoAlterar=ok','NaoAlterar=edicao-concorrente'))
+                    return old_check(original)
+                atalho.check_unchanged=check
+                base=tmp/'app'
+                atalho.install(base,base/'iniciar.sh')
+                self.assertGreaterEqual(counter[0],2)
+                self.assertEqual(atalho.FILE.read_text(),OLD.replace('NaoAlterar=ok','NaoAlterar=edicao-concorrente'))
+                self.assertFalse((base/'config/atalho-state.json').exists())
+                self.assertFalse((base/'backups/khotkeysrc.antes').exists())
+            finally:
+                atalho.FILE,atalho.yes,atalho.check_unchanged=old_file,old_yes,old_check
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
     def test_nao_remove_secoes_parecidas_criadas_por_terceiros(self):
         with tempfile.TemporaryDirectory() as temporary:
             tmp=Path(temporary)
