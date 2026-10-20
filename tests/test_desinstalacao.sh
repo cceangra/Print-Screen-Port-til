@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Testes de remocao, SEM qualquer acesso ao HOME real do usuario.
 set -Eeuo pipefail
-ROOT="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")/.." && pwd -P)"
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 trap 'rm -rf -- "$TEMP"' EXIT
 HOME="$TEMP/home"
