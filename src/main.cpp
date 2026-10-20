@@ -5,6 +5,7 @@
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 #include <png.h>
+#include "settings.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -200,15 +201,24 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.1.0 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.3.0 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
+        if (arg=="--show-config") {
+            PrintRcSettings options;
+            if (!print_rc_load_settings(options)) return 2;
+            std::cout << "Pasta das imagens: " << options.save_dir << "\\n"
+                      << "Copiar para Ctrl+V: " << (options.copy_clipboard ? "SIM" : "NAO") << "\\n";
+            return 0;
+        }
         if (arg=="--help") {
-            std::cout<<"Print RC: selecione com mouse; Esc cancela; Ctrl+V cola PNG.\n"
-                     <<"Uso: print-rc [--version|--help|--self-test]\n";
+            std::cout<<"Print RC: selecione com mouse; Esc cancela. Salva PNG e copia para Ctrl+V se ativado.\n"
+                     <<"Uso: print-rc [--version|--help|--self-test|--show-config]\n";
             return 0;
         }
         std::cerr<<"Parametro desconhecido. Use --help.\n";return 2;
     }
+    PrintRcSettings options;
+    if (!print_rc_load_settings(options)) return 2;
     const auto expires=Clock::now()+std::chrono::seconds(kClipboardSeconds);
     if (!std::getenv("DISPLAY")) {std::cerr<<"Print RC requer uma sessao X11.\n";return 2;}
     Display* display=XOpenDisplay(nullptr);
@@ -306,6 +316,15 @@ int main(int argc,char** argv) {
     std::vector<unsigned char> png=encode_png(original,chosen);
     XDestroyImage(original);
     if (png.empty()) {XCloseDisplay(display);return 5;}
+    if (!print_rc_save_png(png,options.save_dir)) {
+        XCloseDisplay(display);
+        return 6;
+    }
+    if (!options.copy_clipboard) {
+        std::cout << "Print RC: captura gravada em PNG; clipboard desativado.\\n";
+        XCloseDisplay(display);
+        return 0;
+    }
     Window owner=XCreateSimpleWindow(display,root,-10,-10,1,1,0,0,0);
     clipboard_loop(display,owner,std::move(png),expires);
     XDestroyWindow(display,owner);
