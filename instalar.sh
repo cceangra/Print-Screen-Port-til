@@ -131,6 +131,19 @@ if [[ -f "$dest/.print-rc-installation" ]]; then
     }
 fi
 
+# Corrigir SOMENTE a permissao do inicializador, dentro da pasta do app.
+# O Trinity tambem usara /bin/bash explicitamente caso ZIP perca o bit +x.
+if [[ ! -f "$dest/iniciar.sh" || -L "$dest/iniciar.sh" ]]; then
+    echo 'Inicializador ausente ou simbolico. Instalacao cancelada sem altera-lo.'
+    exit 2
+fi
+if [[ ! -x "$dest/iniciar.sh" ]]; then
+    echo 'Autorizando execucao somente do iniciar.sh dentro do aplicativo.'
+    chmod u+x -- "$dest/iniciar.sh" || {
+        echo 'Nao foi possivel tornar o inicializador executavel.'
+        exit 2
+    }
+fi
 mkdir -p -- "$dest/config" "$dest/backups" "$dest/capturas"
 echo
 echo 'A seguir, informe o CAMINHO COMPLETO da pasta das imagens'
@@ -147,7 +160,7 @@ printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"
 echo
 echo 'PRONTO. Nenhuma dependencia foi instalada no Linux.'
 echo "Pasta unica: $dest"
-echo "Teste agora: bash \"$dest/iniciar.sh\""
+echo "Teste agora: \"$dest/iniciar.sh\""
 echo
 echo '====== RESUMO DOS ARQUIVOS EXTERNOS ======'
 echo 'Sem configurar tecla Print: NENHUM arquivo externo sera criado/modificado.'
