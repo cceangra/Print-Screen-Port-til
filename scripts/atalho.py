@@ -214,8 +214,9 @@ def install(base, command):
     state['created_sections']=list(parse(created).keys())
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
     if not check_unchanged(original):
-        # Arquivo externo ainda intacto pelo Print RC; limpar so o registro interno.
+        # Arquivo externo intacto pelo Print RC: limpar registros internos criados agora.
         statepath.unlink()
+        backup.unlink()
         return
     write_atomic(FILE,updated)
     state['status']='installed'
