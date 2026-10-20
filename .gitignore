@@ -1,0 +1,8 @@
+/bin/
+/config/
+/backups/
+/capturas/
+/.print-rc-installation
+*.o
+*.swp
+__pycache__/
