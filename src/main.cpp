@@ -356,19 +356,61 @@ int main(int argc,char** argv) {
         return -1;
     };
     auto paint_toolbar=[&]() {
+        // Cantos arredondados nativos Xlib, sem dependencia de PNG/SVG ou Qt.
+        const int r=10;
         XSetForeground(display,gc,panel);
-        XFillRectangle(display,overlay,gc,barX,barY,barW,barH);
+        XFillRectangle(display,overlay,gc,barX+r,barY,barW-2*r,barH);
+        XFillRectangle(display,overlay,gc,barX,barY+r,barW,barH-2*r);
+        XFillArc(display,overlay,gc,barX,barY,2*r,2*r,90*64,90*64);
+        XFillArc(display,overlay,gc,barX+barW-2*r,barY,2*r,2*r,0,90*64);
+        XFillArc(display,overlay,gc,barX,barY+barH-2*r,2*r,2*r,180*64,90*64);
+        XFillArc(display,overlay,gc,barX+barW-2*r,barY+barH-2*r,2*r,2*r,270*64,90*64);
         XSetForeground(display,gc,border);
-        XDrawRectangle(display,overlay,gc,barX,barY,barW-1,barH-1);
+        XDrawLine(display,overlay,gc,barX+r,barY,barX+barW-r,barY);
+        XDrawLine(display,overlay,gc,barX+r,barY+barH-1,barX+barW-r,barY+barH-1);
+        XDrawLine(display,overlay,gc,barX,barY+r,barX,barY+barH-r);
+        XDrawLine(display,overlay,gc,barX+barW-1,barY+r,barX+barW-1,barY+barH-r);
         for(int i=0;i<5;++i) {
-            int bx=barX+barPad+i*(btnW+btnGap);
-            bool selected=(i==0&&tool==Tool::Area)||(i==2&&tool==Tool::Pencil);
+            const int bx=barX+barPad+i*(btnW+btnGap);
+            const bool selected=(i==0&&tool==Tool::Area)||(i==2&&tool==Tool::Pencil);
             XSetForeground(display,gc,selected?active:muted);
-            XFillRectangle(display,overlay,gc,bx,barY+6,btnW,32);
+            XFillRectangle(display,overlay,gc,bx,barY+5,btnW,34);
             XSetForeground(display,gc,white);
+            const int cx=bx+btnW/2, cy=barY+16;
+            switch(i) {
+                case 0: { // Retangulo tracejado
+                    XSetLineAttributes(display,gc,1,LineOnOffDash,CapButt,JoinMiter);
+                    XDrawRectangle(display,overlay,gc,cx-9,cy-6,18,12);
+                    XSetLineAttributes(display,gc,1,LineSolid,CapButt,JoinMiter);
+                    break;
+                }
+                case 1: { // Monitor/tela completa
+                    XDrawRectangle(display,overlay,gc,cx-10,cy-7,20,13);
+                    XDrawLine(display,overlay,gc,cx,cy+6,cx,cy+9);
+                    XDrawLine(display,overlay,gc,cx-6,cy+9,cx+6,cy+9);
+                    break;
+                }
+                case 2: { // Lapis diagonal
+                    XSetLineAttributes(display,gc,3,LineSolid,CapRound,JoinRound);
+                    XDrawLine(display,overlay,gc,cx-7,cy+6,cx+7,cy-7);
+                    XSetLineAttributes(display,gc,1,LineSolid,CapButt,JoinMiter);
+                    XDrawLine(display,overlay,gc,cx-10,cy+7,cx-6,cy+6);
+                    break;
+                }
+                case 3: { // Desfazer
+                    XDrawArc(display,overlay,gc,cx-8,cy-7,16,13,20*64,260*64);
+                    XDrawLine(display,overlay,gc,cx-8,cy-4,cx-11,cy+1);
+                    XDrawLine(display,overlay,gc,cx-8,cy-4,cx-3,cy-2);
+                    break;
+                }
+                case 4:
+                    XDrawLine(display,overlay,gc,cx-6,cy-6,cx+6,cy+6);
+                    XDrawLine(display,overlay,gc,cx+6,cy-6,cx-6,cy+6);
+                    break;
+            }
             const int len=static_cast<int>(std::strlen(buttons[i]));
             XDrawString(display,overlay,gc,bx+std::max(1,(btnW-len*6)/2),
-                        barY+26,buttons[i],len);
+                        barY+35,buttons[i],len);
         }
     };
     auto paint_strokes=[&]() {
