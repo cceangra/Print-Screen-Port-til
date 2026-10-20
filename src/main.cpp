@@ -259,7 +259,6 @@ int main(int argc,char** argv) {
     }
     PrintRcSettings options;
     if (!print_rc_load_settings(options)) return 2;
-    const auto expires=Clock::now()+std::chrono::seconds(kClipboardSeconds);
     if (!std::getenv("DISPLAY")) {std::cerr<<"Print RC requer uma sessao X11.\n";return 2;}
     Display* display=XOpenDisplay(nullptr);
     if (!display) {std::cerr<<"Print RC: falha ao abrir o display X11.\n";return 2;}
@@ -333,7 +332,6 @@ int main(int argc,char** argv) {
     constexpr int barW=280,barH=44,barY=12,btnW=48,btnGap=6,barPad=8;
     const int barX=std::max(0,(width-barW)/2);
     const char* buttons[]={"AREA","TELA","LAPIS","DESF","X"};
-    const unsigned long inkColor=rgb_on_visual(55,180,255,original);
     XSetWindowAttributes attrs{};
     attrs.override_redirect=True;
     attrs.event_mask=ExposureMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|KeyPressMask;
