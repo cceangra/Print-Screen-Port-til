@@ -104,6 +104,46 @@ std::vector<unsigned char> encode_png(XImage* src, Rect r) {
     return result;
 }
 
+
+struct InkPoint {int x=0,y=0;};
+using InkStroke=std::vector<InkPoint>;
+using InkDrawing=std::vector<InkStroke>;
+
+unsigned long rgb_on_visual(unsigned char red,unsigned char green,unsigned char blue,const XImage* img) {
+    auto component=[](unsigned char value,unsigned long mask) {
+        if (!mask) return 0UL;
+        unsigned shift=0;
+        while (shift<sizeof(unsigned long)*8-1 && ((mask>>shift)&1UL)==0) ++shift;
+        unsigned long maximum=mask>>shift;
+        return (((static_cast<unsigned long>(value)*maximum+127)/255)<<shift)&mask;
+    };
+    return component(red,img->red_mask)|component(green,img->green_mask)|component(blue,img->blue_mask);
+}
+
+void annotate_image(XImage* image,const InkDrawing& strokes) {
+    // Desenho leve em memoria: a imagem do overlay nunca entra no PNG final.
+    const unsigned long ink=rgb_on_visual(55,180,255,image);
+    auto point=[&](int x,int y) {
+        for(int dy=-1;dy<=1;++dy) for(int dx=-1;dx<=1;++dx) {
+            if(x+dx>=0 && y+dy>=0 && x+dx<image->width && y+dy<image->height)
+                XPutPixel(image,x+dx,y+dy,ink);
+        }
+    };
+    for(const auto& stroke:strokes) {
+        if(stroke.empty()) continue;
+        point(stroke.front().x,stroke.front().y);
+        for(size_t i=1;i<stroke.size();++i) {
+            auto a=stroke[i-1],b=stroke[i];
+            int dx=std::abs(b.x-a.x),dy=std::abs(b.y-a.y);
+            // Interpolacao limitada pelas dimensoes da tela.
+            int steps=std::max(dx,dy);
+            if(steps<=0) {point(b.x,b.y);continue;}
+            for(int s=0;s<=steps;++s)
+                point(a.x+(b.x-a.x)*s/steps,a.y+(b.y-a.y)*s/steps);
+        }
+    }
+}
+
 struct Transfer { Window window; Atom property; size_t offset; };
 void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> png,
                     Clock::time_point expires) {
@@ -201,7 +241,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.3.0 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.4.0 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--show-config") {
             PrintRcSettings options;
@@ -211,7 +251,7 @@ int main(int argc,char** argv) {
             return 0;
         }
         if (arg=="--help") {
-            std::cout<<"Print RC: selecione com mouse; Esc cancela. Salva PNG e copia para Ctrl+V se ativado.\n"
+            std::cout<<"Print RC: barra AREA / TELA (1 clique) / LAPIS (desenhar) / DESF / X. Esc cancela.\n"
                      <<"Uso: print-rc [--version|--help|--self-test|--show-config]\n";
             return 0;
         }
@@ -240,6 +280,12 @@ int main(int argc,char** argv) {
         unsigned long p=XGetPixel(original,x,y);
         XPutPixel(dim,x,y,darken(p,original->red_mask,original->green_mask,original->blue_mask));
     }
+    // Barra de ferramentas curta: Area | Tela | Lapis | Desfazer | Fechar.
+    // Nao exige Qt/GTK, icones externos, servicos de fundo ou arquivos extras.
+    constexpr int barW=280,barH=44,barY=12,btnW=48,btnGap=6,barPad=8;
+    const int barX=std::max(0,(width-barW)/2);
+    const char* buttons[]={"AREA","TELA","LAPIS","DESF","X"};
+    const unsigned long inkColor=rgb_on_visual(55,180,255,original);
     XSetWindowAttributes attrs{};
     attrs.override_redirect=True;
     attrs.event_mask=ExposureMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|KeyPressMask;
@@ -247,9 +293,19 @@ int main(int argc,char** argv) {
                                  CopyFromParent,CWOverrideRedirect|CWEventMask,&attrs);
     GC gc=XCreateGC(display,overlay,0,nullptr);
     XColor color{},unused{};
-    unsigned long border=WhitePixel(display,screen);
-    if (XAllocNamedColor(display,DefaultColormap(display,screen),"#37B4FF",&color,&unused)) border=color.pixel;
+    const Colormap cmap=DefaultColormap(display,screen);
+    auto colorNamed=[&](const char* name,unsigned long fallback) {
+        if(XAllocNamedColor(display,cmap,name,&color,&unused)) return color.pixel;
+        return fallback;
+    };
+    const unsigned long border=colorNamed("#37B4FF",WhitePixel(display,screen));
+    const unsigned long panel=colorNamed("#141925",BlackPixel(display,screen));
+    const unsigned long active=colorNamed("#245686",border);
+    const unsigned long muted=colorNamed("#303949",panel);
+    const unsigned long white=WhitePixel(display,screen);
     Cursor cross=XCreateFontCursor(display,XC_crosshair);
+    Cursor pencil=XCreateFontCursor(display,XC_pencil);
+    Cursor arrow=XCreateFontCursor(display,XC_left_ptr);
     XDefineCursor(display,overlay,cross);
     XMapRaised(display,overlay);
     XFlush(display);
@@ -258,49 +314,162 @@ int main(int argc,char** argv) {
     if (pointer_grab!=GrabSuccess) {
         std::cerr<<"Print RC: outro aplicativo capturou o mouse. Tente novamente.\n";
         XDestroyWindow(display,overlay);XFreeGC(display,gc);XFreeCursor(display,cross);
+        XFreeCursor(display,pencil);XFreeCursor(display,arrow);
         XDestroyImage(dim);XDestroyImage(original);XCloseDisplay(display);return 4;
     }
     int keyboard_grab=XGrabKeyboard(display,overlay,False,GrabModeAsync,GrabModeAsync,CurrentTime);
-    auto redraw=[&](Rect dirty,Rect selection) {
-        if (dirty.w>0&&dirty.h>0) {
-            XPutImage(display,overlay,gc,dim,dirty.x,dirty.y,dirty.x,dirty.y,dirty.w,dirty.h);
-            if(selection.w>0&&selection.h>0) {
-                XPutImage(display,overlay,gc,original,selection.x,selection.y,
-                          selection.x,selection.y,selection.w,selection.h);
-                XSetForeground(display,gc,border);
-                XSetLineAttributes(display,gc,2,LineSolid,CapButt,JoinMiter);
-                XDrawRectangle(display,overlay,gc,selection.x,selection.y,
-                               static_cast<unsigned>(selection.w-1),static_cast<unsigned>(selection.h-1));
-            }
-            XFlush(display);
+    enum class Tool { Area, Pencil };
+    Tool tool=Tool::Area;
+    InkDrawing strokes;
+    bool drawing=false,selecting=false,done=false,cancel=false;
+    int begin_x=0,begin_y=0;
+    Rect previous{},chosen{};
+    const auto selectionDeadline=Clock::now()+std::chrono::seconds(120);
+    auto in_bar=[&](int x,int y) {
+        return x>=barX && x<barX+barW && y>=barY && y<barY+barH;
+    };
+    auto bar_button=[&](int x,int y) {
+        if(!in_bar(x,y)) return -1;
+        for(int i=0;i<5;++i) {
+            int left=barX+barPad+i*(btnW+btnGap);
+            if(x>=left && x<left+btnW) return i;
+        }
+        return -1;
+    };
+    auto paint_toolbar=[&]() {
+        XSetForeground(display,gc,panel);
+        XFillRectangle(display,overlay,gc,barX,barY,barW,barH);
+        XSetForeground(display,gc,border);
+        XDrawRectangle(display,overlay,gc,barX,barY,barW-1,barH-1);
+        for(int i=0;i<5;++i) {
+            int bx=barX+barPad+i*(btnW+btnGap);
+            bool selected=(i==0&&tool==Tool::Area)||(i==2&&tool==Tool::Pencil);
+            XSetForeground(display,gc,selected?active:muted);
+            XFillRectangle(display,overlay,gc,bx,barY+6,btnW,32);
+            XSetForeground(display,gc,white);
+            const int len=static_cast<int>(std::strlen(buttons[i]));
+            XDrawString(display,overlay,gc,bx+std::max(1,(btnW-len*6)/2),
+                        barY+26,buttons[i],len);
         }
     };
+    auto paint_strokes=[&]() {
+        XSetForeground(display,gc,border);
+        XSetLineAttributes(display,gc,3,LineSolid,CapRound,JoinRound);
+        for(const auto& line:strokes) {
+            if(line.empty()) continue;
+            if(line.size()==1) {
+                XFillArc(display,overlay,gc,line[0].x-2,line[0].y-2,4,4,0,360*64);
+            } else for(size_t i=1;i<line.size();++i)
+                XDrawLine(display,overlay,gc,line[i-1].x,line[i-1].y,line[i].x,line[i].y);
+        }
+        XSetLineAttributes(display,gc,1,LineSolid,CapButt,JoinMiter);
+    };
+    auto redraw=[&](Rect dirty,Rect selection) {
+        if(dirty.w<=0||dirty.h<=0) return;
+        XPutImage(display,overlay,gc,dim,dirty.x,dirty.y,dirty.x,dirty.y,dirty.w,dirty.h);
+        if(selection.w>0&&selection.h>0) {
+            XPutImage(display,overlay,gc,original,selection.x,selection.y,
+                      selection.x,selection.y,selection.w,selection.h);
+            XSetForeground(display,gc,border);
+            XSetLineAttributes(display,gc,2,LineSolid,CapButt,JoinMiter);
+            XDrawRectangle(display,overlay,gc,selection.x,selection.y,
+                           static_cast<unsigned>(selection.w-1),static_cast<unsigned>(selection.h-1));
+            char sizeText[48]{};
+            std::snprintf(sizeText,sizeof(sizeText),"%d x %d",selection.w,selection.h);
+            int textX=clampi(selection.x+selection.w-75,0,std::max(0,width-78));
+            int textY=clampi(selection.y+selection.h+18,18,height-4);
+            XDrawString(display,overlay,gc,textX,textY,sizeText,std::strlen(sizeText));
+        }
+        paint_strokes();
+        paint_toolbar();
+        XFlush(display);
+    };
     redraw({0,0,width,height},{});
-    bool selecting=false,done=false,cancel=false;
-    int begin_x=0,begin_y=0,mouse_x=0,mouse_y=0;
-    Rect previous{},chosen{};
-    while(!done && !cancel && Clock::now()<expires) {
+    auto set_cursor=[&](int x,int y) {
+        Cursor desired=in_bar(x,y)?arrow:(tool==Tool::Pencil?pencil:cross);
+        XChangeActivePointerGrab(display,ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
+                                 desired,CurrentTime);
+    };
+    while(!done && !cancel && Clock::now()<selectionDeadline) {
+        // XNextEvent sozinho pode bloquear para sempre: esperar no FD com limite.
+        if(!XPending(display)) {
+            fd_set fds;
+            FD_ZERO(&fds);
+            const int fd=ConnectionNumber(display);
+            FD_SET(fd,&fds);
+            auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(
+                selectionDeadline-Clock::now()).count();
+            if(remaining<=0) break;
+            timeval tv{};
+            long ms=static_cast<long>(std::min<int64_t>(remaining,1000));
+            tv.tv_sec=ms/1000; tv.tv_usec=(ms%1000)*1000;
+            int ready=select(fd+1,&fds,nullptr,nullptr,&tv);
+            if(ready<=0) continue;
+        }
         XEvent event{};
         XNextEvent(display,&event);
         if (event.type==Expose && event.xexpose.count==0) {
             redraw({0,0,width,height},previous);
         } else if(event.type==ButtonPress) {
             if(event.xbutton.button==Button3) {cancel=true;break;}
-            if(event.xbutton.button==Button1) {
-                selecting=true;begin_x=mouse_x=event.xbutton.x;begin_y=mouse_y=event.xbutton.y;
+            if(event.xbutton.button!=Button1) continue;
+            int hit=bar_button(event.xbutton.x,event.xbutton.y);
+            if(hit>=0) {
+                drawing=false;selecting=false;
+                previous={};
+                switch(hit) {
+                    case 0: tool=Tool::Area; break;
+                    case 1: chosen={0,0,width,height};done=true;break;
+                    case 2: tool=Tool::Pencil;break;
+                    case 3: if(!strokes.empty()) strokes.pop_back();break;
+                    case 4: cancel=true;break;
+                }
+                if(!done&&!cancel) redraw({0,0,width,height},{});
+                continue;
+            }
+            if(tool==Tool::Pencil) {
+                drawing=true;
+                strokes.emplace_back();
+                strokes.back().push_back({clampi(event.xbutton.x,0,width-1),
+                                          clampi(event.xbutton.y,0,height-1)});
+                XSetForeground(display,gc,border);
+                XFillArc(display,overlay,gc,event.xbutton.x-2,event.xbutton.y-2,4,4,0,360*64);
+                XFlush(display);
+            } else {
+                selecting=true;
+                begin_x=event.xbutton.x;
+                begin_y=event.xbutton.y;
                 previous={};
             }
-        } else if(event.type==MotionNotify && selecting) {
-            // Descartar movimentos obsoletos para desenhar apenas a posicao mais nova.
+        } else if(event.type==MotionNotify) {
             while(XCheckTypedWindowEvent(display,overlay,MotionNotify,&event)) {}
-            mouse_x=event.xmotion.x;mouse_y=event.xmotion.y;
-            Rect next=rect_between(begin_x,begin_y,mouse_x,mouse_y,width,height);
-            redraw(unite(previous,next,width,height),next);
-            previous=next;
-        } else if(event.type==ButtonRelease && selecting && event.xbutton.button==Button1) {
-            chosen=rect_between(begin_x,begin_y,event.xbutton.x,event.xbutton.y,width,height);
-            if(chosen.w>=3 && chosen.h>=3) done=true;
-            else { selecting=false;redraw(expand(previous,4,width,height),{}); previous={}; }
+            set_cursor(event.xmotion.x,event.xmotion.y);
+            if(drawing && tool==Tool::Pencil && !strokes.empty()) {
+                InkPoint next{clampi(event.xmotion.x,0,width-1),
+                              clampi(event.xmotion.y,0,height-1)};
+                auto& line=strokes.back();
+                InkPoint previousPoint=line.back();
+                if(next.x!=previousPoint.x || next.y!=previousPoint.y) {
+                    line.push_back(next);
+                    XSetForeground(display,gc,border);
+                    XSetLineAttributes(display,gc,3,LineSolid,CapRound,JoinRound);
+                    XDrawLine(display,overlay,gc,previousPoint.x,previousPoint.y,next.x,next.y);
+                    XFlush(display);
+                }
+            } else if(selecting && tool==Tool::Area) {
+                Rect next=rect_between(begin_x,begin_y,event.xmotion.x,event.xmotion.y,width,height);
+                redraw(unite(previous,next,width,height),next);
+                previous=next;
+            }
+        } else if(event.type==ButtonRelease && event.xbutton.button==Button1) {
+            if(drawing) {
+                drawing=false;
+            } else if(selecting) {
+                chosen=rect_between(begin_x,begin_y,event.xbutton.x,event.xbutton.y,width,height);
+                selecting=false;
+                if(chosen.w>=3 && chosen.h>=3) done=true;
+                else {redraw(expand(previous,4,width,height),{});previous={};}
+            }
         } else if(event.type==KeyPress) {
             KeySym key=XLookupKeysym(&event.xkey,0);
             if(key==XK_Escape) cancel=true;
@@ -311,8 +480,10 @@ int main(int argc,char** argv) {
     XUnmapWindow(display,overlay);
     XDestroyWindow(display,overlay);
     XFreeGC(display,gc);XFreeCursor(display,cross);
+    XFreeCursor(display,pencil);XFreeCursor(display,arrow);
     XDestroyImage(dim);
     if (!done) {XDestroyImage(original);XCloseDisplay(display);return 0;}
+    if(!strokes.empty()) annotate_image(original,strokes);
     std::vector<unsigned char> png=encode_png(original,chosen);
     XDestroyImage(original);
     if (png.empty()) {XCloseDisplay(display);return 5;}
