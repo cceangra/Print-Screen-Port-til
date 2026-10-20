@@ -30,7 +30,8 @@ if [[ -L "$STATE" ]]; then
     echo 'Registro do atalho e link simbolico. Remocao bloqueada.'
     exit 2
 fi
-EXTERNAL="$HOME/.trinity/share/config/khotkeysrc"
+TRINITY_HOME="${TDEHOME:-$HOME/.trinity}"
+EXTERNAL="$TRINITY_HOME/share/config/khotkeysrc"
 OPTIONS="$BASE/config/opcoes.conf"
 IMAGE_DIR=''
 if [[ -f "$OPTIONS" && ! -L "$OPTIONS" ]]; then
@@ -62,9 +63,37 @@ fi
 echo
 echo 'IMPORTANTE: se imagens estiverem DENTRO da pasta do app,'
 echo 'a pasta continuara existindo, apenas com os dados preservados.'
+echo 'Processos executando este Print RC poderao ser encerrados:'
+echo 'isso libera o programa para remocao, mas invalida clipboard ainda ativo.'
 echo '======================================================'
 read -r -p 'Digite DESINSTALAR para confirmar (nenhuma imagem sera apagada): ' response || true
 [[ "$response" == DESINSTALAR ]] || { echo 'Cancelado sem mudancas.'; exit 1; }
+
+# Encerrar somente processos deste executavel instalado, NUNCA processos de
+# outros programas ou de outra copia do Print RC. Sem kill -9.
+# Em Linux, /proc/PID/exe identifica o executavel carregado.
+# Isso evita apagar binario ainda em uso e libera o clipboard mantido pelo app.
+for proc_exe in /proc/[0-9]*/exe; do
+    [[ -L "$proc_exe" ]] || continue
+    if [[ "$(readlink -f -- "$proc_exe" 2>/dev/null || true)" != "$BASE/bin/print-rc" ]]; then
+        continue
+    fi
+    pid="${proc_exe#/proc/}"
+    pid="${pid%%/*}"
+    [[ -O "/proc/$pid" ]] || continue
+    echo "Encerrando somente Print RC instalado nesta pasta (PID $pid)."
+    kill -TERM -- "$pid" 2>/dev/null || continue
+    for attempt in {1..20}; do
+        if [[ "$(readlink -f -- "$proc_exe" 2>/dev/null || true)" != "$BASE/bin/print-rc" ]]; then
+            break
+        fi
+        sleep 0.1
+    done
+    if [[ "$(readlink -f -- "$proc_exe" 2>/dev/null || true)" == "$BASE/bin/print-rc" ]]; then
+        echo 'Este processo ainda nao encerrou. Desinstalacao interrompida sem apagar arquivos.'
+        exit 1
+    fi
+done
 
 # Restaurar a tecla antes de remover o programa ou seus backups.
 if [[ -f "$STATE" ]]; then
