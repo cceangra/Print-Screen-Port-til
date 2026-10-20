@@ -1,0 +1,2 @@
+Print RC v0.4.4 — publicar somente apos testes completos, incluindo chmod do launcher dentro do ZIP, atalho com caminho contendo espacos, reparo legado conservador e reler khotkeysd via DCOP.
+Nao sobrescrever releases anteriores nem remover prints.
