@@ -276,9 +276,28 @@ int main(int argc,char** argv) {
     XImage* dim=XCreateImage(display,DefaultVisual(display,screen),DefaultDepth(display,screen),
                              ZPixmap,0,data,width,height,32,original->bytes_per_line);
     if (!dim) {std::free(data);XDestroyImage(original);XCloseDisplay(display);return 3;}
-    for (int y=0;y<height;++y) for(int x=0;x<width;++x) {
-        unsigned long p=XGetPixel(original,x,y);
-        XPutPixel(dim,x,y,darken(p,original->red_mask,original->green_mask,original->blue_mask));
+    // Caminho rapido para o formato comum X11 BGRA (32bpp, little-endian).
+    // Evita dois acessos XGetPixel/XPutPixel por pixel em CPUs antigas.
+    const bool fast_pixels = original->bits_per_pixel==32 && dim->bits_per_pixel==32
+        && original->byte_order==LSBFirst && dim->byte_order==LSBFirst
+        && original->red_mask==0x00ff0000UL
+        && original->green_mask==0x0000ff00UL && original->blue_mask==0x000000ffUL;
+    if(fast_pixels) {
+        for(int y=0;y<height;++y) {
+            auto* row=reinterpret_cast<unsigned char*>(dim->data+
+                            static_cast<size_t>(y)*dim->bytes_per_line);
+            for(int x=0;x<width;++x) {
+                unsigned char* pixel=row+static_cast<size_t>(x)*4;
+                pixel[0]=static_cast<unsigned char>((static_cast<unsigned>(pixel[0])*62)/100);
+                pixel[1]=static_cast<unsigned char>((static_cast<unsigned>(pixel[1])*62)/100);
+                pixel[2]=static_cast<unsigned char>((static_cast<unsigned>(pixel[2])*62)/100);
+            }
+        }
+    } else {
+        for (int y=0;y<height;++y) for(int x=0;x<width;++x) {
+            unsigned long p=XGetPixel(original,x,y);
+            XPutPixel(dim,x,y,darken(p,original->red_mask,original->green_mask,original->blue_mask));
+        }
     }
     // Barra de ferramentas curta: Area | Tela | Lapis | Desfazer | Fechar.
     // Nao exige Qt/GTK, icones externos, servicos de fundo ou arquivos extras.
