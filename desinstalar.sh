@@ -3,13 +3,13 @@
 set -Eeuo pipefail
 [[ $EUID -ne 0 ]] || { echo 'Nao execute com sudo/root.'; exit 1; }
 
-BASE="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd -P)"
+BASE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 MARKER="$BASE/.print-rc-installation"
 if [[ ! -f "$MARKER" || -L "$MARKER" ]]; then
     echo 'Instalacao nao reconhecida. Nao vou remover arquivos.'; exit 2
 fi
 mapfile -t marker < "$MARKER"
-if [[ \${marker[0]:-} != PRINT-RC || \${marker[1]:-} != "$BASE" ]]; then
+if [[ ${marker[0]:-} != PRINT-RC || ${marker[1]:-} != "$BASE" ]]; then
     echo 'Pasta difere do registro de instalacao. Nada foi removido.'; exit 2
 fi
 case "$BASE" in
@@ -35,7 +35,7 @@ OPTIONS="$BASE/config/opcoes.conf"
 IMAGE_DIR=''
 if [[ -f "$OPTIONS" && ! -L "$OPTIONS" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
-        case "$line" in save_dir=*) IMAGE_DIR="\${line#save_dir=}" ;; esac
+        case "$line" in save_dir=*) IMAGE_DIR="${line#save_dir=}" ;; esac
     done < "$OPTIONS"
 fi
 
@@ -100,7 +100,7 @@ OWNED_FILES=(
     'desinstalar.sh'
 )
 
-for rel in "\${OWNED_FILES[@]}"; do
+for rel in "${OWNED_FILES[@]}"; do
     file="$BASE/$rel"
     if [[ -f "$file" || -L "$file" ]]; then
         rm -- "$file" || {
