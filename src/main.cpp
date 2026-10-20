@@ -241,7 +241,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.4.2 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.4.3 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--show-config") {
             PrintRcSettings options;
@@ -264,18 +264,47 @@ int main(int argc,char** argv) {
     Display* display=XOpenDisplay(nullptr);
     if (!display) {std::cerr<<"Print RC: falha ao abrir o display X11.\n";return 2;}
     XSetErrorHandler(xerror);
+    // Um unico capturador pode controlar o mouse/teclado por vez.
+    // Selecao proprietaria X11: atomica sob XGrabServer, liberada pelo servidor
+    // mesmo em encerramento abrupto. NAO cria arquivos ou servicos externos.
+    const Window root_lock=DefaultRootWindow(display);
+    const Atom instance_atom=XInternAtom(display,"_PRINT_RC_CAPTURING_INSTANCE",False);
+    Window instance_window=XCreateSimpleWindow(display,root_lock,-10,-10,1,1,0,0,0);
+    XGrabServer(display);
+    const bool already_running=XGetSelectionOwner(display,instance_atom)!=None;
+    if (!already_running) XSetSelectionOwner(display,instance_atom,instance_window,CurrentTime);
+    XUngrabServer(display);
+    XSync(display,False);
+    if (already_running || XGetSelectionOwner(display,instance_atom)!=instance_window) {
+        std::cerr<<"Print RC: ja existe uma captura em andamento. Aguarde ou pressione Esc nela.\n";
+        XDestroyWindow(display,instance_window);
+        XCloseDisplay(display);
+        return 7;
+    }
+    auto release_instance=[&]() {
+        if(instance_window!=None) {
+            if(XGetSelectionOwner(display,instance_atom)==instance_window)
+                XSetSelectionOwner(display,instance_atom,None,CurrentTime);
+            XDestroyWindow(display,instance_window);
+            instance_window=None;
+        }
+    };
+    auto close_display=[&]() {
+        release_instance();
+        XCloseDisplay(display);
+    };
     int screen=DefaultScreen(display);
     Window root=RootWindow(display,screen);
     const int width=DisplayWidth(display,screen), height=DisplayHeight(display,screen);
     XImage* original=XGetImage(display,root,0,0,width,height,AllPlanes,ZPixmap);
-    if (!original) {std::cerr<<"Print RC: nao foi possivel fotografar a tela.\n";XCloseDisplay(display);return 3;}
+    if (!original) {std::cerr<<"Print RC: nao foi possivel fotografar a tela.\n";close_display();return 3;}
     const auto bytes=static_cast<size_t>(original->bytes_per_line)*height;
     char* data=static_cast<char*>(std::malloc(bytes));
-    if (!data) {XDestroyImage(original);XCloseDisplay(display);return 3;}
+    if (!data) {XDestroyImage(original);close_display();return 3;}
     std::memcpy(data,original->data,bytes);
     XImage* dim=XCreateImage(display,DefaultVisual(display,screen),DefaultDepth(display,screen),
                              ZPixmap,0,data,width,height,32,original->bytes_per_line);
-    if (!dim) {std::free(data);XDestroyImage(original);XCloseDisplay(display);return 3;}
+    if (!dim) {std::free(data);XDestroyImage(original);close_display();return 3;}
     // Caminho rapido para o formato comum X11 BGRA (32bpp, little-endian).
     // Evita dois acessos XGetPixel/XPutPixel por pixel em CPUs antigas.
     const bool fast_pixels = original->bits_per_pixel==32 && dim->bits_per_pixel==32
@@ -334,7 +363,7 @@ int main(int argc,char** argv) {
         std::cerr<<"Print RC: outro aplicativo capturou o mouse. Tente novamente.\n";
         XDestroyWindow(display,overlay);XFreeGC(display,gc);XFreeCursor(display,cross);
         XFreeCursor(display,pencil);XFreeCursor(display,arrow);
-        XDestroyImage(dim);XDestroyImage(original);XCloseDisplay(display);return 4;
+        XDestroyImage(dim);XDestroyImage(original);close_display();return 4;
     }
     int keyboard_grab=XGrabKeyboard(display,overlay,False,GrabModeAsync,GrabModeAsync,CurrentTime);
     if (keyboard_grab!=GrabSuccess) {
@@ -349,7 +378,7 @@ int main(int argc,char** argv) {
         XDestroyImage(dim);
         XDestroyImage(original);
         XSync(display,False);
-        XCloseDisplay(display);
+        close_display();
         return 4;
     }
     enum class Tool { Area, Pencil };
@@ -558,23 +587,27 @@ int main(int argc,char** argv) {
     XFreeGC(display,gc);XFreeCursor(display,cross);
     XFreeCursor(display,pencil);XFreeCursor(display,arrow);
     XDestroyImage(dim);
-    if (!done) {XDestroyImage(original);XCloseDisplay(display);return 0;}
+    if (!done) {XDestroyImage(original);close_display();return 0;}
     if(!strokes.empty()) annotate_image(original,strokes);
     std::vector<unsigned char> png=encode_png(original,chosen);
     XDestroyImage(original);
-    if (png.empty()) {XCloseDisplay(display);return 5;}
-    if (!print_rc_save_png(png,options.save_dir)) {
-        XCloseDisplay(display);
-        return 6;
+    if (png.empty()) {close_display();return 5;}
+    const bool saved=print_rc_save_png(png,options.save_dir);
+    if (!saved) {
+        std::cerr<<"Print RC: nao foi possivel salvar o PNG na pasta escolhida.\n";
+        std::cerr<<"A captura ainda podera ser colada com Ctrl+V, se essa opcao estiver ativa.\n";
     }
     if (!options.copy_clipboard) {
-        std::cout << "Print RC: captura gravada em PNG; clipboard desativado.\n";
-        XCloseDisplay(display);
-        return 0;
+        close_display();
+        return saved?0:6;
     }
+    // Liberar bloqueio de captura antes de atender o clipboard:
+    // novos prints podem ser feitos enquanto o primeiro PNG esta pronto para Ctrl+V.
+    release_instance();
     Window owner=XCreateSimpleWindow(display,root,-10,-10,1,1,0,0,0);
-    clipboard_loop(display,owner,std::move(png),expires);
+    clipboard_loop(display,owner,std::move(png),
+                   Clock::now()+std::chrono::seconds(kClipboardSeconds));
     XDestroyWindow(display,owner);
-    XCloseDisplay(display);
-    return 0;
+    close_display();
+    return saved?0:6;
 }
