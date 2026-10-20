@@ -83,33 +83,66 @@ if [[ -f "$STATE" ]]; then
     }
 fi
 
-# LISTA EXPLICITA: somente arquivos do programa, sem rm -r ou rm -rf.
-# Nao apaga nenhum arquivo dentro de capturas/ nem diretorios nao vazios.
-OWNED_FILES=(
-    'bin/print-rc'
-    'src/main.cpp' 'src/settings.hpp'
-    'scripts/atalho.py'
-    'tests/test_atalho.py' 'tests/test_settings.cpp'
-    'tests/test_configuracao.sh' 'tests/test_instalacao.sh' 'tests/test_gui_x11.sh'
-    '.github/workflows/testar.yml'
-    'config/opcoes.conf' 'config/atalho-state.json'
-    'backups/khotkeysrc.antes'
-    'README.md' 'LICENSE' 'Makefile' '.gitignore'
-    'instalar.sh' 'iniciar.sh' 'configurar.sh'
-    '.print-rc-installation'
-    'desinstalar.sh'
-)
+# Somente arquivos com hash registrado na primeira instalacao podem ser excluidos.
+# Se um arquivo mudou (ou foi substituido por foto/documento), permanece intocado.
+MANIFEST="$BASE/config/arquivos-instalados.sha256"
+if [[ ! -f "$MANIFEST" || -L "$MANIFEST" ]]; then
+    echo 'SEM INVENTARIO CONFIAVEL: nenhum arquivo local sera apagado.'
+    echo 'O atalho foi tratado acima. Seus arquivos e imagens foram preservados.'
+    echo 'Em instalacoes antigas sem inventario, a limpeza de arquivos exige revisao manual.'
+    exit 2
+fi
+if [[ ! -f "$BASE/scripts/inventario.sh" || -L "$BASE/scripts/inventario.sh" ]]; then
+    echo 'Lista de arquivos conhecidos nao existe ou nao e segura. Nada local removido.'
+    exit 2
+fi
+source "$BASE/scripts/inventario.sh"
+declare -A ALLOWED=()
+declare -A EXPECTED=()
+for rel in "${PRINT_RC_KNOWN[@]}"; do ALLOWED["$rel"]=1; done
 
-for rel in "${OWNED_FILES[@]}"; do
-    file="$BASE/$rel"
-    if [[ -f "$file" || -L "$file" ]]; then
-        rm -- "$file" || {
-            echo "Erro ao remover arquivo do app: $file"
-            echo 'Imagens nao foram tocadas. Confira manualmente os arquivos restantes.'
-            exit 1
-        }
+while IFS=$'\t' read -r checksum rel || [[ -n "${checksum:-}${rel:-}" ]]; do
+    [[ -z "${checksum:-}" && -z "${rel:-}" ]] && continue
+    if [[ ! "$checksum" =~ ^[[:xdigit:]]{64}$ || ! -v 'ALLOWED[$rel]' || -v 'EXPECTED[$rel]' ]]; then
+        echo "Inventario invalido. Nada local removido: $rel"
+        exit 2
     fi
+    EXPECTED["$rel"]="$checksum"
+done < "$MANIFEST"
+if [[ ! -v 'EXPECTED[desinstalar.sh]' || ! -v 'EXPECTED[.print-rc-installation]' ]]; then
+    echo 'Inventario incompleto. Nada local removido.'
+    exit 2
+fi
+
+for rel in "${PRINT_RC_KNOWN[@]}"; do
+    file="$BASE/$rel"
+    if [[ -L "$file" ]]; then
+        echo "LINK SIMBOLICO PRESERVADO (nao pertence ao app): $file"
+        continue
+    fi
+    if [[ ! -f "$file" ]]; then continue; fi
+    if [[ ! -v 'EXPECTED[$rel]' ]]; then
+        echo "ARQUIVO SEM REGISTRO PRESERVADO: $file"
+        continue
+    fi
+    if ! current="$(sha256sum -- "$file")"; then
+        echo "Falha ao verificar hash de $file; arquivo preservado."
+        continue
+    fi
+    current="${current%% *}"
+    if [[ "$current" != "${EXPECTED[$rel]}" ]]; then
+        echo "ARQUIVO MODIFICADO PELO USUARIO - PRESERVADO: $file"
+        continue
+    fi
+    rm -- "$file" || {
+        echo "Falha ao remover arquivo original: $file"
+        echo 'Imagens e outros arquivos pessoais seguem preservados.'
+        exit 1
+    }
 done
+
+# Este inventario tambem pertence ao Print RC e fica somente dentro da pasta.
+rm -- "$MANIFEST" || { echo 'Inventario nao pode ser removido.'; exit 1; }
 
 # Apagar somente diretorios VAZIOS. Qualquer arquivo do usuario os preserva.
 for dir in .github/workflows .github tests scripts src bin config backups capturas; do
