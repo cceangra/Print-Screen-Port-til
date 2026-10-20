@@ -22,6 +22,9 @@ printf '\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
 test -x "$TEMP/origem1/bin/print-rc"
 test -f "$TEMP/origem1/.print-rc-installation"
 test -f "$TEMP/origem1/config/opcoes.conf"
+test -f "$TEMP/origem1/config/arquivos-instalados.sha256"
+grep -F "desinstalar.sh" "$TEMP/origem1/config/arquivos-instalados.sha256"
+
 grep -Fx "save_dir=$TEMP/origem1/capturas" "$TEMP/origem1/config/opcoes.conf"
 grep -Fx "copy_clipboard=1" "$TEMP/origem1/config/opcoes.conf"
 test "$(sed -n '2p' "$TEMP/origem1/.print-rc-installation")" = "$TEMP/origem1"
@@ -36,6 +39,7 @@ test -f "$FINAL/src/main.cpp"
 test -f "$FINAL/instalar.sh"
 test -f "$FINAL/configurar.sh"
 test -f "$FINAL/config/opcoes.conf"
+test -f "$FINAL/config/arquivos-instalados.sha256"
 test "$(sed -n '2p' "$FINAL/.print-rc-installation")" = "$FINAL"
 
 echo '[3] Recusar sobrescrever pasta existente'
