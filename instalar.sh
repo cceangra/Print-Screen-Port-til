@@ -101,7 +101,8 @@ echo "Teste agora: bash \"$dest/iniciar.sh\""
 echo
 echo '====== RESUMO DOS ARQUIVOS EXTERNOS ======'
 echo 'Sem configurar tecla Print: NENHUM arquivo externo sera criado/modificado.'
-echo "Com tecla Print: $HOME/.trinity/share/config/khotkeysrc"
+TRINITY_HOME="${TDEHOME:-$HOME/.trinity}"
+echo "Com tecla Print: $TRINITY_HOME/share/config/khotkeysrc"
 echo '  Se existe: modificar somente entradas de atalho, preservando as demais.'
 echo '  Se nao existe: criar; na desinstalacao, excluir se for seguro.'
 echo "  Backup e registro: $dest/backups e $dest/config"
