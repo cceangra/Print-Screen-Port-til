@@ -19,7 +19,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.2'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -38,6 +38,10 @@ jobs:
           /tmp/test-print-rc-settings
       - name: Testar UI em X11 virtual (sem ambiente do usuario)
         run: timeout 60s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_gui_x11.sh
+      - name: Testar recusa do teclado ocupado e liberacao do mouse X11
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard-test $(pkg-config --libs x11)
+          timeout 25s xvfb-run -a -s '-screen 0 1024x768x24' /tmp/print-rc-keyboard-test "$PWD/bin/print-rc"
       - name: Criar pacote em ZIP com um unico diretorio e executavel incluido
         run: |
           set -euo pipefail
@@ -53,18 +57,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.2.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.1 >/dev/null 2>&1; then
-            gh release upload v0.4.1 Print-RC-Linux-x86_64.zip --clobber
-          else
-            gh release create v0.4.1 Print-RC-Linux-x86_64.zip \
-              --title 'Print RC v0.4.1 - Desinstalacao segura preserva capturas' \
-              --notes 'Atualizacao de seguranca: desinstalador remove apenas arquivos do app e seu atalho, SEM remover prints salvos, fotos ou arquivos pessoais. Mantem as imagens na pasta original mesmo se estiverem dentro do Print RC. Com barra curta Area/Tela/Lapis/Desfazer/Sair e executavel estatico.'
+          if gh release view v0.4.2 >/dev/null 2>&1; then
+            echo 'A tag v0.4.2 ja existe. Nao substituirei um ZIP publicado.'
+            exit 1
           fi
+          gh release create v0.4.2 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.2 - Teclado e atalho seguros' \
+            --notes 'Corrige falha em XGrabKeyboard sem travar mouse/teclado; verifica conflitos do Trinity antes de gravar o atalho; desinstala apenas arquivos originais com inventario SHA-256 dentro da pasta e preserva capturas e arquivos pessoais. Pacote C++ estatico para X11 x86_64. Sem instalacao de pacotes adicionais.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
