@@ -10,7 +10,7 @@ import tempfile
 import uuid
 
 NAME = 'Print RC'
-FILE = Path.home() / '.trinity/share/config/khotkeysrc'
+FILE = Path(os.environ.get('TDEHOME') or (Path.home() / '.trinity')) / 'share/config/khotkeysrc'
 BLOCK = re.compile(r'(?ms)^\[([^\]\n]+)\]\r?\n.*?(?=^\[[^\]\n]+\]\r?\n|\Z)')
 
 
@@ -54,6 +54,32 @@ def write_atomic(path, content):
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def safe_current_text():
+    """Leia somente um arquivo regular; nao siga links simbolicos para atalhos de terceiros."""
+    if FILE.is_symlink():
+        raise RuntimeError('Atalho do Trinity e um link simbolico; abortando.')
+    if not FILE.exists():
+        return ''
+    if not FILE.is_file():
+        raise RuntimeError('O arquivo de atalhos nao e arquivo regular.')
+    return FILE.read_text(encoding='utf-8')
+
+
+def check_unchanged(original):
+    """Nunca sobrescrever mudancas feitas por outro processo durante as perguntas."""
+    try:
+        current = safe_current_text()
+    except (OSError, UnicodeError, RuntimeError) as error:
+        print('Erro ao verificar arquivo do Trinity:', error)
+        return False
+    if current != original:
+        print('ATENCAO: outro aplicativo alterou o arquivo de atalhos enquanto voce respondia.')
+        print('Print RC cancelou a instalacao para NAO sobrescrever configuracoes de terceiros.')
+        print('Nenhum atalho foi alterado pelo Print RC. Execute o instalador novamente.')
+        return False
+    return True
 
 
 def conflicts(text):
@@ -110,7 +136,11 @@ def install(base, command):
         print('O caminho do atalho nao e arquivo regular seguro:', FILE)
         print('Registro cancelado.')
         return
-    original=FILE.read_text(encoding='utf-8') if existed else ''
+    try:
+        original=safe_current_text()
+    except (OSError, UnicodeError, RuntimeError) as error:
+        print('Nao foi possivel ler atalhos sem risco:', error)
+        return
     print('\n'+'='*60)
     print('INTEGRACAO EXTERNA — LISTA COMPLETA DE ARQUIVOS')
     print(('MODIFICAR arquivo existente: ' if existed else 'CRIAR arquivo novo: ')+str(FILE))
@@ -134,13 +164,17 @@ def install(base, command):
     if not yes('Registrar a tecla Print para executar o Print RC?'):
         print('Atalho nao alterado.')
         return
+    # Perguntas podem demorar: impedir sobrescrita de mudancas externas feitas nesse intervalo.
+    if not check_unchanged(original):
+        return
     updated=original
     for conflict in entries:
         section=conflict['section']
         b=parse(updated)[section]
         updated=replace_block(updated,section,set_value(b,'Key',''))
     seen=parse(updated)
-    indices=[int(m.group(1)) for s in seen if (m:=re.fullmatch(r'Data_(\d+)',s))]
+    # Evitar reutilizar indices mesmo se restar apenas Data_NTriggers0 sem Data_N.
+    indices=[int(m.group(1)) for s in seen if (m:=re.match(r'Data_(\d+)(?:$|[A-Za-z])',s))]
     index=max(indices,default=0)+1
     root=f'Data_{index}'
     if 'Data' in seen:
@@ -176,7 +210,13 @@ def install(base, command):
     # Gravar PRIMEIRO o registro de recuperacao dentro da pasta.
     # Se a sessao cair na metade da escrita externa, o desinstalador sabera reverter.
     state['status']='prepared'
+    state['launcher']=str(command)
+    state['created_sections']=list(parse(created).keys())
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+    if not check_unchanged(original):
+        # Arquivo externo ainda intacto pelo Print RC; limpar so o registro interno.
+        statepath.unlink()
+        return
     write_atomic(FILE,updated)
     state['status']='installed'
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
@@ -220,13 +260,23 @@ def remove(base):
         print('Nada externo foi apagado. Verifique backups/khotkeysrc.antes.')
         return False
     ours_action=sections.get(root+'Actions0','')
-    if 'print-rc' not in ours_action.casefold() and 'iniciar.sh' not in ours_action:
+    launcher=state.get('launcher')
+    if launcher:
+        expected=shlex.quote(launcher)
+        if get_value(ours_action,'CommandURL')!=expected:
+            print('Comando de inicializacao mudou; nenhuma secao sera removida.')
+            return False
+    elif 'print-rc' not in ours_action.casefold() and 'iniciar.sh' not in ours_action:
+        # Compatibilidade com instalacoes anteriores ao 0.4.2.
         print('Comando do atalho foi modificado. Remocao automatica bloqueada.')
         return False
-    # Exclui exclusivamente as secoes criadas pelo Print RC.
+    owned=set(state.get('created_sections') or [
+        root,root+'Actions',root+'Actions0',root+'Conditions',root+'Triggers',root+'Triggers0'
+    ])
+    # Remover APENAS as secoes criadas por esta instalacao.
+    # Outras secoes com nomes parecidos pertencem a terceiros e devem permanecer.
     for m in reversed(list(BLOCK.finditer(content))):
-        name=m.group(1)
-        if name==root or name.startswith(root+'Actions') or name.startswith(root+'Conditions') or name.startswith(root+'Triggers'):
+        if m.group(1) in owned:
             content=content[:m.start()]+content[m.end():]
     sections=parse(content)
     # Restaurar apenas conflitos que continuam com o Key vazio.
