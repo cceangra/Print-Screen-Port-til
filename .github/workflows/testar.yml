@@ -14,12 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Bibliotecas necessarias somente no ambiente de construcao do GitHub
-        run: sudo apt-get update && sudo apt-get install -y g++ make binutils file pkg-config libx11-dev libpng-dev python3 zip xvfb xdotool
+        run: sudo apt-get update && sudo apt-get install -y g++ make binutils file pkg-config libx11-dev libpng-dev python3 zip xvfb xdotool xclip
       - name: Compilar executavel estatico x86_64
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.2'
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.3'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -42,6 +42,8 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard-test $(pkg-config --libs x11)
           timeout 25s xvfb-run -a -s '-screen 0 1024x768x24' /tmp/print-rc-keyboard-test "$PWD/bin/print-rc"
+      - name: Testar clipboard PNG grande e Ctrl+V apos erro de escrita
+        run: timeout 80s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_clipboard_x11.sh
       - name: Criar pacote em ZIP com um unico diretorio e executavel incluido
         run: |
           set -euo pipefail
@@ -57,18 +59,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.2.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.3.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.2 >/dev/null 2>&1; then
-            echo 'A tag v0.4.2 ja existe: manter ZIP publicado sem sobrescrever.'
+          if gh release view v0.4.3 >/dev/null 2>&1; then
+            echo 'Release v0.4.3 ja publicada: mantendo ZIP original.'
             exit 0
           fi
-          gh release create v0.4.2 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.2 - Teclado e atalho seguros' \
-            --notes 'Corrige falha em XGrabKeyboard sem travar mouse/teclado; verifica conflitos do Trinity antes de gravar o atalho; desinstala apenas arquivos originais com inventario SHA-256 dentro da pasta e preserva capturas e arquivos pessoais. Pacote C++ estatico para X11 x86_64. Sem instalacao de pacotes adicionais.'
+          gh release create v0.4.3 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.3 - Captura e clipboard robustos' \
+            --notes 'Corrige duas capturas simultaneas com bloqueio X11 sem arquivos extras; Ctrl+V funciona se salvar PNG falhar; testa clipboard INCR grande; preserva configuracao no Enter; permite reinstalar sem sobrescrever prints; desinstalacao identifica somente processos desta instalacao. Executavel C++ estatico, Linux X11 x86_64.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
