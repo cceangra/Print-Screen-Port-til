@@ -53,6 +53,7 @@ else
     echo "As imagens ficarao DENTRO do Print RC: $DIR"
 fi
 
+CREATE_DIR=0
 if [[ -e "$DIR" ]]; then
     [[ -d "$DIR" && -w "$DIR" && -x "$DIR" ]] || {
         echo "Pasta nao e um diretorio gravavel: $DIR"
@@ -60,11 +61,8 @@ if [[ -e "$DIR" ]]; then
     }
 else
     echo "Esta pasta ainda nao existe: $DIR"
-    read -r -p 'Deseja CRIAR esta pasta? [s/N]: ' confirm || true
-    [[ "${confirm,,}" == s || "${confirm,,}" == sim ]] || {
-        echo 'Cancelado, nenhuma pasta criada.'; exit 1;
-    }
-    mkdir -p -- "$DIR"
+    echo 'Ela SOMENTE sera criada depois de voce confirmar as preferencias.'
+    CREATE_DIR=1
 fi
 
 echo
@@ -92,6 +90,10 @@ read -r -p 'Salvar estas preferencias? [s/N]: ' confirm || true
     echo 'Cancelado: opcoes anteriores mantidas.'; exit 1;
 }
 umask 077
+if [[ "$CREATE_DIR" == 1 ]]; then
+    mkdir -p -- "$DIR"
+    echo "Diretorio de imagens CRIADO: $DIR"
+fi
 mkdir -p -- "$BASE/config"
 temp="$(mktemp "$BASE/config/.opcoes-XXXXXXXX")"
 trap 'rm -f -- "$temp"' EXIT
