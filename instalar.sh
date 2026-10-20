@@ -73,7 +73,9 @@ if [[ "${1:-}" != '--continuar' ]]; then
 fi
 
 dest="$source_dir"
+FRESH_INSTALL=1
 if [[ -f "$dest/.print-rc-installation" ]]; then
+    FRESH_INSTALL=0
     [[ "$(sed -n '2p' "$dest/.print-rc-installation")" == "$dest" ]] || {
         echo 'Marcador de instalacao pertence a outro caminho. Cancelado.'; exit 2;
     }
@@ -117,5 +119,23 @@ if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
     fi
 else
     echo 'Atalho do sistema nao modificado.'
+fi
+if [[ "$FRESH_INSTALL" == 1 ]]; then
+    # Registrar o checksum de CADA arquivo original antes de permitir desinstalar.
+    # Nunca registrar capturas, documentos desconhecidos nem subpastas do usuario.
+    if [[ -r "$dest/scripts/inventario.sh" ]]; then
+        source "$dest/scripts/inventario.sh"
+        print_rc_criar_inventario "$dest" || {
+            echo 'FALHA: nao consegui registrar integridade dos arquivos.'
+            echo 'Nada sera removido automaticamente sem inventario verificavel.'
+            exit 1
+        }
+    else
+        echo 'Inventario de seguranca indisponivel. Instalacao incompleta.'
+        exit 1
+    fi
+else
+    echo 'Reconfiguracao de instalacao existente: inventario anterior preservado.'
+    echo 'Se esta e uma versao antiga sem inventario, a desinstalacao sera conservadora.'
 fi
 echo 'O ZIP original baixado fora da pasta e independente: guarde-o ou apague-o manualmente.'
