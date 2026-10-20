@@ -45,7 +45,7 @@ cp "$ROOT/configurar.sh" "$TEMP/app5/"
 printf 'save_dir=%s\ncopy_clipboard=0\n' "$TEMP/minhas imagens anteriores" > "$TEMP/app5/config-before"
 mkdir -p "$TEMP/app5/config"
 cp "$TEMP/app5/config-before" "$TEMP/app5/config/opcoes.conf"
-printf '\n\ns\n' | bash "$TEMP/app5/configurar.sh"
+printf '\ns\n\ns\n' | bash "$TEMP/app5/configurar.sh"
 grep -Fx "save_dir=$TEMP/minhas imagens anteriores" "$TEMP/app5/config/opcoes.conf"
 grep -Fx 'copy_clipboard=0' "$TEMP/app5/config/opcoes.conf"
 echo 'OK: diretório interno/externo, Ctrl+V, caminhos e cancelamento testados.'
