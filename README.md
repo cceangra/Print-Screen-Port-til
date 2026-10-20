@@ -1,4 +1,4 @@
-# Print RC v0.2.0 — Linux X11 / pasta unica
+# Print RC v0.3.0 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
 
@@ -10,8 +10,8 @@ Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, sel
 
 O ZIP contem **um unico diretorio `Print-RC/`**, com:
 - `bin/print-rc`: executavel C++ **compilado estaticamente**; `ldd` nao lista bibliotecas compartilhadas para esse executavel;
-- `instalar.sh`, `iniciar.sh`, `desinstalar.sh`;
-- `src/main.cpp`, `Makefile`, `scripts/atalho.py` e documentacao;
+- `instalar.sh`, `iniciar.sh`, `configurar.sh`, `desinstalar.sh`;
+- `src/main.cpp`, `src/settings.hpp`, `Makefile`, `scripts/atalho.py` e documentacao;
 - `config/`, `backups/`, `capturas/`: criados dentro da pasta durante a instalacao.
 
 **Nao precisa executar `apt install`, instalar o compilador, `make`, `pkg-config` ou bibliotecas do aplicativo para usar este ZIP.** A compilacao e feita no GitHub antes do download.
@@ -63,6 +63,35 @@ BASH
 
 Isso extrai os arquivos diretamente para uma unica pasta definitiva. Nao executa `apt`.
 
+## Escolher pasta das imagens e copiar para Ctrl+V (terminal)
+
+Na instalacao, o Print RC faz **duas perguntas obrigatorias** pelo terminal:
+
+1. Digite o **caminho completo e absoluto** da pasta para receber as imagens PNG, por exemplo `/home/rc/Imagens/Print-RC`. Pressione Enter para escolher a pasta `capturas/` **dentro do proprio aplicativo**.
+2. Escolha **SIM ou NAO** para copiar cada imagem para a **area de transferencia**, permitindo colar com **Ctrl+V**. Ctrl+C nao e necessario: a captura e copiada automaticamente se essa opcao estiver ligada.
+
+Depois, o instalador **mostra todas as escolhas e pede confirmacao** antes de salvar a configuracao. As preferencias ficam em `Print-RC/config/opcoes.conf`. O capturador usa essas opcoes sempre que for iniciado pela tecla Print ou pelo `iniciar.sh`. O C++ salva arquivos PNG com data, hora e nome unico, sem sobrescrever imagens existentes.
+
+**Destino externo:** se voce escolher `/home/rc/Imagens/Print-RC`, os PNGs ficarao **fora da pasta do aplicativo, porque voce escolheu isso**. O instalador informa o caminho exato e exige confirmacao adicional. A desinstalacao **nunca remove essas imagens externas**. Caso o diretorio ainda nao exista, ele somente e criado apos a confirmacao final.
+
+**Destino interno:** se escolher `.../Print-RC/capturas`, toda a instalacao e imagens ficam em **uma unica pasta**. Ao desinstalar, o programa procura imagens nesse diretorio e exige uma **confirmacao separada** para apaga-las, alem da confirmacao para excluir a pasta do programa.
+
+### Modificar as opcoes depois de instalar
+
+Abra o terminal na pasta instalada e execute:
+
+```bash
+bash configurar.sh
+```
+
+Para verificar as escolhas registradas, execute:
+
+```bash
+bash iniciar.sh --show-config
+```
+
+**Efeito na RAM:** com a copia para Ctrl+V desligada, o processo sai logo apos salvar o PNG; com a copia ligada, o processo pode continuar dormindo por ate 30 minutos para atender o clipboard X11.
+
 ## Usar
 
 Apos a instalacao, pelo caminho escolhido:
@@ -71,9 +100,9 @@ Apos a instalacao, pelo caminho escolhido:
 bash /home/rc/Apps/Print-RC/iniciar.sh
 ```
 
-A tela escurece levemente; pressione e arraste o botao esquerdo do mouse. Ao soltar, o PNG e copiado para a area de transferencia X11. Cole em um aplicativo compativel com imagem, com Ctrl+V. **Esc** ou botao direito cancela.
+A tela escurece levemente; pressione e arraste o botao esquerdo do mouse. Ao soltar, um PNG e salvo na pasta que voce escolheu. Se ativou a copia automatica, a imagem tambem fica na area de transferencia X11: cole em um aplicativo compativel com Ctrl+V. **Esc** ou botao direito cancela.
 
-O capturador so inicia quando chamado; apos a selecao, a interface some. Em X11, ele pode manter um processo adormecido por **ate 30 minutos** para disponibilizar os bytes PNG no clipboard; depois encerra. Nao grava o print no disco por conta propria. Se um gerenciador externo assumir o clipboard, a imagem podera continuar disponivel.
+O capturador so inicia quando chamado; apos a selecao, a interface some. Em X11, se a copia estiver ativada, ele pode manter um processo adormecido por **ate 30 minutos** para disponibilizar o PNG no clipboard; depois encerra. Se a copia estiver desligada, o processo encerra apos salvar a imagem. Se um gerenciador externo assumir o clipboard, a imagem podera continuar disponivel.
 
 ### Tecla Print Screen
 
