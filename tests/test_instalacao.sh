@@ -59,4 +59,30 @@ if bash "$TEMP/origem4/instalar.sh"; then
     echo 'ERRO: permitiu pacote incompleto'; exit 1
 fi
 test -e "$TEMP/origem4/instalar.sh"
+echo '[5] Reinstalar em pasta preservada com prints, sem sobrescrever nada'
+make_source "$TEMP/origem5"
+FINAL5="$TEMP/pasta com fotos/Print-RC"
+mkdir -p "$FINAL5/capturas" "$FINAL5/src" "$FINAL5/config"
+printf 'PRINT IMPORTANTE\n' > "$FINAL5/capturas/print-antigo.png"
+printf 'DESENHO PROPRIO\n' > "$FINAL5/src/arquivo-pessoal.png"
+printf 'CONFIG PESSOAL\n' > "$FINAL5/config/meus-dados.txt"
+printf '%s\ns\n\n\ns\nn\n' "$FINAL5" | bash "$TEMP/origem5/instalar.sh"
+test ! -e "$TEMP/origem5"
+test -x "$FINAL5/bin/print-rc"
+test -f "$FINAL5/config/arquivos-instalados.sha256"
+test "$(cat "$FINAL5/capturas/print-antigo.png")" = 'PRINT IMPORTANTE'
+test "$(cat "$FINAL5/src/arquivo-pessoal.png")" = 'DESENHO PROPRIO'
+test "$(cat "$FINAL5/config/meus-dados.txt")" = 'CONFIG PESSOAL'
+
+echo '[6] Conflito com arquivo pessoal de mesmo nome bloqueia reinstalacao'
+make_source "$TEMP/origem6"
+FINAL6="$TEMP/pasta com conflito/Print-RC"
+mkdir -p "$FINAL6"
+printf 'README PESSOAL\n' > "$FINAL6/README.md"
+if printf '%s\n' "$FINAL6" | bash "$TEMP/origem6/instalar.sh"; then
+    echo 'ERRO: reinstalacao sobrescreveu arquivo pessoal.'
+    exit 1
+fi
+test "$(cat "$FINAL6/README.md")" = 'README PESSOAL'
+test -f "$TEMP/origem6/README.md"
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
