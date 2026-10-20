@@ -206,8 +206,8 @@ int main(int argc,char** argv) {
         if (arg=="--show-config") {
             PrintRcSettings options;
             if (!print_rc_load_settings(options)) return 2;
-            std::cout << "Pasta das imagens: " << options.save_dir << "\\n"
-                      << "Copiar para Ctrl+V: " << (options.copy_clipboard ? "SIM" : "NAO") << "\\n";
+            std::cout << "Pasta das imagens: " << options.save_dir << "\n"
+                      << "Copiar para Ctrl+V: " << (options.copy_clipboard ? "SIM" : "NAO") << "\n";
             return 0;
         }
         if (arg=="--help") {
@@ -321,7 +321,7 @@ int main(int argc,char** argv) {
         return 6;
     }
     if (!options.copy_clipboard) {
-        std::cout << "Print RC: captura gravada em PNG; clipboard desativado.\\n";
+        std::cout << "Print RC: captura gravada em PNG; clipboard desativado.\n";
         XCloseDisplay(display);
         return 0;
     }
