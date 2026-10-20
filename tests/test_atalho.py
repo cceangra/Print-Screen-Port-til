@@ -307,6 +307,18 @@ class ShortcutTests(unittest.TestCase):
                 if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
                 else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
 
+    def test_reload_dcop_nao_reinicia_nem_encerra_trinity(self):
+        from unittest.mock import patch,Mock
+        with patch.object(atalho.shutil,'which',return_value='/usr/bin/dcop'), \
+             patch.object(atalho.subprocess,'run',return_value=Mock(returncode=0,stdout='',stderr='')) as call:
+            self.assertTrue(atalho.reload_trinity_shortcuts())
+            args,kwargs=call.call_args
+            self.assertEqual(
+                args[0],
+                ['/usr/bin/dcop','kded','khotkeysd','reread_configuration']
+            )
+            self.assertEqual(kwargs['timeout'],5)
+
     def test_no_conflict(self):
         self.assertEqual(atalho.conflicts('[Data_1Triggers0]\nKey=Shift+Print\n'),[])
         self.assertEqual(len(atalho.conflicts('[Data_1Triggers0]\nKey=Print\n')),1)
