@@ -42,6 +42,8 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard-test $(pkg-config --libs x11)
           timeout 25s xvfb-run -a -s '-screen 0 1024x768x24' /tmp/print-rc-keyboard-test "$PWD/bin/print-rc"
+      - name: Testar desinstalacao de processo clipboard ativo sem perder imagens
+        run: timeout 35s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_desinstalacao_processo_x11.sh
       - name: Testar clipboard PNG grande e Ctrl+V apos erro de escrita
         run: timeout 80s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_clipboard_x11.sh
       - name: Criar pacote em ZIP com um unico diretorio e executavel incluido
