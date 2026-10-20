@@ -72,8 +72,25 @@ std::vector<unsigned char> encode_png(XImage* src, Rect r) {
         unsigned long maxval=mask>>shift;
         return static_cast<unsigned char>((((p&mask)>>shift)*255UL+maxval/2)/maxval);
     };
-    for (int y=0;y<r.h;++y) {
-        for (int x=0;x<r.w;++x) {
+    const bool rgb32=src->bits_per_pixel==32 && src->byte_order==LSBFirst
+        && src->red_mask==0x00ff0000UL && src->green_mask==0x0000ff00UL
+        && src->blue_mask==0x000000ffUL;
+    if(rgb32) {
+        // Conversao linear BGRA->RGBA sem XGetPixel por pixel; outras telas mantem fallback.
+        for(int y=0;y<r.h;++y) {
+            const unsigned char* row=reinterpret_cast<const unsigned char*>(
+                src->data + static_cast<size_t>(y+r.y)*src->bytes_per_line);
+            for(int x=0;x<r.w;++x) {
+                const unsigned char* bgra=row+static_cast<size_t>(x+r.x)*4;
+                auto i=(static_cast<size_t>(y)*r.w+x)*4;
+                pixels[i]=bgra[2];
+                pixels[i+1]=bgra[1];
+                pixels[i+2]=bgra[0];
+                pixels[i+3]=255;
+            }
+        }
+    } else {
+        for (int y=0;y<r.h;++y) for (int x=0;x<r.w;++x) {
             unsigned long p=XGetPixel(src,r.x+x,r.y+y);
             auto i=(static_cast<size_t>(y)*r.w+x)*4;
             pixels[i]=extract(p,src->red_mask);
@@ -329,7 +346,10 @@ int main(int argc,char** argv) {
     }
     // Barra de ferramentas curta: Area | Tela | Lapis | Desfazer | Fechar.
     // Nao exige Qt/GTK, icones externos, servicos de fundo ou arquivos extras.
-    constexpr int barW=280,barH=44,barY=12,btnW=48,btnGap=6,barPad=8;
+    constexpr int barH=44,btnGap=6,barPad=8;
+    const int barW=std::min(280,std::max(1,width-8));
+    const int barY=height>60?12:0;
+    const int btnW=std::max(1,(barW-2*barPad-4*btnGap)/5);
     const int barX=std::max(0,(width-barW)/2);
     const char* buttons[]={"AREA","TELA","LAPIS","DESF","X"};
     XSetWindowAttributes attrs{};
@@ -455,15 +475,23 @@ int main(int argc,char** argv) {
                         barY+35,buttons[i],len);
         }
     };
-    auto paint_strokes=[&]() {
+    auto paint_strokes=[&](Rect dirty) {
         XSetForeground(display,gc,border);
         XSetLineAttributes(display,gc,3,LineSolid,CapRound,JoinRound);
+        const Rect visible=expand(dirty,3,width,height);
+        auto intersects=[&](InkPoint a,InkPoint b) {
+            return std::max(a.x,b.x)>=visible.x && std::min(a.x,b.x)<visible.x+visible.w
+                && std::max(a.y,b.y)>=visible.y && std::min(a.y,b.y)<visible.y+visible.h;
+        };
         for(const auto& line:strokes) {
             if(line.empty()) continue;
             if(line.size()==1) {
-                XFillArc(display,overlay,gc,line[0].x-2,line[0].y-2,4,4,0,360*64);
-            } else for(size_t i=1;i<line.size();++i)
-                XDrawLine(display,overlay,gc,line[i-1].x,line[i-1].y,line[i].x,line[i].y);
+                if(intersects(line[0],line[0]))
+                    XFillArc(display,overlay,gc,line[0].x-2,line[0].y-2,4,4,0,360*64);
+            } else for(size_t i=1;i<line.size();++i) {
+                if(intersects(line[i-1],line[i]))
+                    XDrawLine(display,overlay,gc,line[i-1].x,line[i-1].y,line[i].x,line[i].y);
+            }
         }
         XSetLineAttributes(display,gc,1,LineSolid,CapButt,JoinMiter);
     };
@@ -483,7 +511,7 @@ int main(int argc,char** argv) {
             int textY=clampi(selection.y+selection.h+18,18,height-4);
             XDrawString(display,overlay,gc,textX,textY,sizeText,std::strlen(sizeText));
         }
-        paint_strokes();
+        paint_strokes(dirty);
         paint_toolbar();
         XFlush(display);
     };
