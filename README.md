@@ -1,142 +1,119 @@
-# Print RC — Captura de tela leve (v0.1.0 experimental)
+# Print RC v0.2.0 — Linux X11 / pasta unica
 
-Capturador de região em **C++ / Xlib / libpng** para **Linux X11**, com prioridade ao **Q4OS Debian 13 e Trinity Desktop**. Inspirado na interação do `Win + Shift + S` do Windows: tela escurecida, cursor de mira, arrastar um retângulo, soltar e colar a imagem com `Ctrl + V`.
+Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
 
-**Esta é uma primeira versão para teste.** Não promete funcionamento em Wayland, consoles Linux, aplicativos com proteção de captura, jogos com captura exclusiva de entrada ou em todas as resoluções e múltiplos monitores.
+## BAIXAR: pacote pronto, sem `apt install`
 
-## Uma única pasta: instalação sem cópias ou resíduos do projeto fora dela
+**Baixe a versao empacotada:**
 
-**A pasta extraída é o próprio aplicativo.** O instalador **não duplica** a pasta: você pode manter no lugar ou indicar outro destino, quando ele moverá a pasta inteira, com o código, instalador, executável e configurações. Ele não cria pasta extra de instalação e não executa `apt`. Se o destino já existir, ele se recusa a sobrescrevê-lo.
+**[Print-RC-Linux-x86_64.zip — Downloads / Releases](https://github.com/cceangra/Print-Screen-Port-til/releases/latest/download/Print-RC-Linux-x86_64.zip)**
 
-**Método fácil:** no GitHub clique em **Code > Download ZIP**, extraia o ZIP e abra um terminal *na pasta extraída*. Execute:
+O ZIP contem **um unico diretorio `Print-RC/`**, com:
+- `bin/print-rc`: executavel C++ **compilado estaticamente**; `ldd` nao lista bibliotecas compartilhadas para esse executavel;
+- `instalar.sh`, `iniciar.sh`, `desinstalar.sh`;
+- `src/main.cpp`, `Makefile`, `scripts/atalho.py` e documentacao;
+- `config/`, `backups/`, `capturas/`: criados dentro da pasta durante a instalacao.
+
+**Nao precisa executar `apt install`, instalar o compilador, `make`, `pkg-config` ou bibliotecas do aplicativo para usar este ZIP.** A compilacao e feita no GitHub antes do download.
+
+### Instalar usando a pasta extraida
+
+Extraia o ZIP. Abra um terminal **dentro da pasta `Print-RC`**, e execute:
 
 ```bash
 bash instalar.sh
 ```
 
-Quando perguntar **Nova pasta de destino**, pressione Enter para ficar naquela única pasta; ou digite `/home/rc/Apps/Print-RC` para **mover essa mesma pasta inteira**. Quando perguntar sobre atalho, `n` mantém o sistema inalterado; `s` tenta registrar o Print no Trinity, com confirmações e backup.
+Escolha:
+- **Enter**: manter tudo nesta unica pasta;
+- Digitar `/home/rc/Apps/Print-RC`: mover **a propria pasta inteira** para esse destino, desde que ele nao exista.
 
-**Observação:** o ZIP que o navegador já baixou fora da pasta não pode ser removido automaticamente sem sua permissão. Mova-o para dentro da pasta final ou exclua-o depois de instalar. Se você já possui uma instalação antiga no destino escolhido, não sobrescreva: use outra pasta ou desinstale a antiga primeiro.
+O instalador NAO cria segunda copia, nao instala pacotes e nao sobrescreve pastas existentes. Pergunta separadamente se deseja registrar o atalho Print do Trinity, com confirmacao e backup.
 
-### Baixar e instalar sem deixar nem o ZIP em Downloads
+**O ZIP original baixado pelo navegador e outro arquivo.** Se quiser 100% dos arquivos do download dentro da mesma pasta, guarde esse ZIP dentro de `Print-RC/` ou apague-o manualmente apos extrair. O instalador nao apaga documentos do usuario sem autorizacao.
 
-Este exemplo coloca o download, a extração e a instalação **dentro de uma única pasta** desde o começo. Só execute se `$HOME/Apps/Print-RC` **ainda não existir**:
+### Instalar por terminal e nao deixar ZIP/pastas de extracao extras
+
+No Q4OS, **se ja tiver `wget` e `unzip`**:
 
 ```bash
 bash <<'BASH'
 set -euo pipefail
 DEST="$HOME/Apps/Print-RC"
-if [[ -e "$DEST" ]]; then echo "Destino ja existe: $DEST"; exit 1; fi
-for p in wget unzip; do command -v "$p" >/dev/null || { echo "Falta o comando: $p"; exit 1; }; done
-mkdir -p -- "$DEST"
-wget -O "$DEST/origem.zip" "https://github.com/cceangra/Print-Screen-Port-til/archive/refs/heads/main.zip"
-unzip -q "$DEST/origem.zip" -d "$DEST"
-(
-  shopt -s dotglob nullglob
-  mv -- "$DEST/Print-Screen-Port-til-main/"* "$DEST/"
+if [[ -e "$DEST" ]]; then
+  echo "A pasta ja existe: $DEST. Nada sera sobrescrito."
+  exit 1
+fi
+command -v wget >/dev/null && command -v unzip >/dev/null || {
+  echo 'wget ou unzip nao encontrado. Baixe e extraia o ZIP pelo navegador.'
+  exit 1
+}
+mkdir -p "$DEST"
+wget -O "$DEST/instalacao.zip" 'https://github.com/cceangra/Print-Screen-Port-til/releases/latest/download/Print-RC-Linux-x86_64.zip'
+unzip -q "$DEST/instalacao.zip" -d "$DEST"
+( shopt -s dotglob nullglob
+  mv -- "$DEST/Print-RC/"* "$DEST/"
 )
-rmdir -- "$DEST/Print-Screen-Port-til-main"
-rm -- "$DEST/origem.zip"
-cd -- "$DEST"
+rmdir -- "$DEST/Print-RC"
+rm -- "$DEST/instalacao.zip"
+cd "$DEST"
 bash instalar.sh
 BASH
 ```
 
-O instalador oferecerá manter essa mesma pasta; pressione Enter. A fonte, compilação, backups e programa permanecerão nela.
-
-### Dependências de compilação (Q4OS / Debian 13)
-
-O instalador verifica as dependências e **não instala pacotes automaticamente**. Se faltar algum, ele mostra o que instalar. Somente **se faltar algum pacote**, e com sua autorização, você poderá instalá-lo manualmente:
-
-```bash
-sudo apt install build-essential pkg-config python3 libx11-dev libpng-dev
-```
-
-Esses pacotes, quando necessários, são gerenciados pelo Linux e ficam fora da pasta do Print RC. **Não é possível prometer portabilidade absoluta sem dependências do sistema.** Uma vez compilado, para executar bastam as bibliotecas compartilhadas do X11 e libpng disponíveis no sistema. Não é um binário universal Linux. Não use os executáveis compilados nesta máquina em outra arquitetura.
+Isso extrai os arquivos diretamente para uma unica pasta definitiva. Nao executa `apt`.
 
 ## Usar
 
-Teste antes de configurar a tecla:
+Apos a instalacao, pelo caminho escolhido:
 
 ```bash
-bash "$HOME/Apps/Print-RC/iniciar.sh"
+bash /home/rc/Apps/Print-RC/iniciar.sh
 ```
 
-Se escolheu outra pasta, substitua o caminho. Arraste com o **botão esquerdo**. Solte para copiar imagem no formato PNG. Cole com **Ctrl+V** num aplicativo compatível com imagem. Clique com botão direito ou pressione **Esc** para cancelar. Não salva imagens automaticamente. O print não fica gravado em disco pelo app.
+A tela escurece levemente; pressione e arraste o botao esquerdo do mouse. Ao soltar, o PNG e copiado para a area de transferencia X11. Cole em um aplicativo compativel com imagem, com Ctrl+V. **Esc** ou botao direito cancela.
 
-O processo `print-rc` é iniciado **somente sob demanda**. Depois da captura, a interface fecha, mas o processo continua dormindo para manter a imagem na área de transferência X11; ele encerra depois de **30 minutos desde o início** ou quando outro aplicativo assume a área de transferência. Não usa CPU em loop contínuo. Um gerenciador de área de transferência externo pode fazer a imagem continuar disponível depois.
+O capturador so inicia quando chamado; apos a selecao, a interface some. Em X11, ele pode manter um processo adormecido por **ate 30 minutos** para disponibilizar os bytes PNG no clipboard; depois encerra. Nao grava o print no disco por conta propria. Se um gerenciador externo assumir o clipboard, a imagem podera continuar disponivel.
 
-### Atalho global no Trinity
+### Tecla Print Screen
 
-Durante a instalação você pode aceitar a configuração de `Print`. Para não apagar atalhos antigos, o instalador:
+No Trinity, `instalar.sh` oferece registrar a tecla `Print` no atalho global. O instalador examina conflitos conhecidos em `~/.trinity/share/config/khotkeysrc`, apresenta acoes que encontrou e pede autorizacao antes de modificar qualquer registro. Os backups ficam em `Print-RC/backups/` e a desinstalacao tenta restaurar as alteracoes. Pode ser necessario sair e entrar novamente no Trinity.
 
-- Examina `~/.trinity/share/config/khotkeysrc` e **lista os atalhos `Key=Print` conhecidos** com nome e comando, se estiverem declarados naquele arquivo.
-- Se necessário, pede autorização para **desativar somente o acionamento da tecla** nos atalhos conflitantes, sem desinstalar o programa antigo.
-- Pede outra confirmação antes de escrever no arquivo.
-- Faz backup integral dentro de `Print-RC/backups/` e registra quais trechos alterou.
-- Na desinstalação, remove o grupo do Print RC e tenta restaurar os atalhos modificados, **sem sobrescrever edições posteriores do usuário**. Em caso de conflito ambíguo, interrompe a remoção para evitar danos.
+A configuracao automatica do atalho usa `python3` **do sistema, se existir**; caso contrario, nao altera o atalho, e voce pode associa-lo manualmente pelo painel do desktop.
 
-**Encerre a sessão e entre novamente** no Trinity após registrar/desregistrar o atalho: a mudança no arquivo pode não ser recarregada imediatamente. A configuração em execução ou de outros componentes (por exemplo teclas reservadas por jogos, aplicativos que capturam o teclado, atalhos fora de `khotkeysrc`) **não pode ser identificada com 100% de confiabilidade**. Se o atalho não funcionar, abra **Centro de Controle Trinity > Regional e Acessibilidade > Ações de Entrada / Atalhos Globais** e vincule manualmente `Print` ao caminho de `iniciar.sh`.
+## O que nao pode ficar dentro da pasta
 
-Se a identificação automática do ambiente não for Trinity, o instalador **não tenta alterar atalhos** de outro desktop. Use a tela de atalhos de seu ambiente.
+- **O kernel Linux, o servidor grafico X11, drivers, servicos do desktop e eventuais modulos dinamicos do sistema** nao fazem parte do aplicativo. Ele depende desses componentes para executar e captar teclas/tela.
+- **O registro global permanente da tecla Print** e armazenado nas configuracoes do Trinity, fora da pasta, porque um arquivo apenas dentro da pasta nao pode mudar os atalhos globais do desktop.
+- **O interpretador Python3, quando escolhido para registrar o atalho automaticamente**, e um recurso do sistema. O executavel C++ de captura nao precisa dele.
 
-## Organização
-
-```text
-Print-RC/
-├── instalar.sh
-├── iniciar.sh
-├── desinstalar.sh
-├── Makefile
-├── src/main.cpp
-├── scripts/atalho.py
-├── tests/test_atalho.py
-├── bin/print-rc            # gerado localmente
-├── config/                 # estado da integração
-├── backups/                # backup da integração
-├── capturas/               # reservado, não utilizado nesta versão
-└── README.md
-```
-
-**Fora da pasta, somente quando necessário**: a associação do atalho em `~/.trinity/share/config/khotkeysrc`, pacotes de compilação se precisarem ser instalados, bibliotecas compartilhadas existentes e integrações do sistema. A compilação e a captura não criam serviços persistentes de inicialização automática, nem escrevem arquivos de imagem fora da pasta.
+Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC e as bibliotecas vinculadas ao executavel**, e nao um sistema Linux inteiro dentro da pasta. **Nao prometemos funcionar em todo Linux nem em Wayland.**
 
 ## Desinstalar
 
-Execute da pasta de instalação (não da cópia ZIP original):
+Na pasta instalada, execute `bash desinstalar.sh`. Confirme digitando `REMOVER` quando o caminho exibido estiver correto. O processo tenta restaurar os atalhos alterados e exclui apenas a pasta de instalacao confirmada. Nao altera pacotes instalados pelo sistema.
+
+## Compilacao opcional para desenvolvedores
+
+Quem quiser alterar o codigo-fonte podera usar:
 
 ```bash
-bash "$HOME/Apps/Print-RC/desinstalar.sh"
-```
-
-Leia o caminho exibido. Digite `REMOVER` apenas se concordar em excluir a pasta inteira, inclusive as capturas e os backups locais. O script **não remove dependências do sistema**. Se os atalhos tiverem sido modificados de maneira imprevisível, a desinstalação é interrompida sem destruir o backup.
-
-## Diagnóstico e compilação
-
-```bash
-make
+make portable
 make test
 python3 -m unittest discover -s tests -v
-bash iniciar.sh --version
+bash tests/test_instalacao.sh
 ```
 
-Consumo real de memória (após iniciar):
+Esses comandos de **desenvolvimento**, diferente do ZIP pronto, exigem compilador, cabeçalhos X11/libpng e ferramentas de compilacao.
 
-```bash
-ps -C print-rc -o pid,rss,%cpu,etime,cmd
-```
+### Limitacoes
 
-O `RSS` é apresentado em KiB. Não há promessa de consumo fixo: a RAM depende da resolução, da área selecionada e do tamanho do PNG na área de transferência.
+- Requer Linux **x86_64** com sessao **X11**; Wayland nao e suportado nesta versao.
+- Jogos que interceptam teclas, tela cheia exclusiva, drivers especiais e conteudo protegido podem impedir captura ou acesso ao Print.
+- Binario estatico foi testado no ambiente automatizado, mas nao foi testado visualmente no notebook Q4OS do usuario.
+- Consumo de RAM durante o print depende da resolucao; sem o processo em execucao, ele consome 0 MB.
+- As bibliotecas basicas do proprio sistema X11 e eventuais mecanismos dinamicos do glibc continuam sendo dependencias ambientais, mesmo com arquivo ELF estatico.
 
-## Limitações conhecidas
+## Licenca
 
-- X11 apenas. Wayland não permite capturas e atalhos globais pela mesma interface.
-- Jogos em fullscreen exclusivo, conteúdo protegido ou drivers gráficos especiais podem bloquear a captura ou a tecla.
-- A tela é fotografada antes do overlay, mas aplicações com aceleração podem retornar quadro preto ou antigo.
-- O Print RC não é serviço residente: se o atalho nativo não estiver disponível, registre um atalho do próprio desktop.
-- Seleção em desktop virtual muito grande consome mais memória; esta v0.1.0 não implementa ferramentas extras de anotação, lupa ou menus de edição.
-- Algumas aplicações não aceitam PNG da área de transferência; teste num editor de imagens.
-- O arquivo de configuração de atalhos é interno ao Trinity e pode variar de versão para versão. Um arquivo não reconhecido pode exigir ajuste manual.
-
-## Licença
-
-GNU GPL v3.0 ou posterior (consulte `LICENSE`).
+GNU GPL v3 ou posterior. Consulte `LICENSE`.
