@@ -31,7 +31,11 @@ printf '%s\n%s\n' "$TOKEN" "$EXPIRY" > "$FLAG"
 echo
 echo '======= TESTE REAL DO ATALHO ======='
 echo 'O atalho foi gravado no gerenciador.'
-echo 'Agora pressione PRINT SCREEN mais uma vez para conferir se o sistema executa o Print RC.'
+TECLA="${1:-}"
+if [[ ! "$TECLA" =~ ^[A-Za-z0-9_]{1,64}$ ]]; then
+    TECLA='a tecla configurada'
+fi
+echo "Agora pressione $TECLA mais uma vez para conferir se o sistema executa o Print RC."
 echo 'Esta pressao serve SOMENTE para o teste; a captura nao sera aberta.'
 echo 'Prazo: 12 segundos. Nao precisa responder SIM novamente.'
 echo '===================================='
@@ -44,7 +48,7 @@ for ((n=0;n<PASSOS;n++)); do
         IFS= read -r got < "$RESPONSE" || true
         if [[ "$got" == "$TOKEN" ]]; then
             echo 'ATIVACAO_CONFIRMADA: o atalho executou o inicializador Print RC.'
-            echo 'Pressione Print novamente para abrir a captura normalmente.'
+            echo "Pressione $TECLA novamente para abrir a captura normalmente."
             exit 0
         fi
     fi
