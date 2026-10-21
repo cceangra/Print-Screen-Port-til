@@ -45,6 +45,19 @@ cp -a "$ROOT/instalar.sh" "$ROOT/configurar.sh" "$ROOT/iniciar.sh" \
 mkdir -p "$APP/scripts"
 # Nunca distribuir __pycache__ ou qualquer artefato gerado na CI.
 cp -a "$ROOT/scripts/"*.py "$ROOT/scripts/inventario.sh" "$APP/scripts/"
+# Simular a pessoa pressionando Print somente neste teste de integracao.
+# A leitura FISICA real e exercitada separadamente em Xvfb pelo novo teste X11.
+cp -- "$APP/bin/print-rc" "$TMP/print-rc-original"
+export PRINT_RC_TEST_BINARY="$TMP/print-rc-original"
+cat > "$APP/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    printf 'PRINT_RC_KEY=Print\n'
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$APP/bin/print-rc"
 # Atalho preexistente de outro aplicativo (deve ser restaurado ao remover).
 python3 - <<'PY'
 from pathlib import Path
