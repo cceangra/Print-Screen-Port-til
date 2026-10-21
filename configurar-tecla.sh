@@ -102,7 +102,21 @@ configurar() {
             --launcher "$BASE/iniciar.sh"
     fi
     echo
-    echo 'Solicitacao concluida. Aperte Print para testar se o capturador abre.'
+    echo 'REGISTRO_GRAVADO: aguardando prova de acionamento real.'
+    if [[ -n "${DISPLAY:-}" && -t 0 ]]; then
+        if ! bash "$BASE/scripts/provar-atalho.sh"; then
+            echo 'ATIVACAO_PENDENTE: o desktop ainda nao executou o Print RC durante o teste.'
+        fi
+    else
+        echo 'ATIVACAO_PENDENTE: rode depois: bash scripts/provar-atalho.sh'
+    fi
+}
+provar() {
+    if [[ ! -f "$BASE/scripts/provar-atalho.sh" ]]; then
+        echo 'Arquivo de teste nao encontrado; pacote incompleto.'
+        return 2
+    fi
+    bash "$BASE/scripts/provar-atalho.sh"
 }
 liberar() {
     header
@@ -134,7 +148,8 @@ case "${1:-}" in
     --status) verificar; exit ;;
     --configurar) configurar; exit ;;
     --liberar) liberar; exit ;;
-    --help|-h) echo 'Uso: bash configurar-tecla.sh [--status|--configurar|--liberar]'; exit ;;
+    --provar) provar; exit ;;
+    --help|-h) echo 'Uso: bash configurar-tecla.sh [--status|--configurar|--liberar|--provar]'; exit ;;
     '') ;;
     *) echo 'Opcao invalida. Use --help.' >&2; exit 2 ;;
 esac
@@ -143,14 +158,16 @@ while true; do
     echo '1) Verificar situacao da tecla Print'
     echo '2) Configurar / assumir tecla Print Screen'
     echo '3) Liberar atribuicao gerenciada pelo Print RC'
+    echo '4) Testar se Print realmente abre o aplicativo'
     echo '0) Sair'
-    printf 'Escolha [0-3]: '
+    printf 'Escolha [0-4]: '
     escolha=''
     IFS= read -r escolha || break
     case "$escolha" in
         1) verificar || true ;;
         2) configurar || true ;;
         3) liberar || true ;;
+        4) provar || true ;;
         0) break ;;
         *) echo 'Opcao invalida.' ;;
     esac
