@@ -130,6 +130,25 @@ declare -A ALLOWED=()
 declare -A EXPECTED=()
 for rel in "${PRINT_RC_KNOWN[@]}"; do ALLOWED["$rel"]=1; done
 
+# Derivar as pastas somente da lista fixa de arquivos conhecidos.
+# Inclui diretorios ocultos (.github) e subdiretorios futuros.
+# Nunca entrar em pastas externas nem seguir links simbolicos.
+declare -A KNOWN_DIRS=([capturas]=1 [config]=1 [backups]=1)
+for rel in "${PRINT_RC_KNOWN[@]}"; do
+    parent="$rel"
+    while [[ "$parent" == */* ]]; do
+        parent="${parent%/*}"
+        KNOWN_DIRS["$parent"]=1
+    done
+done
+for dir in "${!KNOWN_DIRS[@]}"; do
+    if [[ -L "$BASE/$dir" ]]; then
+        echo "Diretorio conhecido virou link simbolico: $BASE/$dir"
+        echo 'Remocao interrompida antes de apagar arquivos locais.'
+        exit 2
+    fi
+done
+
 while IFS=$'\t' read -r checksum rel || [[ -n "${checksum:-}${rel:-}" ]]; do
     [[ -z "${checksum:-}" && -z "${rel:-}" ]] && continue
     if [[ ! "$checksum" =~ ^[[:xdigit:]]{64}$ || ! -v 'ALLOWED[$rel]' || -v 'EXPECTED[$rel]' ]]; then
@@ -173,8 +192,15 @@ done
 # Este inventario tambem pertence ao Print RC e fica somente dentro da pasta.
 rm -- "$MANIFEST" || { echo 'Inventario nao pode ser removido.'; exit 1; }
 
-# Apagar somente diretorios VAZIOS. Qualquer arquivo do usuario os preserva.
-for dir in .github/workflows .github tests scripts src bin config backups capturas; do
+# Apagar SOMENTE diretorios conhecidos e VAZIOS, dos mais profundos
+# para os pais. Isso inclui .github, tests e novos caminhos da lista fixa.
+# Nenhum rm -rf, nenhuma exclusao recursiva nem seguimento de symlinks.
+mapfile -t ORDERED_DIRS < <(
+    printf '%s\n' "${!KNOWN_DIRS[@]}" |
+        awk '{ print length($0) "\t" $0 }' |
+        LC_ALL=C sort -rn | cut -f2-
+)
+for dir in "${ORDERED_DIRS[@]}"; do
     rmdir -- "$BASE/$dir" 2>/dev/null || true
 done
 cd -- "$HOME"
@@ -190,4 +216,5 @@ if [[ -n "$IMAGE_DIR" && "$IMAGE_DIR" != "$BASE/"* ]]; then
     echo "IMAGENS EXTERNAS PRESERVADAS: $IMAGE_DIR"
 fi
 echo 'Atalho Print RC removido quando gerenciado por esta instalacao.'
-echo 'Saia e entre na sessao Trinity para recarregar os atalhos.'
+echo 'Saia e entre na sessao Trinity se o atalho nao atualizar.'
+echo 'O ZIP baixado fora da instalacao nao foi modificado nem removido.'
