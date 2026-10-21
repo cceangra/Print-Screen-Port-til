@@ -253,22 +253,44 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
 #endif
 static_assert(PRINT_RC_DETECT_SECONDS > 0 && PRINT_RC_DETECT_SECONDS <= 600,
               "Tempo de deteccao X11 invalido");
-// Ao identificar a tecla Print, nao assumir que ela esteja no indice 0.
-// Layouts X11/XKB podem mapear Print/Sys_Req em outro nivel ou grupo;
-// neste caso a v0.5.3 recebia a tecla mas ficava esperando indefinidamente.
-KeySym print_keysym_for_event(Display* d, const XKeyEvent& ev) {
+// Encontrar uma tecla X11 normal, nao apenas Print. Primeiro tentar o keysym
+// base do evento; se estiver ausente, procurar um keysym definido no keycode.
+// Nunca modificar o mapa do teclado do usuario.
+KeySym selected_keysym_for_event(Display* d, const XKeyEvent& ev) {
     const KeySym first=XLookupKeysym(const_cast<XKeyEvent*>(&ev),0);
-    if(first==XK_Print || first==XK_Sys_Req) return first;
+    if(first!=NoSymbol) return first;
     int count=0;
     KeySym* syms=XGetKeyboardMapping(d,static_cast<KeyCode>(ev.keycode),1,&count);
     if(!syms) return NoSymbol;
     KeySym found=NoSymbol;
     for(int i=0;i<count;i++) {
-        if(syms[i]==XK_Print) { found=XK_Print; break; }
-        if(syms[i]==XK_Sys_Req) found=XK_Sys_Req;
+        if(syms[i]!=NoSymbol) { found=syms[i]; break; }
     }
     XFree(syms);
     return found;
+}
+bool standalone_modifier(KeySym sym) {
+    switch(sym) {
+        case XK_Shift_L: case XK_Shift_R:
+        case XK_Control_L: case XK_Control_R:
+        case XK_Alt_L: case XK_Alt_R:
+        case XK_Meta_L: case XK_Meta_R:
+        case XK_Super_L: case XK_Super_R:
+        case XK_Hyper_L: case XK_Hyper_R:
+        case XK_ISO_Level3_Shift: case XK_Mode_switch:
+            return true;
+        default: return false;
+    }
+}
+bool safe_shortcut_name(const char* name) {
+    if(!name) return false;
+    const size_t length=std::strlen(name);
+    if(length==0 || length>64) return false;
+    for(const unsigned char* p=reinterpret_cast<const unsigned char*>(name);*p;++p) {
+        if(!((*p>='A' && *p<='Z') || (*p>='a' && *p<='z') ||
+             (*p>='0' && *p<='9') || *p=='_')) return false;
+    }
+    return true;
 }
 
 int detect_print_key() {
@@ -295,9 +317,10 @@ int detect_print_key() {
         XCloseDisplay(d);
         return 3;
     }
-    std::cerr<<"Print RC: pressione a tecla PRINT SCREEN agora (Esc cancela).\n"
-             <<"Aceitamos Print, Sys_Req e Insert quando sua tecla fisica esta mapeada assim.\n"
-             <<"Voce tem ate "<<PRINT_RC_DETECT_SECONDS<<" segundos. Esc cancela.\n";
+    std::cerr<<"Print RC: pressione A TECLA que voce quer usar para capturar.\n"
+             <<"Exemplos: Print, Insert, F8, F12, letras, numeros e outras teclas X11.\n"
+             <<"Voce tem ate "<<PRINT_RC_DETECT_SECONDS<<" segundos. Esc cancela.\n"
+             <<"Teclas modificadoras sozinhas (Shift/Ctrl/Alt/Super) nao sao atalhos validos.\n";
     std::cerr.flush();
     int result=4;
     const auto expires=Clock::now()+std::chrono::seconds(PRINT_RC_DETECT_SECONDS);
@@ -306,33 +329,28 @@ int detect_print_key() {
             XEvent event{};
             XNextEvent(d,&event);
             if (event.type!=KeyPress) continue;
-            const KeySym key=XLookupKeysym(&event.xkey,0);
-            KeySym detected=print_keysym_for_event(d,event.xkey);
-            // Existem teclados cuja tecla rotulada Print envia exclusivamente
-            // Insert no X11. Permitir que o usuario escolha Insert para acionar
-            // Print RC, sem remapear a tecla no sistema inteiro.
-            if (detected==NoSymbol && (key==XK_Insert || key==XK_KP_Insert))
-                detected=XK_Insert;
-            if (key==XK_Escape) {
-                std::cerr<<"Print RC: identificacao cancelada com Esc.\n";
+            const KeySym key=selected_keysym_for_event(d,event.xkey);
+            if(key==XK_Escape) {
+                std::cerr<<"Print RC: escolha cancelada com Esc.\n";
                 result=5;
                 goto finished_key_detection;
             }
-            if (detected==XK_Print || detected==XK_Sys_Req || detected==XK_Insert) {
-                const char* selected=detected==XK_Print?"Print":(detected==XK_Sys_Req?"Sys_Req":"Insert");
-                std::cout<<"PRINT_RC_KEY="<<selected<<"\n";
+            if(standalone_modifier(key)) {
+                std::cerr<<"Print RC: modificador sozinho nao e um atalho valido; "
+                         <<"escolha uma tecla como F9, Print, Insert ou A.\n";
+                continue;
+            }
+            const char* name=XKeysymToString(key);
+            if(safe_shortcut_name(name)) {
+                std::cout<<"PRINT_RC_KEY="<<name<<"\n";
                 std::cout.flush();
-                std::cerr<<"Print RC: tecla identificada: "
-                         <<selected
-                         <<" (codigo fisico X11 "<<event.xkey.keycode<<").\n";
+                std::cerr<<"Print RC: tecla escolhida: "<<name
+                         <<" (keycode X11 "<<event.xkey.keycode<<").\n";
                 result=0;
                 goto finished_key_detection;
             }
-            const char* name=XKeysymToString(key);
-            std::cerr<<"Print RC: tecla recebida (codigo X11 "<<event.xkey.keycode
-                     <<", mapeamento "<<(name?name:"desconhecido")
-                     <<"), mas NAO corresponde a Print/Sys_Req neste teclado.\n"
-                     <<"Continua aguardando Print Screen ou Esc.\n";
+            std::cerr<<"Print RC: este evento nao tem nome de atalho X11 utilizavel; "
+                     <<"pressione outra tecla ou Esc.\n";
         }
         const int fd=ConnectionNumber(d);
         if (fd<0 || fd>=FD_SETSIZE) {
@@ -450,7 +468,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.5 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.5.6 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();
