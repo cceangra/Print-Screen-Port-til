@@ -34,6 +34,8 @@ jobs:
         run: |
           bash -n instalar.sh desinstalar.sh iniciar.sh configurar.sh
           bash tests/test_instalacao.sh
+      - name: Testar Xfce instalacao/atalho/desinstalacao completa simulados
+        run: bash tests/test_xfce_integracao.sh
       - name: Testar desinstalacao sem apagar nenhuma imagem
         run: bash tests/test_desinstalacao.sh
       - name: Testar configuracao interativa e escrita de PNG
