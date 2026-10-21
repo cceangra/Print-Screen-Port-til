@@ -229,32 +229,32 @@ def install(base, command, key='Print'):
             if old_state.get('status')=='prepared':
                 print('Existe registro de instalacao interrompida; nao farei nova alteracao.')
                 print('Execute desinstalar.sh para recuperar o atalho com seguranca.')
-                return
+                return False
         except (ValueError,OSError):
             print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
-            return
+            return False
         print('Atalho ja gerenciado; verificando se precisa de reparo.')
         return repair(base,command)
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
         print('Desktop diferente de Trinity: configure manualmente a tecla Print para:')
         print(command_for_launcher(command))
-        return
+        return False
     # O caminho externo e informado ANTES de qualquer autorizacao.
     # Nao criar ~/.trinity nem seus subdiretorios: isso geraria residuos externos.
     if not FILE.parent.is_dir():
         print('Pasta de configuracao do Trinity nao existe:', FILE.parent)
         print('Registro automatico cancelado SEM criar arquivos ou diretorios externos.')
-        return
+        return False
     existed=FILE.exists()
     if existed and (not FILE.is_file() or FILE.is_symlink()):
         print('O caminho do atalho nao e arquivo regular seguro:', FILE)
         print('Registro cancelado.')
-        return
+        return False
     try:
         original=safe_current_text()
     except (OSError, UnicodeError, RuntimeError) as error:
         print('Nao foi possivel ler atalhos sem risco:', error)
-        return
+        return False
     print('\n'+'='*60)
     print('INTEGRACAO EXTERNA — LISTA COMPLETA DE ARQUIVOS')
     print(('MODIFICAR arquivo existente: ' if existed else 'CRIAR arquivo novo: ')+str(FILE))
@@ -269,18 +269,18 @@ def install(base, command, key='Print'):
         print('\nATENCAO: atalhos que usam Print no arquivo do Trinity:')
         for conflict in entries:
             print('  -', conflict['name'],'|',conflict['command'],'|',conflict['section'])
-        if not yes('Desativar SOMENTE a tecla Print dessas acoes (sem apagar os programas)?'):
-            print('Atalho nao alterado. Voce pode configurar manualmente.')
-            return
+        print('Ao confirmar SIM, a tecla sera atribuida ao Print RC,')
+        print('sem perguntar novamente sobre cada acao anterior.')
+        print('Os comandos anteriores nao serao apagados; somente sua tecla sera liberada.')
     else:
-        print('Nenhum atalho Print reconhecido em khotkeysrc.')
-    print('AVISO: outros atalhos fora deste arquivo podem nao ser identificados.')
-    if not yes('Registrar a tecla Print para executar o Print RC?'):
-        print('Atalho nao alterado.')
-        return
+        print('Nenhum outro atalho Print reconhecido em khotkeysrc.')
+    print('Podem existir atalhos globais de outros aplicativos fora deste arquivo.')
+    if not yes('Registrar a tecla Print para o Print RC, substituindo usos anteriores?'):
+        print('Cancelado: nenhuma alteracao de atalhos.')
+        return False
     # Perguntas podem demorar: impedir sobrescrita de mudancas externas feitas nesse intervalo.
     if not check_unchanged(original):
-        return
+        return False
     updated=original
     for conflict in entries:
         section=conflict['section']
@@ -332,7 +332,7 @@ def install(base, command, key='Print'):
         # Arquivo externo intacto pelo Print RC: limpar registros internos criados agora.
         statepath.unlink()
         backup.unlink()
-        return
+        return False
     write_atomic(FILE,updated)
     state['status']='installed'
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
