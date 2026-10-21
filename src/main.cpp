@@ -4,6 +4,8 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
+#include <X11/keysym.h>
+#include <cerrno>
 #include <png.h>
 #include "settings.hpp"
 #include <algorithm>
@@ -242,6 +244,89 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
     }
 }
 
+// Detecta apenas uma tecla durante a configuracao solicitada pelo usuario.
+// Nao guarda teclas, nao cria processo residente e nao altera atalhos do desktop.
+// XGrabKeyboard redireciona eventos para este processo durante no maximo 15 s.
+int detect_print_key() {
+    const char* displayName=std::getenv("DISPLAY");
+    if (!displayName || !*displayName) {
+        std::cerr<<"Print RC: DISPLAY indisponivel; nao posso ler Print no X11.\n";
+        return 2;
+    }
+    Display* d=XOpenDisplay(nullptr);
+    if (!d) {
+        std::cerr<<"Print RC: nao consegui abrir o display X11 para ler a tecla.\n";
+        return 2;
+    }
+    const Window root=DefaultRootWindow(d);
+    const Window keyWindow=XCreateSimpleWindow(d,root,-20,-20,1,1,0,0,0);
+    XSelectInput(d,keyWindow,KeyPressMask);
+    XFlush(d);
+    const int grab=XGrabKeyboard(d,keyWindow,False,GrabModeAsync,GrabModeAsync,CurrentTime);
+    if (grab!=GrabSuccess) {
+        std::cerr<<"Print RC: outro aplicativo controla o teclado. Nao pude verificar Print ("
+                 <<grab<<").\n";
+        XDestroyWindow(d,keyWindow);
+        XCloseDisplay(d);
+        return 3;
+    }
+    std::cerr<<"Print RC: pressione a tecla PRINT SCREEN agora (Esc cancela).\n"
+             <<"A leitura termina automaticamente apos 15 segundos.\n";
+    std::cerr.flush();
+    int result=4;
+    const auto expires=Clock::now()+std::chrono::seconds(15);
+    while (Clock::now()<expires) {
+        while (XPending(d)) {
+            XEvent event{};
+            XNextEvent(d,&event);
+            if (event.type!=KeyPress) continue;
+            const KeySym key=XLookupKeysym(&event.xkey,0);
+            if (key==XK_Escape) {
+                std::cerr<<"Print RC: identificacao cancelada com Esc.\n";
+                result=5;
+                goto finished_key_detection;
+            }
+            if (key==XK_Print || key==XK_Sys_Req) {
+                std::cout<<"PRINT_RC_KEY="<<(key==XK_Print?"Print":"Sys_Req")<<"\n";
+                std::cout.flush();
+                std::cerr<<"Print RC: tecla identificada: "
+                         <<(key==XK_Print?"Print":"Sys_Req")
+                         <<" (codigo fisico X11 "<<event.xkey.keycode<<").\n";
+                result=0;
+                goto finished_key_detection;
+            }
+            const char* name=XKeysymToString(key);
+            std::cerr<<"Print RC: tecla lida: "<<(name?name:"desconhecida")
+                     <<". Pressione PRINT SCREEN ou Esc.\n";
+        }
+        const int fd=ConnectionNumber(d);
+        if (fd<0 || fd>=FD_SETSIZE) {
+            std::cerr<<"Print RC: descritor X11 indisponivel.\n";
+            result=3;
+            break;
+        }
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(fd,&fds);
+        timeval wait{};
+        wait.tv_sec=0;
+        wait.tv_usec=250000;
+        const int ready=select(fd+1,&fds,nullptr,nullptr,&wait);
+        if (ready<0 && errno!=EINTR) {
+            std::cerr<<"Print RC: falha ao aguardar tecla.\n";
+            result=3;
+            break;
+        }
+    }
+    if (result==4) std::cerr<<"Print RC: tempo esgotado sem reconhecer PRINT SCREEN.\n";
+finished_key_detection:
+    XUngrabKeyboard(d,CurrentTime);
+    XDestroyWindow(d,keyWindow);
+    XSync(d,False);
+    XCloseDisplay(d);
+    return result;
+}
+
 bool self_test() {
     png_image image{};
     image.version=PNG_IMAGE_VERSION;
@@ -260,6 +345,7 @@ int main(int argc,char** argv) {
         std::string arg=argv[1];
         if (arg=="--version") { std::cout<<"Print RC 0.4.7 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
+        if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--show-config") {
             PrintRcSettings options;
             if (!print_rc_load_settings(options)) return 2;
@@ -269,7 +355,7 @@ int main(int argc,char** argv) {
         }
         if (arg=="--help") {
             std::cout<<"Print RC: barra AREA / TELA (1 clique) / LAPIS (desenhar) / DESF / X. Esc cancela.\n"
-                     <<"Uso: print-rc [--version|--help|--self-test|--show-config]\n";
+                     <<"Uso: print-rc [--version|--help|--self-test|--show-config|--detectar-print]\n";
             return 0;
         }
         std::cerr<<"Parametro desconhecido. Use --help.\n";return 2;
