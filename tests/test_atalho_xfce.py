@@ -24,12 +24,12 @@ class ShortcutXfceTests(unittest.TestCase):
     def fake_get(self, key=xfce.PROPERTY):
         return self.data.get(key)
 
-    def fake_set(self, command, existed):
-        self.assertEqual(existed, xfce.PROPERTY in self.data)
-        self.data[xfce.PROPERTY] = command
+    def fake_set(self, command, existed, prop=xfce.PROPERTY):
+        self.assertEqual(existed, prop in self.data)
+        self.data[prop] = command
 
-    def fake_remove(self):
-        self.data.pop(xfce.PROPERTY, None)
+    def fake_remove(self, prop=xfce.PROPERTY):
+        self.data.pop(prop, None)
 
     def scope(self, yes=True):
         from contextlib import ExitStack
@@ -41,6 +41,33 @@ class ShortcutXfceTests(unittest.TestCase):
         stack.enter_context(patch.object(xfce, 'remove_key', side_effect=self.fake_remove))
         stack.enter_context(patch.object(xfce, 'yes', return_value=yes))
         return stack
+
+    def test_tecla_fisica_insert_configura_insert_nao_print(self):
+        # Reproduz o desktop Xfce mostrado pelo usuario:
+        # a tecla com rotulo Print e recebida pelo X11 como Insert.
+        self.scope()
+        insert='/commands/custom/Insert'
+        self.data[insert]='programa-de-terceiros'
+        self.data[xfce.PROPERTY]='xfce4-screenshooter'
+        with patch.object(xfce,'yes',return_value=True) as confirm:
+            self.assertTrue(xfce.install(self.base,self.launcher,key='Insert'))
+        self.assertEqual(confirm.call_count,1)
+        self.assertEqual(self.data[insert],xfce.app_command(self.launcher))
+        self.assertEqual(self.data[xfce.PROPERTY],'xfce4-screenshooter')
+        import json
+        state=json.loads((self.base/xfce.STATE_FILE).read_text())
+        self.assertEqual(state['key'],'Insert')
+        self.assertEqual(state['property'],insert)
+        self.assertTrue(xfce.remove(self.base))
+        self.assertEqual(self.data[insert],'programa-de-terceiros')
+        self.assertEqual(self.data[xfce.PROPERTY],'xfce4-screenshooter')
+
+    def test_instalacao_de_insert_sem_atalho_anterior(self):
+        self.scope()
+        self.assertTrue(xfce.install(self.base,self.launcher,key='Insert'))
+        self.assertEqual(self.data['/commands/custom/Insert'],xfce.app_command(self.launcher))
+        self.assertTrue(xfce.remove(self.base))
+        self.assertNotIn('/commands/custom/Insert',self.data)
 
     def test_uma_confirmacao_substitui_custom_print_e_restauracao(self):
         self.scope()
