@@ -158,4 +158,87 @@ test -f "$TEMP/origem10/config/arquivos-instalados.sha256"
 test ! -e "$TEMP/origem10/config/atalho-state.json"
 test ! -e "$TEMP/origem10/backups/khotkeysrc.antes"
 
+echo '[11] Apos timeout, SIM inicia segunda tentativa e permite cadastrar Print'
+make_source "$TEMP/origem11"
+export PRINT_RC_TEST_ATTEMPTS="$TEMP/tentativas11"
+export PRINT_RC_TEST_REGISTER="$TEMP/cadastro11"
+cp -- "$TEMP/origem11/bin/print-rc" "$TEMP/original11"
+export PRINT_RC_TEST_BINARY="$TEMP/original11"
+cat > "$TEMP/origem11/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    echo tentativa >> "$PRINT_RC_TEST_ATTEMPTS"
+    if [[ "$(wc -l < "$PRINT_RC_TEST_ATTEMPTS")" == 1 ]]; then
+        exit 4
+    fi
+    echo 'PRINT_RC_KEY=Print'
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$TEMP/origem11/bin/print-rc"
+cat > "$TEMP/origem11/scripts/atalho.py" <<'PY'
+import os
+from pathlib import Path
+import sys
+assert sys.argv[1] == 'install'
+assert sys.argv[sys.argv.index('--key')+1] == 'Print'
+Path(os.environ['PRINT_RC_TEST_REGISTER']).write_text('Print cadastrado\n')
+PY
+printf '\n\n\ns\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity \
+    bash "$TEMP/origem11/instalar.sh" > "$TEMP/teste11.log" 2>&1
+test "$(wc -l < "$PRINT_RC_TEST_ATTEMPTS")" -eq 2
+test "$(cat "$PRINT_RC_TEST_REGISTER")" = 'Print cadastrado'
+grep -F 'Tentar novamente? [s/N]:' "$TEMP/teste11.log"
+test -f "$TEMP/origem11/.print-rc-installation"
+
+echo '[12] Se responder NAO ao timeout, encerrar leitura sem registrar atalho'
+make_source "$TEMP/origem12"
+export PRINT_RC_TEST_ATTEMPTS="$TEMP/tentativas12"
+export PRINT_RC_TEST_REGISTER="$TEMP/cadastro12"
+cp -- "$TEMP/origem12/bin/print-rc" "$TEMP/original12"
+export PRINT_RC_TEST_BINARY="$TEMP/original12"
+cat > "$TEMP/origem12/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    echo tentativa >> "$PRINT_RC_TEST_ATTEMPTS"
+    exit 4
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$TEMP/origem12/bin/print-rc"
+cat > "$TEMP/origem12/scripts/atalho.py" <<'PY'
+raise SystemExit('ERRO: nao deveria tentar registrar tecla')
+PY
+printf '\n\n\ns\nn\n' | XDG_CURRENT_DESKTOP=Trinity \
+    bash "$TEMP/origem12/instalar.sh" > "$TEMP/teste12.log" 2>&1
+test "$(wc -l < "$PRINT_RC_TEST_ATTEMPTS")" -eq 1
+test ! -e "$TEMP/origem12/config/atalho-state.json"
+test -f "$TEMP/origem12/.print-rc-installation"
+grep -F 'Tentar novamente? [s/N]:' "$TEMP/teste12.log"
+grep -F 'nenhuma tecla sera associada' "$TEMP/teste12.log"
+
+echo '[13] Esc cancela sem perguntar tentar novamente'
+make_source "$TEMP/origem13"
+cp -- "$TEMP/origem13/bin/print-rc" "$TEMP/original13"
+export PRINT_RC_TEST_BINARY="$TEMP/original13"
+cat > "$TEMP/origem13/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    exit 5
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$TEMP/origem13/bin/print-rc"
+cat > "$TEMP/origem13/scripts/atalho.py" <<'PY'
+raise SystemExit('ERRO: nao deveria tentar registrar tecla')
+PY
+printf '\n\n\ns\n' | XDG_CURRENT_DESKTOP=Trinity \
+    bash "$TEMP/origem13/instalar.sh" > "$TEMP/teste13.log" 2>&1
+test -f "$TEMP/origem13/.print-rc-installation"
+! grep -Fq 'Tentar novamente?' "$TEMP/teste13.log"
+grep -F 'cancelada com Esc' "$TEMP/teste13.log"
+
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
