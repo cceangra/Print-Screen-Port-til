@@ -30,7 +30,7 @@ echo '          PASTA UNICA / X11'
 echo '========================================'
 echo 'Nao instala pacotes; nao chama apt; nao compila.'
 echo 'O binario e as bibliotecas necessarias estao juntos no pacote.'
-echo 'Sistema Linux/X11 e atalho Trinity sao requisitos externos.'
+echo 'Requer Linux X11; integra atalhos no Trinity ou Xfce quando disponivel.'
 echo
 
 [[ "${XDG_SESSION_TYPE:-x11}" == x11 ]] || { echo 'Esta versao requer uma sessao X11.'; exit 2; }
