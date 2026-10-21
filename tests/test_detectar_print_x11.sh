@@ -15,17 +15,14 @@ wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Print' "$TMP/print.txt"
 grep -F 'Voce tem ate 60 segundos' "$TMP/print.err"
 
-echo '[2] Tecla diferente nao pode virar Print; aceitar Print em seguida'
+echo '[2] Qualquer tecla: F12 deve ser registrada imediatamente'
 "$BIN" --detectar-print > "$TMP/diferente.txt" 2> "$TMP/diferente.err" &
 PID=$!
 sleep 0.5
 xdotool key F12
-sleep 0.2
-xdotool key Print
 wait "$PID"
-grep -Fx 'PRINT_RC_KEY=Print' "$TMP/diferente.txt"
-grep -F 'mapeamento F12' "$TMP/diferente.err"
-grep -F 'NAO corresponde a Print/Sys_Req' "$TMP/diferente.err"
+grep -Fx 'PRINT_RC_KEY=F12' "$TMP/diferente.txt"
+grep -F 'tecla escolhida: F12' "$TMP/diferente.err"
 
 echo '[3] Cancelar com Esc sem emitir tecla nem manter keyboard grab'
 "$BIN" --detectar-print > "$TMP/esc.txt" 2> "$TMP/esc.err" &
@@ -124,6 +121,28 @@ sleep 0.5
 xdotool key Insert
 wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Insert' "$TMP/insert.txt"
-grep -F 'tecla identificada: Insert' "$TMP/insert.err"
+grep -F 'tecla escolhida: Insert' "$TMP/insert.err"
 ! grep -q 'segundos esgotados' "$TMP/insert.err"
 echo 'OK: Pressionar Insert encerra a deteccao imediatamente sem timeout.'
+
+echo '[10] Tecla alfanumerica e tecla especial Return'
+for sym in a Return; do
+    "$BIN" --detectar-print > "$TMP/${sym}.out" 2> "$TMP/${sym}.err" &
+    PID=$!
+    sleep 0.5
+    xdotool key "$sym"
+    wait "$PID"
+    grep -Fx "PRINT_RC_KEY=$sym" "$TMP/${sym}.out"
+done
+
+echo '[11] Shift sozinho nao vira atalho; F9 subsequente conclui'
+"$BIN" --detectar-print > "$TMP/shift-and-f9.txt" 2> "$TMP/shift-and-f9.err" &
+PID=$!
+sleep 0.5
+xdotool key Shift_L
+sleep 0.2
+xdotool key F9
+wait "$PID"
+grep -Fx 'PRINT_RC_KEY=F9' "$TMP/shift-and-f9.txt"
+grep -F 'modificador sozinho' "$TMP/shift-and-f9.err"
+echo 'OK: F12, Insert, a, Return e F9 reconhecidos; modificador sozinho ignorado.'
