@@ -71,7 +71,11 @@ assert 'iniciar.sh' in cmd
 assert data['/commands/default/Print']=='xfce4-screenshooter'
 PY
 printf 'DESINSTALAR\n' | bash "$APP/desinstalar.sh"
-test ! -e "$APP"
+if [[ -e "$APP" ]]; then
+    echo 'TESTE XFCE: arquivos nao removidos pela desinstalacao:'
+    find "$APP" -mindepth 1 -printf '%y %p\n'
+    exit 1
+fi
 test "$(cat "$ZIP")" = 'ZIP NAO APAGAR'
 test "$(cat "$IMAGENS/antiga.png")" = 'IMAGEM ANTIGA'
 python3 - <<'PY'
