@@ -7,6 +7,16 @@ BASE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 CONFIG="$BASE/config/opcoes.conf"
 DEFAULT_DIR="$BASE/capturas"
 
+# Configuracao deve ficar dentro da pasta real do app.
+# Links poderiam direcionar a gravacao de arquivos para locais externos.
+for relative in config config/opcoes.conf capturas; do
+    if [[ -L "$BASE/$relative" ]]; then
+        echo "ERRO: link simbolico inesperado no aplicativo: $BASE/$relative"
+        echo 'Nenhuma preferencia foi modificada.'
+        exit 2
+    fi
+done
+
 echo '===================================================='
 echo '         PRINT RC - CONFIGURACAO'
 echo '===================================================='
