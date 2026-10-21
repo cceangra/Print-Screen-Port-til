@@ -12,6 +12,17 @@ import tempfile
 import uuid
 
 NAME = 'Print RC'
+# O X11 fornece nomes de keysym: F12, a, Insert, XF86AudioMute, Return etc.
+# O formato aceito e restrito para impedir injetar configuracoes no khotkeysrc.
+DISALLOWED_KEYS = {
+    'Escape','Shift_L','Shift_R','Control_L','Control_R','Alt_L','Alt_R',
+    'Meta_L','Meta_R','Super_L','Super_R','Hyper_L','Hyper_R',
+    'ISO_Level3_Shift','Mode_switch',
+}
+def valid_key(key):
+    return (isinstance(key,str) and re.fullmatch(r'[A-Za-z0-9_]{1,64}',key)
+            and key not in DISALLOWED_KEYS)
+
 FILE = Path(os.environ.get('TDEHOME') or (Path.home() / '.trinity')) / 'share/config/khotkeysrc'
 BLOCK = re.compile(r'(?ms)^\[([^\]\n]+)\]\r?\n.*?(?=^\[[^\]\n]+\]\r?\n|\Z)')
 
@@ -173,7 +184,7 @@ def repair(base, command):
     action=sections.get(action_section,'')
     current_key=get_value(trigger,'Key')
     recorded_key=state.get('key','Print')
-    if (recorded_key not in ('Print','Sys_Req','Insert') or current_key!=recorded_key
+    if (not valid_key(recorded_key) or current_key!=recorded_key
             or get_value(trigger,'Type')!='SHORTCUT'
             or get_value(action,'Type')!='COMMAND_URL'):
         print('Tecla ou tipos internos do atalho mudaram: preservando configuracao.')
@@ -228,7 +239,6 @@ def status(base):
     except (OSError, UnicodeError, RuntimeError) as e:
         print('Nao foi possivel ler atalhos:',e)
         return False
-    entries=conflicts(raw)
     statepath=base/'config/atalho-state.json'
     own=None
     if statepath.is_file() and not statepath.is_symlink():
@@ -245,12 +255,14 @@ def status(base):
             print('Tecla do Print RC:',get_value(sections.get(root+'Triggers0',''),'Key','ausente'))
     else:
         print('Print RC ainda nao possui um registro de atalho gerenciado aqui.')
+    alvo=own.get('key','Print') if isinstance(own,dict) else 'Print'
+    entries=conflicts(raw,target=alvo)
     if entries:
-        print('Atalhos que usam Print/Sys_Req neste arquivo:')
+        print('Atalhos que usam',alvo,'neste arquivo:')
         for e in entries:
             print(' -',e['name'],'| tecla',e['old_key'],'| comando',e['command'])
     else:
-        print('Nenhuma associacao Print ativa encontrada neste arquivo.')
+        print('Nenhuma associacao da tecla consultada encontrada neste arquivo.')
     print('Isso nao confirma que a tecla esteja livre no X11 ou em outros aplicativos.')
     return True
 
@@ -283,7 +295,7 @@ def rebind(base, command, key, state):
     action=sections.get(root+'Actions0','')
     trigger=sections.get(root+'Triggers0','')
     old=state.get('key')
-    if (get_value(group,'Name')!=NAME or old not in ('Print','Sys_Req','Insert')
+    if (get_value(group,'Name')!=NAME or not valid_key(old)
         or get_value(trigger,'Key')!=old or get_value(trigger,'Type')!='SHORTCUT'
         or get_value(action,'Type')!='COMMAND_URL'
         or get_value(action,'CommandURL') not in
@@ -339,8 +351,8 @@ def rebind(base, command, key, state):
 
 def install(base, command, key='Print'):
     # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
-    if key not in ('Print', 'Sys_Req', 'Insert'):
-        raise ValueError('Tecla nao reconhecida como Print Screen pelo X11.')
+    if not valid_key(key):
+        raise ValueError('Nome de tecla X11 invalido ou modificador sozinho.')
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
         try:
@@ -568,7 +580,7 @@ def main():
     parser.add_argument('command',choices=('install','remove','repair','inspect'))
     parser.add_argument('--base',required=True,type=Path)
     parser.add_argument('--launcher',type=Path)
-    parser.add_argument('--key',choices=('Print','Sys_Req','Insert'),default='Print')
+    parser.add_argument('--key',default='Print')
     args=parser.parse_args()
     if os.geteuid()==0:
         raise SystemExit('Nao execute como root.')
