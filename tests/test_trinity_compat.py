@@ -76,6 +76,36 @@ class TrinityFormatTests(unittest.TestCase):
         self.assertEqual(self.file.read_text(),original)
         self.assertFalse((self.base/'config/atalho-state.json').exists())
 
+    def test_tecla_f9_escolhida_com_conflicto_preservado(self):
+        original=MICROPHONE.replace('Key=Win+M','Key=F9')
+        self.file.write_text(original)
+        with patch.object(hotkeys,'yes',return_value=True) as confirm:
+            self.assertTrue(hotkeys.install(self.base,self.launcher,key='F9'))
+        self.assertEqual(confirm.call_count,1)
+        import json
+        state=json.loads((self.base/'config/atalho-state.json').read_text())
+        sections=hotkeys.parse(self.file.read_text())
+        self.assertEqual(hotkeys.get_value(sections[state['group']+'Triggers0'],'Key'),'F9')
+        self.assertEqual(hotkeys.get_value(sections['Data_3Triggers0'],'Key'),'')
+        self.assertTrue(hotkeys.remove(self.base))
+        self.assertEqual(hotkeys.get_value(hotkeys.parse(self.file.read_text())['Data_3Triggers0'],'Key'),'F9')
+
+    def test_tecla_alfanumerica_suportada_sem_alterar_outras(self):
+        self.assertTrue(hotkeys.install(self.base,self.launcher,key='a'))
+        import json
+        state=json.loads((self.base/'config/atalho-state.json').read_text())
+        sections=hotkeys.parse(self.file.read_text())
+        self.assertEqual(hotkeys.get_value(sections[state['group']+'Triggers0'],'Key'),'a')
+        self.assertEqual(hotkeys.get_value(sections['Data_3Triggers0'],'Key'),'Win+M')
+        self.assertTrue(hotkeys.remove(self.base))
+
+    def test_rejeitar_teclas_inseguras_antes_de_escrever_configuracao(self):
+        original=self.file.read_text()
+        for candidate in ('../../a','A\nEnabled=true','Shift_L','Escape','Alt_L'):
+            with self.assertRaises(ValueError):
+                hotkeys.install(self.base,self.launcher,key=candidate)
+        self.assertEqual(self.file.read_text(),original)
+
     def test_nova_instalacao_usa_tipo_suportado_pelo_trinity(self):
         s=self.install()
         groups=hotkeys.parse(self.file.read_text())
