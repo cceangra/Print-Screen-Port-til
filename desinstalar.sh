@@ -240,5 +240,5 @@ if [[ -n "$IMAGE_DIR" && "$IMAGE_DIR" != "$BASE/"* ]]; then
     echo "IMAGENS EXTERNAS PRESERVADAS: $IMAGE_DIR"
 fi
 echo 'Atalho Print RC removido quando gerenciado por esta instalacao.'
-echo 'Saia e entre na sessao Trinity se o atalho nao atualizar.'
+echo 'Se necessario, saia e entre novamente no desktop para atualizar os atalhos.'
 echo 'O ZIP baixado fora da instalacao nao foi modificado nem removido.'
