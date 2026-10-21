@@ -35,7 +35,11 @@ echo 'Agora pressione PRINT SCREEN mais uma vez para conferir se o sistema execu
 echo 'Esta pressao serve SOMENTE para o teste; a captura nao sera aberta.'
 echo 'Prazo: 12 segundos. Nao precisa responder SIM novamente.'
 echo '===================================='
-for ((n=0;n<60;n++)); do
+PASSOS="${PRINT_RC_PROVA_PASSOS:-60}"
+if [[ ! "$PASSOS" =~ ^[0-9]+$ ]] || (( PASSOS<1 || PASSOS>60 )); then
+    PASSOS=60
+fi
+for ((n=0;n<PASSOS;n++)); do
     if [[ -f "$RESPONSE" && ! -L "$RESPONSE" ]]; then
         IFS= read -r got < "$RESPONSE" || true
         if [[ "$got" == "$TOKEN" ]]; then
