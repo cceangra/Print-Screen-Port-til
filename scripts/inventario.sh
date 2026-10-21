@@ -9,6 +9,7 @@ PRINT_RC_KNOWN=(
   'tests/test_configuracao.sh' 'tests/test_instalacao.sh'
   'tests/test_desinstalacao.sh' 'tests/test_gui_x11.sh'
   'tests/test_keyboard_grab.cpp'
+  'tests/test_detectar_print_x11.sh'
   'tests/test_clipboard_x11.sh'
   'tests/paint_test_pattern.cpp'
   'tests/test_desinstalacao_processo_x11.sh'
