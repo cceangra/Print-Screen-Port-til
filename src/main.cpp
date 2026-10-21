@@ -333,6 +333,79 @@ finished_key_detection:
     return result;
 }
 
+// Sonda curta e nao destrutiva de reservas X11 da tecla Print.
+// XUngrabKey libera SOMENTE o grab criado por ESTA conexao.
+// Uma reserva ativa de outro cliente nunca e liberada por esta operacao.
+bool shortcut_probe_error=false;
+int shortcut_probe_handler(Display*, XErrorEvent* e) {
+    if (e->error_code==BadAccess) shortcut_probe_error=true;
+    else shortcut_probe_error=true;
+    return 0;
+}
+int inspect_print_grabs() {
+    if (!std::getenv("DISPLAY")) {
+        std::cout<<"PRINT_RC_GRAB=indeterminado\n";
+        std::cerr<<"Sem DISPLAY X11.\n";
+        return 2;
+    }
+    Display* d=XOpenDisplay(nullptr);
+    if (!d) {
+        std::cout<<"PRINT_RC_GRAB=indeterminado\n";
+        std::cerr<<"Nao foi possivel acessar X11.\n";
+        return 2;
+    }
+    int first=0,last=0;
+    XDisplayKeycodes(d,&first,&last);
+    int per_code=0;
+    KeySym* symbols=XGetKeyboardMapping(d,first,last-first+1,&per_code);
+    std::vector<int> codes;
+    if (symbols) {
+        for (int code=first;code<=last;code++) {
+            for (int i=0;i<per_code;i++) {
+                const KeySym symbol=symbols[(code-first)*per_code+i];
+                if (symbol==XK_Print || symbol==XK_Sys_Req) {
+                    codes.push_back(code);
+                    break;
+                }
+            }
+        }
+        XFree(symbols);
+    }
+    if (codes.empty()) {
+        std::cout<<"PRINT_RC_GRAB=indeterminado\n";
+        std::cerr<<"Nao existe mapeamento X11 Print/Sys_Req.\n";
+        XCloseDisplay(d);
+        return 3;
+    }
+    // Testar a combinacao Print sem modificadores, com NumLock/CapsLock.
+    // Grab e ungrab atomizados dentro da conexao, com XSync para capturar BadAccess.
+    constexpr unsigned int modifiers[]={0,LockMask,Mod2Mask,LockMask|Mod2Mask};
+    auto* previous=XSetErrorHandler(shortcut_probe_handler);
+    bool occupied=false;
+    for(int code:codes) {
+        bool free_grab=true;
+        for (unsigned int mod:modifiers) {
+            shortcut_probe_error=false;
+            XGrabKey(d,code,mod,DefaultRootWindow(d),False,GrabModeAsync,GrabModeAsync);
+            XSync(d,False);
+            if (shortcut_probe_error) {
+                occupied=true;
+                free_grab=false;
+            }
+            if (!shortcut_probe_error) {
+                XUngrabKey(d,code,mod,DefaultRootWindow(d));
+                XSync(d,False);
+            }
+        }
+        (void)free_grab;
+    }
+    XSetErrorHandler(previous);
+    XCloseDisplay(d);
+    std::cout<<"PRINT_RC_GRAB="<<(occupied?"ocupada":"sem_bloqueio_x11")<<"\n";
+    std::cout<<"Aviso: esta sonda nao identifica o processo dono nem verifica outros desktops.\n";
+    return occupied?6:0;
+}
+
 bool self_test() {
     png_image image{};
     image.version=PNG_IMAGE_VERSION;
@@ -349,9 +422,10 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.1 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.5.2 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
+        if (arg=="--verificar-tecla") return inspect_print_grabs();
         if (arg=="--show-config") {
             PrintRcSettings options;
             if (!print_rc_load_settings(options)) return 2;
@@ -361,7 +435,7 @@ int main(int argc,char** argv) {
         }
         if (arg=="--help") {
             std::cout<<"Print RC: barra AREA / TELA (1 clique) / LAPIS (desenhar) / DESF / X. Esc cancela.\n"
-                     <<"Uso: print-rc [--version|--help|--self-test|--show-config|--detectar-print]\n";
+                     <<"Uso: print-rc [--version|--help|--self-test|--show-config|--detectar-print|--verificar-tecla]\n";
             return 0;
         }
         std::cerr<<"Parametro desconhecido. Use --help.\n";return 2;
