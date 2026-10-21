@@ -296,6 +296,7 @@ int detect_print_key() {
         return 3;
     }
     std::cerr<<"Print RC: pressione a tecla PRINT SCREEN agora (Esc cancela).\n"
+             <<"Aceitamos Print, Sys_Req e Insert quando sua tecla fisica esta mapeada assim.\n"
              <<"Voce tem ate "<<PRINT_RC_DETECT_SECONDS<<" segundos. Esc cancela.\n";
     std::cerr.flush();
     int result=4;
@@ -306,17 +307,23 @@ int detect_print_key() {
             XNextEvent(d,&event);
             if (event.type!=KeyPress) continue;
             const KeySym key=XLookupKeysym(&event.xkey,0);
-            const KeySym detected=print_keysym_for_event(d,event.xkey);
+            KeySym detected=print_keysym_for_event(d,event.xkey);
+            // Existem teclados cuja tecla rotulada Print envia exclusivamente
+            // Insert no X11. Permitir que o usuario escolha Insert para acionar
+            // Print RC, sem remapear a tecla no sistema inteiro.
+            if (detected==NoSymbol && (key==XK_Insert || key==XK_KP_Insert))
+                detected=XK_Insert;
             if (key==XK_Escape) {
                 std::cerr<<"Print RC: identificacao cancelada com Esc.\n";
                 result=5;
                 goto finished_key_detection;
             }
-            if (detected==XK_Print || detected==XK_Sys_Req) {
-                std::cout<<"PRINT_RC_KEY="<<(detected==XK_Print?"Print":"Sys_Req")<<"\n";
+            if (detected==XK_Print || detected==XK_Sys_Req || detected==XK_Insert) {
+                const char* selected=detected==XK_Print?"Print":(detected==XK_Sys_Req?"Sys_Req":"Insert");
+                std::cout<<"PRINT_RC_KEY="<<selected<<"\n";
                 std::cout.flush();
                 std::cerr<<"Print RC: tecla identificada: "
-                         <<(detected==XK_Print?"Print":"Sys_Req")
+                         <<selected
                          <<" (codigo fisico X11 "<<event.xkey.keycode<<").\n";
                 result=0;
                 goto finished_key_detection;
@@ -443,7 +450,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.4 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.5.5 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();
