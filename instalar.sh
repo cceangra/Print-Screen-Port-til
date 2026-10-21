@@ -9,6 +9,21 @@ fi
 
 source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
+# Nao seguir links inesperados que possam escapar da pasta portatil.
+# Executar essa verificacao TAMBEM apos mover a pasta (--continuar).
+for relative in \
+    bin bin/print-rc config config/opcoes.conf \
+    config/atalho-state.json config/arquivos-instalados.sha256 \
+    backups backups/khotkeysrc.antes capturas scripts \
+    scripts/inventario.sh scripts/atalho.py \
+    .print-rc-installation iniciar.sh configurar.sh desinstalar.sh; do
+    if [[ -L "$source_dir/$relative" ]]; then
+        echo "ATENCAO: link simbolico nao esperado: $source_dir/$relative"
+        echo 'Instalacao recusada: nao escreveremos em diretorios/arquivos externos.'
+        exit 2
+    fi
+done
+
 echo '========================================'
 echo '     PRINT RC — INSTALACAO PORTATIL'
 echo '          PASTA UNICA / X11'
@@ -126,7 +141,8 @@ dest="$source_dir"
 FRESH_INSTALL=1
 if [[ -f "$dest/.print-rc-installation" ]]; then
     FRESH_INSTALL=0
-    [[ "$(sed -n '2p' "$dest/.print-rc-installation")" == "$dest" ]] || {
+    [[ "$(sed -n '1p' "$dest/.print-rc-installation")" == PRINT-RC &&
+       "$(sed -n '2p' "$dest/.print-rc-installation")" == "$dest" ]] || {
         echo 'Marcador de instalacao pertence a outro caminho. Cancelado.'; exit 2;
     }
 fi
