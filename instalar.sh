@@ -182,9 +182,30 @@ echo '====== INTEGRACAO COM A TECLA PRINT ======'
 echo "Ambiente grafico identificado: ${XDG_CURRENT_DESKTOP:-desconhecido}"
 echo "Tipo de sessao: ${XDG_SESSION_TYPE:-nao informado} (este capturador requer X11)"
 echo 'A tecla Print e cadastrada pelo gerenciador de atalhos do desktop.'
-echo 'Nao precisa apertar Print para que o programa conheca o nome da tecla.'
-echo 'O instalador nunca usa capturador de teclas residente.'
+echo 'NOVO: ao autorizar o cadastro, voce precisara PRESSIONAR PRINT SCREEN.'
+echo 'O leitor X11 fica ativo so por ate 15 segundos e nao grava outras teclas.'
+echo 'Se nao conseguir identificar, nao cadastrara um atalho automaticamente.'
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
+# Capturar UMA tecla real do X11 antes de registrar qualquer atalho externo.
+# A unica linha entregue no stdout do detector e PRINT_RC_KEY=Print|Sys_Req.
+print_rc_detectar() {
+    local raw chave
+    if ! raw="$("$dest/bin/print-rc" --detectar-print)"; then
+        echo 'NAO FOI POSSIVEL identificar a tecla fisica Print Screen.' >&2
+        echo 'Nao registrarei um atalho sem verificar qual tecla foi pressionada.' >&2
+        echo 'Voce pode configurar Print manualmente ou tentar novamente depois.' >&2
+        return 1
+    fi
+    case "$raw" in
+        PRINT_RC_KEY=Print) chave=Print ;;
+        PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
+        *)
+            echo 'Deteccao devolveu resposta invalida. Atalho NAO registrado.' >&2
+            return 1 ;;
+    esac
+    echo "Tecla fisica CONFIRMADA: $chave." >&2
+    printf '%s\n' "$chave"
+}
 desktop_id="${XDG_CURRENT_DESKTOP:-}"
 desktop_id="${desktop_id,,}"
 if [[ "$desktop_id" == *trinity* ]]; then
@@ -192,10 +213,12 @@ if [[ "$desktop_id" == *trinity* ]]; then
     echo 'O instalador verificara conflitos e pedira confirmacao antes de alterar.'
     read -r -p 'Deseja associar Print ao Print RC no Trinity? [s/N]: ' answer || true
     if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
-        if command -v python3 >/dev/null 2>&1; then
-            python3 "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh"
-        else
+        if ! command -v python3 >/dev/null 2>&1; then
             echo 'Python3 do sistema indisponivel: atalho nao modificado.'
+        elif key_name="$(print_rc_detectar)"; then
+            python3 "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"
+        else
+            echo 'A configuracao continua, mas SEM registrar a tecla Print no Trinity.'
         fi
     else
         echo 'Atalho Trinity nao modificado.'
@@ -211,7 +234,16 @@ elif [[ "$desktop_id" == *xfce* ]]; then
     else
         read -r -p 'Deseja associar Print ao Print RC no Xfce? [s/N]: ' answer || true
         if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
-            python3 "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"
+            if key_name="$(print_rc_detectar)"; then
+                if [[ "$key_name" == Print ]]; then
+                    python3 "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"
+                else
+                    echo 'Xfce: X11 retornou Sys_Req; nao vou presumir que equivale a Print.'
+                    echo 'Cadastre manualmente a tecla no gerenciador de atalhos do Xfce.'
+                fi
+            else
+                echo 'Atalho Xfce nao cadastrado sem verificacao da tecla.'
+            fi
         else
             echo 'Atalho Xfce nao modificado.'
         fi
@@ -231,7 +263,8 @@ else
     echo 'Se Print estiver ocupado, libere a tecla pelo proprio gerenciador.'
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
-echo 'Depois da instalacao, pressione Print para testar.'
+echo 'Depois da instalacao, pressione Print para testar o acionamento REAL.'
+echo 'Detectar a tecla nao comprova que o desktop executou o atalho.'
 echo '=========================================='
 if [[ "$FRESH_INSTALL" == 1 ]]; then
     # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
