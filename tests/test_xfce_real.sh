@@ -9,10 +9,14 @@ printf 'save_dir=%s\ncopy_clipboard=0\nsave_dir_relative=capturas\n' "$APP/captu
 xfsettingsd --no-daemon > "$EVIDENCE/xfsettingsd.log" 2>&1 &
 settings_pid=$!
 trap 'kill "$settings_pid" 2>/dev/null || true' EXIT
+# Wait for provider construction, which clones defaults before setting this flag.
+# A queryable xfconfd channel alone is not proof that xfsettingsd finished startup.
 for attempt in {1..100}; do
-    if xfconf-query -c xfce4-keyboard-shortcuts -l >/dev/null 2>&1; then break; fi
+    if [[ "$(xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/override 2>/dev/null || true)" == true ]]; then break; fi
     sleep 0.1
 done
+test "$(xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/override)" = true
+kill -0 "$settings_pid"
 set_property() {
     if xfconf-query -c xfce4-keyboard-shortcuts -p "$1" >/dev/null 2>&1; then
         xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -s "$2"

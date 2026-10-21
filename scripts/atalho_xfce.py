@@ -138,6 +138,7 @@ def check_environment():
 
 def change_property(prop, current, desired):
     """Altera SOMENTE propriedade verificada, sem apagar a tecla de terceiros."""
+    if get(prop)!=current:raise RuntimeError(tr('lifecycle.concurrent'))
     if desired is None:
         if current is not None:
             if prop==PROPERTY: remove_key()
@@ -239,10 +240,7 @@ def install(base, launcher, key='Print'):
     }
     write_state(base, state)
     try:
-        if prop==PROPERTY:
-            set_key(desired,old is not None)
-        else:
-            set_key(desired,old is not None,prop)
+        change_property(prop,old,desired)
         if get(prop) != desired:
             raise RuntimeError(tr('desktop.172'))
         state['status'] = 'installed'
@@ -305,12 +303,7 @@ def remove(base):
         return False
     else:
         print(tr('desktop.179'))
-        if old is None:
-            if prop==PROPERTY: remove_key()
-            else: remove_key(prop)
-        else:
-            if prop==PROPERTY: set_key(old,True)
-            else: set_key(old,True,prop)
+        change_property(prop,current,old)
         if get(prop) != old:
             print(tr('desktop.188'))
             return False

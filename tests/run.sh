@@ -9,7 +9,7 @@ python3 -B -m unittest discover -s tests -v
 ./bin/print-rc --self-test
 ./bin/print-rc --version
 bash tests/test_launcher.sh
-for test in test_instalacao test_configurar_tecla test_prova_atalho test_xfce_integracao test_desinstalacao test_packaged_ownership test_configuracao; do
+for test in test_instalacao test_configurar_tecla test_prova_atalho test_xfce_integracao test_desinstalacao test_packaged_ownership test_language_setup test_configuracao; do
     bash "tests/$test.sh"
 done
 TEMP="$(mktemp -d)"

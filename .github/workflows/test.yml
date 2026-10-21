@@ -71,12 +71,13 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           mkdir -p /tmp/xfce-test/original/src /tmp/xfce-test/evidence
           unzip -q candidate/Print-RC-linux-x86_64-glibc.zip -d /tmp/xfce-test
+          mv /tmp/xfce-test/Print-RC "/tmp/xfce-test/Print RC (ç)"
           git show v0.5.6:bin/print-rc > /tmp/xfce-test/legacy-static
           chmod +x /tmp/xfce-test/legacy-static
           getconf GNU_LIBC_VERSION > /tmp/xfce-test/evidence/libc.txt
           cat /etc/os-release > /tmp/xfce-test/evidence/os-release.txt
           readelf -Wn /tmp/xfce-test/legacy-static > /tmp/xfce-test/evidence/legacy-build-id.txt
-          sha256sum /tmp/xfce-test/legacy-static /tmp/xfce-test/Print-RC/bin/print-rc > /tmp/xfce-test/evidence/binary-sha256.txt
+          sha256sum /tmp/xfce-test/legacy-static "/tmp/xfce-test/Print RC (ç)/bin/print-rc" > /tmp/xfce-test/evidence/binary-sha256.txt
           git show v0.5.6:src/main.cpp > /tmp/xfce-test/original/src/main.cpp
           git show v0.5.6:src/settings.hpp > /tmp/xfce-test/original/src/settings.hpp
           g++ -std=c++17 -O2 -g /tmp/xfce-test/original/src/main.cpp -o /tmp/xfce-test/original-dynamic $(pkg-config --cflags --libs x11 libpng)
@@ -84,7 +85,7 @@ jobs:
           chown -R tester:tester /tmp/xfce-test
       - name: Real Xfce shortcut services and unchanged-source/static forensic comparison
         run: |
-          su -s /bin/bash tester -c 'timeout 100s dbus-run-session -- xvfb-run -a -s "-screen 0 1024x768x24 -noreset" bash /tmp/xfce-test/Print-RC/tests/test_xfce_real.sh /tmp/xfce-test/Print-RC /tmp/xfce-test/legacy-static /tmp/xfce-test/original-dynamic /tmp/xfce-test/evidence' > /tmp/xfce-test/evidence/session.log 2>&1 || { cat /tmp/xfce-test/evidence/session.log; exit 1; }
+          su -s /bin/bash tester -c 'timeout 100s dbus-run-session -- xvfb-run -a -s "-screen 0 1024x768x24 -noreset" bash "/tmp/xfce-test/Print RC (ç)/tests/test_xfce_real.sh" "/tmp/xfce-test/Print RC (ç)" /tmp/xfce-test/legacy-static /tmp/xfce-test/original-dynamic /tmp/xfce-test/evidence' > /tmp/xfce-test/evidence/session.log 2>&1 || { cat /tmp/xfce-test/evidence/session.log; exit 1; }
           cat /tmp/xfce-test/evidence/session.log
       - uses: actions/upload-artifact@v4
         if: always()

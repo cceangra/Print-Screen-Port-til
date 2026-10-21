@@ -513,6 +513,7 @@ def remove(base):
         print(tr('desktop.087'))
         return False
     content=path.read_text(encoding='utf-8')
+    original_content=content
     sections=parse(content)
     root=state['group']
     ours=sections.get(root,'')
@@ -582,10 +583,12 @@ def remove(base):
             print(tr('desktop.114'))
             print(tr('desktop.115'))
             return False
+        if not check_unchanged(original_content):return False
         path.unlink()
         print(tr('desktop.091'),path)
     else:
         # O arquivo ja existia: nunca apaga-lo.
+        if not check_unchanged(original_content):return False
         write_atomic(path,content)
         print(tr('desktop.092'),path)
     statepath.unlink()
@@ -618,4 +621,6 @@ def main():
         if not remove(base): raise SystemExit(1)
 
 if __name__=='__main__':
-    main()
+    try:main()
+    except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as error:
+        raise SystemExit(tr('lifecycle.failed',str(error)))

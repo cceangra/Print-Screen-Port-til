@@ -100,6 +100,7 @@ PRINT_RC_KNOWN=(
   'tests/test_undo_x11.sh'
   'tests/test_visual_png.sh'
   'tests/test_xfce_real.sh'
+  'tests/test_language_setup.sh'
 )
 
 print_rc_criar_inventario() {

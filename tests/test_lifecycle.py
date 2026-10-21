@@ -69,6 +69,16 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(state['status'],'relocating')
         self.assertTrue(atalho.remove(new))
         self.assertNotIn('Name=Print RC',self.file.read_text());self.assertIn('Keep=personal',self.file.read_text())
+    def test_remove_preserves_a_concurrent_desktop_change(self):
+        self.prepare()
+        def concurrent(original):
+            self.file.write_text(original+'\n[Concurrent]\nKeep=new-user-setting\n')
+            return False
+        with patch.object(atalho,'check_unchanged',side_effect=concurrent):
+            self.assertFalse(atalho.remove(self.old))
+        self.assertIn('Keep=new-user-setting',self.file.read_text())
+        self.assertIn('Name=Print RC',self.file.read_text())
+        self.assertTrue((self.old/'config/atalho-state.json').exists())
     def test_modified_metadata_is_preserved(self):
         self.prepare(False);path=self.old/lifecycle.METADATA;path.write_text('personal file')
         with self.assertRaises(ValueError):lifecycle.record(self.old)
