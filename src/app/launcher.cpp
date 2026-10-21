@@ -1,3 +1,4 @@
+#include "../i18n/messages.hpp"
 // Small native parent: diagnose fatal startup signals outside the crashing app.
 // Exit after clipboard ownership, leaving only the native clipboard owner resident.
 #include <cerrno>
@@ -58,12 +59,13 @@ int main(int argc, char** argv) {
     child_pid = -1;
     if (WIFSIGNALED(status)) {
         const int signal = WTERMSIG(status);
-        std::fprintf(stderr, "Print RC: FATAL_SIGNAL=%d (%s); OVERLAY_READY=%s\n",
+        std::fprintf(stderr, prc_tr("native.057"),
                      signal, strsignal(signal), ready ? "yes" : "no");
+        std::fputs(prc_tr("native.signal_explanation"),stderr);
         return 128 + signal;
     }
     const int code = WIFEXITED(status) ? WEXITSTATUS(status) : 2;
     if (code && !ready)
-        std::fprintf(stderr, "Print RC: EARLY_PROCESS_TERMINATION=%d; OVERLAY_READY=no\n", code);
+        std::fprintf(stderr, prc_tr("native.058"), code);
     return code;
 }

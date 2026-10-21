@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Teste de instalacao portatil com pasta unica, sem instalar bibliotecas.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 trap 'rm -rf -- "$TEMP"' EXIT
@@ -14,7 +15,7 @@ make_source() {
     mkdir -p -- "$d"
     cp -a -- "$ROOT/instalar.sh" "$ROOT/iniciar.sh" "$ROOT/desinstalar.sh" \
       "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" "$ROOT/configurar-tecla.sh" \
-      "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
+      "$ROOT/i18n" "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
     # Simular ZIP que perdeu bit de execucao, como ocorreu no Q4OS.
     chmod 644 "$d/iniciar.sh"
 }

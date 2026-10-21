@@ -53,9 +53,9 @@ def main():
     binaries = [inspect_elf(ROOT/'bin'/name, args.max_glibc, args.max_glibcxx)
                 for name in ('print-rc', 'print-rc-launcher')]
     data = {'schema': 1, 'version': (ROOT/'VERSION').read_text().strip(),
-            'git_commit': command('git', '-C', str(ROOT), 'rev-parse', 'HEAD'),
-            'source_dirty': bool(command('git', '-C', str(ROOT), 'status', '--porcelain')),
-            'source_date_epoch': int(command('git', '-C', str(ROOT), 'show', '-s', '--format=%ct', 'HEAD')),
+            'git_commit': command('git', '-c', 'safe.directory='+str(ROOT), '-C', str(ROOT), 'rev-parse', 'HEAD'),
+            'source_dirty': bool(command('git', '-c', 'safe.directory='+str(ROOT), '-C', str(ROOT), 'status', '--porcelain')),
+            'source_date_epoch': int(command('git', '-c', 'safe.directory='+str(ROOT), '-C', str(ROOT), 'show', '-s', '--format=%ct', 'HEAD')),
             'architecture': platform.machine(), 'libc_family': 'glibc', 'backend': 'x11',
             'builder_os': Path('/etc/os-release').read_text(),
             'builder_libc': command('getconf', 'GNU_LIBC_VERSION'),

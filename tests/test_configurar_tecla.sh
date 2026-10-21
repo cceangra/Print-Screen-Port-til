@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Integra configurar-tecla.sh e Trinity isolados, sem tocar no HOME real.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
@@ -10,6 +11,8 @@ export TEST_MODE=retry TEST_COUNT="$TMP/contagem"
 mkdir -p "$HOME/.trinity/share/config"
 APP="$TMP/Print RC/Print-RC"
 mkdir -p "$APP/bin" "$APP/scripts" "$APP/config"
+cp -a "$ROOT/i18n" "$APP/"
+cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/print_rc_i18n.py" "$APP/scripts/"
 cp -- "$ROOT/configurar-tecla.sh" "$ROOT/iniciar.sh" "$APP/"
 cp -- "$ROOT/scripts/atalho.py" "$APP/scripts/"
 printf 'FOTO PESSOAL\n' > "$APP/minha-foto.png"

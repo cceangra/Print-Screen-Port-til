@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 trap 'rm -rf -- "$TEMP"' EXIT

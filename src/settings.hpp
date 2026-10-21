@@ -1,3 +1,4 @@
+#include "i18n/messages.hpp"
 // Print RC — preferencias e escrita segura de imagens.
 // GPL-3.0-or-later
 #pragma once
@@ -22,13 +23,13 @@ struct PrintRcSettings {
 inline bool print_rc_load_settings(PrintRcSettings& settings) {
     const char* path = std::getenv("PRINT_RC_CONFIG");
     if (!path || !*path) {
-        std::cerr << "Print RC: configuracao nao informada. Execute iniciar.sh.\n";
+        std::cerr << prc_tr("native.049");
         return false;
     }
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        std::cerr << "Print RC: opcoes nao encontradas: " << path << "\n"
-                  << "Execute bash configurar.sh na pasta do Print RC.\n";
+        std::cerr << prc_tr("native.050") << path << "\n"
+                  << prc_tr("native.051");
         return false;
     }
     bool has_dir = false, has_clip = false;
@@ -50,7 +51,7 @@ inline bool print_rc_load_settings(PrintRcSettings& settings) {
     std::error_code ec;
     if (!has_dir || !has_clip || settings.save_dir.empty()
         || settings.save_dir.front()!='/' || !std::filesystem::is_directory(settings.save_dir,ec)) {
-        std::cerr << "Print RC: pasta de imagens/configuracao invalida ou indisponivel.\n";
+        std::cerr << prc_tr("native.052");
         return false;
     }
     return true;
@@ -73,7 +74,7 @@ inline bool print_rc_save_png(const std::vector<unsigned char>& png, const std::
         int fd=open(path.c_str(),O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC,0600);
         if (fd<0) {
             if (errno==EEXIST) continue;
-            std::perror("Print RC: falha ao criar a imagem");
+            std::perror(prc_tr("native.053"));
             return false;
         }
         size_t offset=0;
@@ -86,13 +87,13 @@ inline bool print_rc_save_png(const std::vector<unsigned char>& png, const std::
         }
         if (close(fd)!=0) ok=false;
         if (!ok) {
-            std::perror("Print RC: erro ao gravar PNG");
+            std::perror(prc_tr("native.054"));
             unlink(path.c_str());
             return false;
         }
-        std::cout << "Print RC: imagem salva: " << path << "\n";
+        std::cout << prc_tr("native.055") << path << "\n";
         return true;
     }
-    std::cerr << "Print RC: nao foi possivel criar nome exclusivo de imagem.\n";
+    std::cerr << prc_tr("native.056");
     return false;
 }

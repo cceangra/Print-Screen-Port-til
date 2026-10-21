@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Ensaio X11 real em Xvfb, sem observar teclado real de nenhuma pessoa.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 BIN="$ROOT/bin/print-rc"
 TMP="$(mktemp -d)"

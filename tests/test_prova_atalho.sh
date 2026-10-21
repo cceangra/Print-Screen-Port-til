@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Prova de ativacao do atalho. Isolada, nunca usa o escritorio real do usuario.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
 APP="$TMP/Print RC com espacos"
 mkdir -p "$APP/scripts" "$APP/bin" "$APP/config"
+cp -a "$ROOT/i18n" "$APP/"
+cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/print_rc_i18n.py" "$APP/scripts/"
 cp -- "$ROOT/iniciar.sh" "$APP/iniciar.sh"
 cp -- "$ROOT/bin/print-rc-launcher" "$APP/bin/"
 cp -- "$ROOT/scripts/provar-atalho.sh" "$APP/scripts/provar-atalho.sh"

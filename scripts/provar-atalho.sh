@@ -3,19 +3,20 @@
 # Apos registro, pede uma segunda pressao de Print; nao captura imagens durante a prova.
 # Arquivos temporarios ficam apenas na pasta do aplicativo, com limpeza por trap.
 set -Eeuo pipefail
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/i18n.sh"
 BASE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 FLAG="$BASE/config/.print-rc-prova-armada"
 RESPONSE="$BASE/config/.print-rc-prova-resposta"
 if [[ "${XDG_SESSION_TYPE:-x11}" != x11 || -z "${DISPLAY:-}" ]]; then
-    echo 'ATIVACAO_PENDENTE: nao existe sessao X11 para verificar.'
+    prc_message shell.283
     exit 2
 fi
 if [[ ! -d "$BASE/config" || ! -f "$BASE/iniciar.sh" ]]; then
-    echo 'ATIVACAO_PENDENTE: configuracao ou launcher ausente.'
+    prc_message shell.284
     exit 2
 fi
 if [[ -e "$FLAG" || -L "$FLAG" || -e "$RESPONSE" || -L "$RESPONSE" ]]; then
-    echo 'ATIVACAO_PENDENTE: existe arquivo de prova anterior; nao sera sobrescrito.'
+    prc_message shell.285
     exit 2
 fi
 # Evitar que a rotina atinja qualquer arquivo pessoal pré-existente.
@@ -29,15 +30,15 @@ cleanup() {
 trap cleanup EXIT INT TERM
 printf '%s\n%s\n' "$TOKEN" "$EXPIRY" > "$FLAG"
 echo
-echo '======= TESTE REAL DO ATALHO ======='
-echo 'O atalho foi gravado no gerenciador.'
+prc_message shell.286
+prc_message shell.287
 TECLA="${1:-}"
 if [[ ! "$TECLA" =~ ^[A-Za-z0-9_]{1,64}$ ]]; then
     TECLA='a tecla configurada'
 fi
-echo "Agora pressione $TECLA mais uma vez para conferir se o sistema executa o Print RC."
-echo 'Este teste abre brevemente a interface, verifica mouse/teclado e fecha sem salvar imagens.'
-echo 'Prazo: 12 segundos. Nao precisa responder SIM novamente.'
+prc_message shell.288 "$TECLA"
+prc_message shell.289
+prc_message shell.290
 echo '===================================='
 PASSOS="${PRINT_RC_PROVA_PASSOS:-60}"
 if [[ ! "$PASSOS" =~ ^[0-9]+$ ]] || (( PASSOS<1 || PASSOS>60 )); then
@@ -47,14 +48,14 @@ for ((n=0;n<PASSOS;n++)); do
     if [[ -f "$RESPONSE" && ! -L "$RESPONSE" ]]; then
         IFS= read -r got < "$RESPONSE" || true
         if [[ "$got" == "$TOKEN" ]]; then
-            echo 'OVERLAY_VERIFICADO: o atalho abriu e desenhou a interface X11 com mouse/teclado prontos.'
-            echo "Pressione $TECLA novamente para abrir a captura normalmente."
+            prc_message shell.291
+            prc_message shell.292 "$TECLA"
             exit 0
         fi
     fi
     sleep 0.2
 done
-echo 'ATIVACAO_NAO_CONFIRMADA: tecla identificada e atalho salvo, mas nao houve acionamento nesta sessao.'
-echo 'No Trinity, o serviço khotkeysd pode precisar de reativacao pelo Gerenciador de servicos'
-echo 'ou de um novo login. O aplicativo nao reinicia automaticamente o ambiente grafico.'
+prc_message shell.293
+prc_message shell.294
+prc_message shell.295
 exit 1

@@ -7,14 +7,17 @@ VERSION := $(shell cat VERSION)
 CPPFLAGS += -DPRINT_RC_VERSION=\"$(VERSION)\"
 HEADERS := $(shell find src -name '*.hpp')
 
-.PHONY: all portable debug clean test
-all: bin/print-rc bin/print-rc-launcher
+.PHONY: all portable debug clean test locales
+all: locales bin/print-rc bin/print-rc-launcher
+
+locales:
+	python3 scripts/build/locales.py --check
 
 bin/print-rc: src/main.cpp $(HEADERS) Makefile
 	@mkdir -p bin
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) src/main.cpp -o $@ $(LDFLAGS) $(LDLIBS)
 
-bin/print-rc-launcher: src/app/launcher.cpp Makefile
+bin/print-rc-launcher: src/app/launcher.cpp src/i18n/messages.hpp src/i18n/generated.hpp Makefile
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) src/app/launcher.cpp -o $@ $(LDFLAGS)
 

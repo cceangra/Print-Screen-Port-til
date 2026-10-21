@@ -11,7 +11,11 @@ import subprocess
 import tempfile
 import uuid
 
-NAME = 'Print RC'
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from print_rc_i18n import tr, affirmative, localize_argparse
+
+NAME = tr('desktop.001')
 # O X11 fornece nomes de keysym: F12, a, Insert, XF86AudioMute, Return etc.
 # O formato aceito e restrito para impedir injetar configuracoes no khotkeysrc.
 DISALLOWED_KEYS = {
@@ -50,7 +54,7 @@ def replace_block(text, name, value):
     for m in BLOCK.finditer(text):
         if m.group(1) == name:
             return text[:m.start()] + value + text[m.end():]
-    raise ValueError('Secao esperada nao existe: '+name)
+    raise ValueError(tr('desktop.033')+name)
 
 
 def write_atomic(path, content):
@@ -72,11 +76,11 @@ def write_atomic(path, content):
 def safe_current_text():
     """Leia somente um arquivo regular; nao siga links simbolicos para atalhos de terceiros."""
     if FILE.is_symlink():
-        raise RuntimeError('Atalho do Trinity e um link simbolico; abortando.')
+        raise RuntimeError(tr('desktop.034'))
     if not FILE.exists():
         return ''
     if not FILE.is_file():
-        raise RuntimeError('O arquivo de atalhos nao e arquivo regular.')
+        raise RuntimeError(tr('desktop.035'))
     return FILE.read_text(encoding='utf-8')
 
 
@@ -85,12 +89,12 @@ def check_unchanged(original):
     try:
         current = safe_current_text()
     except (OSError, UnicodeError, RuntimeError) as error:
-        print('Erro ao verificar arquivo do Trinity:', error)
+        print(tr('desktop.094'), error)
         return False
     if current != original:
-        print('ATENCAO: outro aplicativo alterou o arquivo de atalhos enquanto voce respondia.')
-        print('Print RC cancelou a instalacao para NAO sobrescrever configuracoes de terceiros.')
-        print('Nenhum atalho foi alterado pelo Print RC. Execute o instalador novamente.')
+        print(tr('desktop.036'))
+        print(tr('desktop.037'))
+        print(tr('desktop.038'))
         return False
     return True
 
@@ -107,16 +111,16 @@ def conflicts(text, target='Print'):
             continue
         owner=section.split('Triggers')[0]
         info=sections.get('['+owner+']','') or sections.get(owner,'')
-        name=get_value(info,'Name','Acao sem nome')
+        name=get_value(info,'Name',tr('desktop.039'))
         action=sections.get(owner+'Actions0','')
-        command=get_value(action,'CommandURL','(comando nao identificado)')
+        command=get_value(action,'CommandURL',tr('desktop.040'))
         result.append({'section':section,'old_key':get_value(block,'Key'),'name':name,'command':command})
     return result
 
 
 def yes(question):
     try:
-        return input(question+' [s/N]: ').strip().lower() in ('s','sim')
+        return input(question+tr('common.confirm')).strip().lower() in ('s','sim','y','yes')
     except EOFError:
         return False
 
@@ -131,7 +135,7 @@ def reload_trinity_shortcuts():
     """Notificar somente o servico de atalhos; nao reiniciar desktop."""
     dcop=shutil.which('dcop')
     if dcop is None:
-        print('dcop nao encontrado: entre novamente na sessao Trinity para ativar.')
+        print(tr('desktop.041'))
         return False
     try:
         result=subprocess.run(
@@ -139,12 +143,12 @@ def reload_trinity_shortcuts():
             capture_output=True,text=True,timeout=5
         )
     except (OSError,subprocess.TimeoutExpired) as exc:
-        print('Nao foi possivel recarregar atalhos:',exc)
+        print(tr('desktop.095'),exc)
         return False
     if result.returncode:
-        print('Trinity nao confirmou recarga:',(result.stderr or result.stdout).strip()[:200])
+        print(tr('desktop.042'),(result.stderr or result.stdout).strip()[:200])
         return False
-    print('Pedido de releitura enviado ao khotkeysd; a ativacao da tecla ainda precisa de prova real.')
+    print(tr('desktop.003'))
     return True
 
 def repair(base, command):
@@ -155,29 +159,29 @@ def repair(base, command):
     """
     statepath=base/'config/atalho-state.json'
     if statepath.is_symlink() or not statepath.is_file():
-        print('Registro de atalho ausente ou simbolico: nao reparar.')
+        print(tr('desktop.043'))
         return False
     try:
         state=json.loads(statepath.read_text(encoding='utf-8'))
     except (OSError,ValueError) as exc:
-        print('Registro de atalho indisponivel:',exc)
+        print(tr('desktop.096'),exc)
         return False
     if state.get('status')!='installed' or state.get('file')!=str(FILE):
-        print('Registro nao pertence a uma integracao ativa neste Trinity.')
+        print(tr('desktop.044'))
         return False
     if state.get('launcher')!=str(command):
-        print('Inicializador registrado e diferente. Nada alterado.')
+        print(tr('desktop.045'))
         return False
     try:
         original=safe_current_text()
     except (OSError,UnicodeError,RuntimeError) as exc:
-        print('Nao foi possivel ler atalho com seguranca:',exc)
+        print(tr('desktop.097'),exc)
         return False
     sections=parse(original)
     root=state.get('group')
     if (not isinstance(root,str) or not re.fullmatch(r'Data_\d+',root)
             or get_value(sections.get(root,''),'Name')!=NAME):
-        print('Atalho original ausente ou alterado por terceiros.')
+        print(tr('desktop.046'))
         return False
     trigger=sections.get(root+'Triggers0','')
     action_section=root+'Actions0'
@@ -187,33 +191,33 @@ def repair(base, command):
     if (not valid_key(recorded_key) or current_key!=recorded_key
             or get_value(trigger,'Type')!='SHORTCUT'
             or get_value(action,'Type')!='COMMAND_URL'):
-        print('Tecla ou tipos internos do atalho mudaram: preservando configuracao.')
+        print(tr('desktop.047'))
         return False
     current_command=get_value(action,'CommandURL')
     desired=command_for_launcher(command)
     if current_command not in (desired,legacy_command_for_launcher(command)):
-        print('Comando do atalho foi modificado pelo usuario. Nada alterado.')
+        print(tr('desktop.048'))
         return False
     group_block=sections[root]
     kind=get_value(group_block,'Type')
     correct_type='COMMAND_URL_SHORTCUT_ACTION_DATA'
     if kind not in ('SIMPLE_ACTION_DATA',correct_type):
-        print('Tipo de acao desconhecido ou alterado por terceiros:',kind)
+        print(tr('desktop.049'),kind)
         return False
     if current_command==desired and kind==correct_type:
-        print('Atalho Trinity Print RC ja tem tipo e comando corretos.')
+        print(tr('desktop.050'))
         reload_trinity_shortcuts()
         return True
-    print('REPARO DO ATALHO PRINT RC (TRINITY)')
-    print('Arquivo externo:',FILE)
-    print('Tipo anterior:',kind)
-    print('Tipo corrigido:',correct_type)
-    print('Comando anterior:',current_command)
-    print('Comando novo:',desired)
-    print('Tecla preservada:',current_key)
-    print('Outros atalhos e backup original serao mantidos sem alteracoes.')
-    if not yes('Confirma corrigir SOMENTE a acao Print RC?'):
-        print('Reparo cancelado.')
+    print(tr('desktop.004'))
+    print(tr('desktop.005'),FILE)
+    print(tr('desktop.006'),kind)
+    print(tr('desktop.007'),correct_type)
+    print(tr('desktop.008'),current_command)
+    print(tr('desktop.009'),desired)
+    print(tr('desktop.010'),current_key)
+    print(tr('desktop.011'))
+    if not yes(tr('desktop.051')):
+        print(tr('desktop.052'))
         return False
     if not check_unchanged(original):
         return False
@@ -224,20 +228,20 @@ def repair(base, command):
     if not check_unchanged(original):
         return False
     write_atomic(FILE,updated)
-    print('Tipo e comando do atalho proprio corrigidos; outras secoes mantidas.')
+    print(tr('desktop.012'))
     if not reload_trinity_shortcuts():
-        print('Atalho salvo. Trinity nao confirmou recarga; teste apos novo login.')
-    print('Pressione Print depois para confirmar que a captura abre.')
+        print(tr('desktop.053'))
+    print(tr('desktop.013'))
     return True
 
 def status(base):
     """Relatorio somente leitura: nao confundir registro com reserva real X11."""
-    print('Gerenciador: Trinity / KHotKeys')
-    print('Arquivo:',FILE)
+    print(tr('desktop.manager_trinity'))
+    print(tr('desktop.file'),FILE)
     try:
         raw=safe_current_text()
     except (OSError, UnicodeError, RuntimeError) as e:
-        print('Nao foi possivel ler atalhos:',e)
+        print(tr('desktop.098'),e)
         return False
     statepath=base/'config/atalho-state.json'
     own=None
@@ -245,25 +249,25 @@ def status(base):
         try:
             own=json.loads(statepath.read_text(encoding='utf-8'))
         except (OSError, UnicodeError, ValueError):
-            print('Registro interno invalido ou ilegivel.')
+            print(tr('desktop.116'))
     if isinstance(own,dict) and own.get('status')=='installed' and own.get('file')==str(FILE):
         root=own.get('group','')
         sections=parse(raw)
         found=get_value(sections.get(root,''),'Name')==NAME
-        print('Print RC gerencia o grupo:',root,'| encontrado:', 'SIM' if found else 'NAO')
+        print(tr('desktop.054'),root,tr('desktop.found'), tr('common.yes') if found else tr('common.no'))
         if found:
-            print('Tecla do Print RC:',get_value(sections.get(root+'Triggers0',''),'Key','ausente'))
+            print(tr('desktop.099'),get_value(sections.get(root+'Triggers0',''),'Key','ausente'))
     else:
-        print('Print RC ainda nao possui um registro de atalho gerenciado aqui.')
+        print(tr('desktop.055'))
     alvo=own.get('key','Print') if isinstance(own,dict) else 'Print'
     entries=conflicts(raw,target=alvo)
     if entries:
-        print('Atalhos que usam',alvo,'neste arquivo:')
+        print(tr('desktop.056'),alvo,tr('desktop.057'))
         for e in entries:
-            print(' -',e['name'],'| tecla',e['old_key'],'| comando',e['command'])
+            print(' -',e['name'],tr('desktop.key_column'),e['old_key'],tr('desktop.command_column'),e['command'])
     else:
-        print('Nenhuma associacao da tecla consultada encontrada neste arquivo.')
-    print('Isso nao confirma que a tecla esteja livre no X11 ou em outros aplicativos.')
+        print(tr('desktop.058'))
+    print(tr('desktop.014'))
     return True
 
 
@@ -275,21 +279,21 @@ def rebind(base, command, key, state):
     """
     statepath=base/'config/atalho-state.json'
     if statepath.is_symlink() or not statepath.is_file():
-        print('Registro local ausente ou simbolico; troca cancelada.')
+        print(tr('desktop.059'))
         return False
     if (state.get('status')!='installed' or state.get('file')!=str(FILE)
             or state.get('launcher')!=str(command)):
-        print('Registro original nao corresponde a esta instalacao.')
+        print(tr('desktop.060'))
         return False
     try:
         original=safe_current_text()
     except (OSError,UnicodeError,RuntimeError) as exc:
-        print('Nao consegui ler com seguranca:',exc)
+        print(tr('desktop.100'),exc)
         return False
     sections=parse(original)
     root=state.get('group')
     if not isinstance(root,str) or not re.fullmatch(r'Data_\d+',root):
-        print('Grupo original invalido.')
+        print(tr('desktop.061'))
         return False
     group=sections.get(root,'')
     action=sections.get(root+'Actions0','')
@@ -302,7 +306,7 @@ def rebind(base, command, key, state):
            (command_for_launcher(command),legacy_command_for_launcher(command))
         or get_value(group,'Type') not in
            ('SIMPLE_ACTION_DATA','COMMAND_URL_SHORTCUT_ACTION_DATA')):
-        print('Atalho gerenciado sofreu mudancas; preservar e cancelar.')
+        print(tr('desktop.062'))
         return False
     if old==key:
         return repair(base,command)
@@ -310,15 +314,15 @@ def rebind(base, command, key, state):
     conflicts_new=[e for e in conflicts(original,target=key) if e['section'] not in owner_sections]
     known=state.get('conflicts',[])
     if not isinstance(known,list):
-        print('Registro de conflitos invalido.')
+        print(tr('desktop.063'))
         return False
     known_sections={e.get('section') for e in known if isinstance(e,dict)}
-    print('Tecla anterior:',old,'| nova tecla:',key)
-    print('Conflitos novos encontrados:',len(conflicts_new))
+    print(tr('desktop.015'),old,tr('desktop.016'),key)
+    print(tr('desktop.017'),len(conflicts_new))
     for e in conflicts_new:
         print(' -',e['name'],'|',e['old_key'])
-    print('Apenas as associacoes de teclado serao liberadas, nao seus aplicativos.')
-    if not yes('Confirmar reassociacao do Print RC e substituicao de conflitos?'):
+    print(tr('desktop.018'))
+    if not yes(tr('desktop.064')):
         return False
     if not check_unchanged(original): return False
     updated=original
@@ -328,7 +332,7 @@ def rebind(base, command, key, state):
         if section in known_sections: continue
         b=parse(updated).get(section,'')
         if not b or get_value(b,'Key')!=e['old_key']:
-            print('Conflito mudou; cancelado.')
+            print(tr('desktop.101'))
             return False
         updated=replace_block(updated,section,set_value(b,'Key',''))
         newentries.append(e)
@@ -344,7 +348,7 @@ def rebind(base, command, key, state):
     if not check_unchanged(original): return False
     write_atomic(FILE,updated)
     write_atomic(statepath,json.dumps(new_state,ensure_ascii=False,indent=2)+'\n')
-    print('Print RC reassociado a',key,'; estado de recuperacao atualizado.')
+    print(tr('desktop.019'),key,tr('desktop.020'))
     reload_trinity_shortcuts()
     return True
 
@@ -352,65 +356,65 @@ def rebind(base, command, key, state):
 def install(base, command, key='Print'):
     # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
     if not valid_key(key):
-        raise ValueError('Nome de tecla X11 invalido ou modificador sozinho.')
+        raise ValueError(tr('desktop.065'))
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
         try:
             old_state=json.loads(statepath.read_text(encoding='utf-8'))
             if old_state.get('status')=='prepared':
-                print('Existe registro de instalacao interrompida; nao farei nova alteracao.')
-                print('Execute desinstalar.sh para recuperar o atalho com seguranca.')
+                print(tr('desktop.117'))
+                print(tr('desktop.118'))
                 return False
         except (ValueError,OSError):
-            print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
+            print(tr('desktop.119'))
             return False
         if old_state.get('key')!=key:
-            print('Atalho existente: reassociar a tecla selecionada.')
+            print(tr('desktop.102'))
             return rebind(base,command,key,old_state)
-        print('Atalho ja gerenciado; verificando se precisa de reparo.')
+        print(tr('desktop.066'))
         return repair(base,command)
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
-        print('Desktop diferente de Trinity: configure manualmente a tecla Print para:')
+        print(tr('desktop.067'))
         print(command_for_launcher(command))
         return False
     # O caminho externo e informado ANTES de qualquer autorizacao.
     # Nao criar ~/.trinity nem seus subdiretorios: isso geraria residuos externos.
     if not FILE.parent.is_dir():
-        print('Pasta de configuracao do Trinity nao existe:', FILE.parent)
-        print('Registro automatico cancelado SEM criar arquivos ou diretorios externos.')
+        print(tr('desktop.068'), FILE.parent)
+        print(tr('desktop.069'))
         return False
     existed=FILE.exists()
     if existed and (not FILE.is_file() or FILE.is_symlink()):
-        print('O caminho do atalho nao e arquivo regular seguro:', FILE)
-        print('Registro cancelado.')
+        print(tr('desktop.070'), FILE)
+        print(tr('desktop.071'))
         return False
     try:
         original=safe_current_text()
     except (OSError, UnicodeError, RuntimeError) as error:
-        print('Nao foi possivel ler atalhos sem risco:', error)
+        print(tr('desktop.103'), error)
         return False
     print('\n'+'='*60)
-    print('INTEGRACAO EXTERNA — LISTA COMPLETA DE ARQUIVOS')
-    print(('MODIFICAR arquivo existente: ' if existed else 'CRIAR arquivo novo: ')+str(FILE))
-    print('Arquivos novos fora da pasta: '+('NENHUM' if existed else str(FILE)))
-    print('Outros arquivos externos modificados: NENHUM')
-    print('Backup e registro de alteracoes: DENTRO de '+str(base))
-    print('Na desinstalacao: '+('remover somente o atalho Print RC e restaurar teclas anteriores' if existed else 'APAGAR o arquivo criado, se nao tiver dados adicionados por terceiros'))
-    print('Nada sera alterado sem confirmacao expressa.')
+    print(tr('desktop.021'))
+    print((tr('desktop.104') if existed else tr('desktop.105'))+str(FILE))
+    print(tr('desktop.072')+(tr('desktop.nothing') if existed else str(FILE)))
+    print(tr('desktop.022'))
+    print(tr('desktop.073')+str(base))
+    print(tr('desktop.074')+(tr('desktop.106') if existed else tr('desktop.107')))
+    print(tr('desktop.023'))
     print('='*60)
     entries=conflicts(original,target=key)
     if entries:
-        print('\nATENCAO: atalhos que usam',key,'no arquivo do Trinity:')
+        print(tr('desktop.075'),key,tr('desktop.076'))
         for conflict in entries:
             print('  -', conflict['name'],'|',conflict['command'],'|',conflict['section'])
-        print('Ao confirmar SIM, a tecla sera atribuida ao Print RC,')
-        print('sem perguntar novamente sobre cada acao anterior.')
-        print('Os comandos anteriores nao serao apagados; somente sua tecla sera liberada.')
+        print(tr('desktop.077'))
+        print(tr('desktop.078'))
+        print(tr('desktop.079'))
     else:
-        print('Nenhum outro atalho Print reconhecido em khotkeysrc.')
-    print('Podem existir atalhos globais de outros aplicativos fora deste arquivo.')
-    if not yes('Registrar a tecla Print para o Print RC, substituindo usos anteriores?'):
-        print('Cancelado: nenhuma alteracao de atalhos.')
+        print(tr('desktop.080'))
+    print(tr('desktop.024'))
+    if not yes(tr('desktop.081')):
+        print(tr('desktop.082'))
         return False
     # Perguntas podem demorar: impedir sobrescrita de mudancas externas feitas nesse intervalo.
     if not check_unchanged(original):
@@ -434,7 +438,7 @@ def install(base, command, key='Print'):
     # Usar o caminho sem interpretacao de shell quando nao ha espacos especiais.
     action=command_for_launcher(command)
     created=(
-        f'[{root}]\nComment=Captura por area com o Print RC\nEnabled=true\n'
+        f'[{root}]\nComment={tr("desktop.capture_comment")}\nEnabled=true\n'
         f'Name={NAME}\nType=COMMAND_URL_SHORTCUT_ACTION_DATA\n\n'
         f'[{root}Actions]\nActionsCount=1\n\n'
         f'[{root}Actions0]\nCommandURL={action}\nType=COMMAND_URL\n\n'
@@ -447,7 +451,7 @@ def install(base, command, key='Print'):
     (base/'config').mkdir(parents=True,exist_ok=True)
     backup=base/'backups/khotkeysrc.antes'
     if backup.exists():
-        raise SystemExit('Ja existe um backup. Nao irei sobrescrever.')
+        raise SystemExit(tr('desktop.083'))
     backup.write_text(original,encoding='utf-8')
     os.chmod(backup,0o600)
     state={
@@ -470,31 +474,31 @@ def install(base, command, key='Print'):
     write_atomic(FILE,updated)
     state['status']='installed'
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
-    print('\nOPERACAO EXTERNA REALIZADA:', 'CRIADO' if not existed else 'MODIFICADO', FILE)
-    print('Backup interno:', backup)
-    print('Na desinstalacao o proprio script vai desfazer a integracao.')
+    print(tr('desktop.027'), tr('desktop.created') if not existed else tr('desktop.modified'), FILE)
+    print(tr('desktop.028'), backup)
+    print(tr('desktop.029'))
     reload_trinity_shortcuts()
-    print('Pressione a tecla configurada para testar. Se preciso, saia e entre na sessao.')
-    print('Nao reinicie nem mate processos do desktop a forca.')
+    print(tr('desktop.030'))
+    print(tr('desktop.031'))
     return True
 
 
 def remove(base):
     statepath=base/'config/atalho-state.json'
     if not statepath.exists():
-        print('Nenhuma integracao de atalho registrada por esta instalacao.')
+        print(tr('desktop.084'))
         return True
     state=json.loads(statepath.read_text(encoding='utf-8'))
     path=Path(state['file'])
     if path != FILE:
-        print('Arquivo de outro usuario. Desinstalacao do atalho recusada.')
+        print(tr('desktop.085'))
         return False
     if not path.exists():
-        print('Arquivo Trinity ausente; integracao ja nao existe.')
+        print(tr('desktop.086'))
         statepath.unlink()
         return True
     if path.is_symlink() or not path.is_file():
-        print('Arquivo externo inesperado (nao e arquivo regular). Nada removido.')
+        print(tr('desktop.087'))
         return False
     content=path.read_text(encoding='utf-8')
     sections=parse(content)
@@ -505,27 +509,27 @@ def remove(base):
             # Nenhuma alteracao externa ocorreu: descartar apenas o estado interno.
             backup=base/'backups/khotkeysrc.antes'
             if backup.exists() and content==backup.read_text(encoding='utf-8'):
-                print('Instalacao anterior parou ANTES de modificar o atalho externo.')
+                print(tr('desktop.120'))
                 statepath.unlink()
                 return True
-        print('Atalho mudou ou houve interrupcao ambigua.')
-        print('Nada externo foi apagado. Verifique backups/khotkeysrc.antes.')
+        print(tr('desktop.088'))
+        print(tr('desktop.089'))
         return False
     # Nao remover um atalho que foi alterado pelo usuario apos o registro.
     current_key=get_value(sections.get(root+'Triggers0',''),'Key')
     if current_key!=state.get('key','Print'):
-        print('A tecla original foi modificada; preservando atalho e backup.')
+        print(tr('desktop.090'))
         return False
     ours_action=sections.get(root+'Actions0','')
     launcher=state.get('launcher')
     if launcher:
         allowed={command_for_launcher(launcher),legacy_command_for_launcher(launcher)}
         if get_value(ours_action,'CommandURL') not in allowed:
-            print('Comando de inicializacao mudou; nenhuma secao sera removida.')
+            print(tr('desktop.108'))
             return False
     elif 'print-rc' not in ours_action.casefold() and 'iniciar.sh' not in ours_action:
         # Compatibilidade com instalacoes anteriores ao 0.4.2.
-        print('Comando do atalho foi modificado. Remocao automatica bloqueada.')
+        print(tr('desktop.109'))
         return False
     owned=set(state.get('created_sections') or [
         root,root+'Actions',root+'Actions0',root+'Conditions',root+'Triggers',root+'Triggers0'
@@ -540,14 +544,14 @@ def remove(base):
     for item in state['conflicts']:
         section=item['section']
         if section not in sections:
-            print('Atalho original nao existe mais:', section, '- ignorando.')
+            print(tr('desktop.110'), section, tr('desktop.ignored'))
             continue
         block=sections[section]
         if get_value(block,'Key')=='':
             content=replace_block(content,section,set_value(block,'Key',item['old_key']))
             sections=parse(content)
         else:
-            print('Atalho alterado pelo usuario:',section,'- nao sobrescrito.')
+            print(tr('desktop.111'),section,tr('desktop.112'))
     sections=parse(content)
     indices=[int(m.group(1)) for s in sections if (m:=re.fullmatch(r'Data_(\d+)',s))]
     if 'Data' in sections:
@@ -559,23 +563,24 @@ def remove(base):
         # Se alguem acrescentou dados, NAO remover nem modificar: preservar o backup.
         remaining=content.strip()
         if not re.fullmatch(r'\[Data\]\s*DataCount=0\s*',remaining):
-            print('NAO FOI POSSIVEL EXCLUIR COM SEGURANCA:', path)
-            print('O arquivo foi criado pelo Print RC, mas recebeu outras configuracoes.')
-            print('Nada foi apagado. A desinstalacao manterá a pasta e os backups.')
+            print(tr('desktop.113'), path)
+            print(tr('desktop.114'))
+            print(tr('desktop.115'))
             return False
         path.unlink()
-        print('ARQUIVO EXTERNO CRIADO PELO PRINT RC: EXCLUIDO:',path)
+        print(tr('desktop.091'),path)
     else:
         # O arquivo ja existia: nunca apaga-lo.
         write_atomic(path,content)
-        print('ARQUIVO EXTERNO ORIGINAL: MANTIDO. Atalho Print RC removido:',path)
+        print(tr('desktop.092'),path)
     statepath.unlink()
     reload_trinity_shortcuts()
-    print('Integracao removida. Saia e entre no Trinity se necessario.')
+    print(tr('desktop.032'))
     return True
 
 
 def main():
+    localize_argparse()
     parser=argparse.ArgumentParser()
     parser.add_argument('command',choices=('install','remove','repair','inspect'))
     parser.add_argument('--base',required=True,type=Path)
@@ -583,16 +588,16 @@ def main():
     parser.add_argument('--key',default='Print')
     args=parser.parse_args()
     if os.geteuid()==0:
-        raise SystemExit('Nao execute como root.')
+        raise SystemExit(tr('desktop.093'))
     base=args.base.resolve()
     if args.command=='inspect':
         if not status(base): raise SystemExit(1)
     elif args.command=='install':
-        if args.launcher is None: parser.error('--launcher obrigatorio')
+        if args.launcher is None: parser.error(tr('desktop.121'))
         if install(base,args.launcher.resolve(),key=args.key) is False:
             raise SystemExit(1)
     elif args.command=='repair':
-        if args.launcher is None: parser.error('--launcher obrigatorio')
+        if args.launcher is None: parser.error(tr('desktop.121'))
         if not repair(base,args.launcher.resolve()): raise SystemExit(1)
     else:
         if not remove(base): raise SystemExit(1)

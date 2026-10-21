@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Testes isolados da desinstalacao: imagens e arquivos pessoais NUNCA removidos.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 trap 'rm -rf -- "$TEMP"' EXIT
@@ -11,6 +12,8 @@ source "$ROOT/scripts/inventario.sh"
 make_app() {
     local app="$1"
     mkdir -p -- "$app/bin" "$app/src" "$app/scripts" "$app/config" "$app/capturas" "$app/backups"
+    cp -a "$ROOT/i18n" "$app/"
+    cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/print_rc_i18n.py" "$app/scripts/"
     cp "$ROOT/desinstalar.sh" "$app/desinstalar.sh"
     cp "$ROOT/scripts/atalho.py" "$app/scripts/atalho.py"
     cp "$ROOT/scripts/inventario.sh" "$app/scripts/inventario.sh"

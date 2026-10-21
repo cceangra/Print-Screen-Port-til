@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 PIDS=()
@@ -47,7 +48,11 @@ printf 'save_dir=%s\ncopy_clipboard=1\n' "$TEMP/sem-permissao" > "$TEMP/settings
 PID2=$!
 PIDS+=("$PID2")
 sleep 0.8
-chmod 500 "$TEMP/sem-permissao"
+if [[ $EUID -eq 0 ]]; then
+    rmdir "$TEMP/sem-permissao" # root bypasses permission bits; test unavailable destination instead
+else
+    chmod 500 "$TEMP/sem-permissao"
+fi
 xdotool mousemove --sync 458 35 click 1
 for i in {1..80}; do
     if grep -q 'nao foi possivel salvar o PNG' "$TEMP/second.log"; then break; fi
@@ -57,7 +62,9 @@ grep -q 'nao foi possivel salvar o PNG' "$TEMP/second.log" || {
     echo 'ERRO: nao foi identificada falha ao salvar.'
     cat "$TEMP/second.log";exit 1
 }
-test -z "$(find "$TEMP/sem-permissao" -maxdepth 1 -name '*.png' -print -quit)"
+if [[ -d "$TEMP/sem-permissao" ]]; then
+    test -z "$(find "$TEMP/sem-permissao" -maxdepth 1 -name '*.png' -print -quit)"
+fi
 timeout 20s xclip -selection clipboard -t image/png -o > "$TEMP/colado-apos-falha.png"
 test "$(head -c 8 "$TEMP/colado-apos-falha.png" | od -An -tx1 | tr -d ' \n')" = '89504e470d0a1a0a'
 echo 'OK: PNG ainda esta disponivel no Ctrl+V apesar da falha de escrita.'
