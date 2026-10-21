@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.6'
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.7'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -70,7 +70,7 @@ jobs:
           unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.6'
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.7'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -78,18 +78,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.6.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.7.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.6 >/dev/null 2>&1; then
-            echo 'v0.4.6 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.4.7 >/dev/null 2>&1; then
+            echo 'v0.4.7 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.4.6 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.6 - Auditoria de seguranca e preferencias' \
-            --notes 'Corrige desinstalacao apos usuario reconfigurar opcoes e endurece instalacao contra links simbolicos que apontam para outros arquivos ou pastas. Evita marcador falso em instalacao interrompida. Preserva prints, dados pessoais e ZIP original. Linux X11 x86_64. Linux X11 x86_64, binario C++ estatico.'
+          gh release create v0.4.7 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.7 - Atalhos Xfce e deteccao de desktops' \
+            --notes 'Integra tecla Print automaticamente no Xfce/X11 por xfconf-query com consentimento, preserva e restaura atalhos antigos ao desinstalar, identifica desktop e orienta cadastro manual no GNOME, KDE Plasma, MATE, Cinnamon e LXQt. Mantem Trinity e protecao de imagens, arquivos pessoais e ZIP. Sem servico residente. Linux X11 x86_64. Linux X11 x86_64, binario C++ estatico.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
