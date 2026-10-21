@@ -180,7 +180,7 @@ fi
 echo
 echo '========== TECLA PRINT SCREEN =========='
 echo "Ambiente: ${XDG_CURRENT_DESKTOP:-desconhecido} | Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
-echo '1. Quando solicitado, pressione PRINT SCREEN em ate 60 segundos.'
+echo '1. Pressione a tecla fisica desejada (Print, Sys_Req ou Insert) em ate 60 segundos.'
 echo '2. Depois da identificacao, confirme SIM uma vez para usar a tecla.'
 echo '3. Se o tempo acabar, voce podera tentar novamente.'
 echo '   Esc cancela a identificacao. Nenhuma senha ou sudo e necessario.'
@@ -198,6 +198,7 @@ print_rc_detectar() {
             case "$raw" in
                 PRINT_RC_KEY=Print) chave=Print ;;
                 PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
+                PRINT_RC_KEY=Insert) chave=Insert ;;
                 *)
                     echo 'ERRO: o detector devolveu uma tecla desconhecida.' >&2
                     return 3 ;;
@@ -253,14 +254,15 @@ if [[ "$desktop_id" == *trinity* ]]; then
         echo 'Tecla nao identificada; nenhuma associacao feita.'
     fi
 elif [[ "$desktop_id" == *xfce* ]]; then
-    echo 'Xfce: associacao em /commands/custom/Print via xfconf-query.'
+    echo 'Xfce: associa a tecla selecionada em /commands/custom/<Tecla> via xfconf-query.'
     if ! command -v python3 >/dev/null 2>&1 || ! command -v xfconf-query >/dev/null 2>&1; then
         echo 'Python3 ou xfconf-query indisponivel. Nao ha integracao automatica.'
         echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos.'
         echo "Comando: $print_rc_launcher"
     elif key_name="$(print_rc_detectar)"; then
-        if [[ "$key_name" == Print ]]; then
-            if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"; then
+        echo "Xfce: tecla fisica escolhida = $key_name"
+        if [[ "$key_name" == Print || "$key_name" == Insert ]]; then
+            if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
                 atalho_registrado=1
             else
                 echo 'ERRO: o Xfce nao conseguiu registrar a tecla confirmada.'
@@ -268,8 +270,7 @@ elif [[ "$desktop_id" == *xfce* ]]; then
                 exit 1
             fi
         else
-            echo 'Sys_Req detectado: no Xfce nao vou atribuir outra tecla por engano.'
-            echo 'Associe Sys_Req diretamente nas preferencias de teclado do Xfce.'
+            echo 'Sys_Req exige cadastro manual no Xfce desta versao; nenhuma outra tecla foi alterada.'
         fi
     else
         echo 'Tecla nao identificada; nenhuma associacao feita.'
@@ -313,7 +314,7 @@ else
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
 if [[ "$atalho_registrado" == 1 ]]; then
-    echo 'REGISTRO_GRAVADO: tecla cadastrada no gerenciador; ativacao ainda nao comprovada.'
+    echo "REGISTRO_GRAVADO: tecla ${key_name:-Print} cadastrada; ativacao ainda nao comprovada."
     if [[ -n "${DISPLAY:-}" && -t 0 && -f "$dest/scripts/provar-atalho.sh" ]]; then
         if bash "$dest/scripts/provar-atalho.sh"; then
             echo 'ATIVACAO_CONFIRMADA: o comando Print RC foi acionado nesta sessao.'
