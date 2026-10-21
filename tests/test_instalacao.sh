@@ -117,6 +117,19 @@ test ! -e "$TEMP/config-de-terceiros/opcoes.conf"
 echo '[9] Falha ao cadastrar atalho nao deixa marcador falso de instalacao'
 make_source "$TEMP/origem9"
 printf 'raise SystemExit(43)\n' > "$TEMP/origem9/scripts/atalho.py"
+# Reproduzir Print fisicamente identificado nesta prova de falha posterior.
+# A deteccao verdadeira e testada num X11 virtual em teste proprio.
+cp -- "$TEMP/origem9/bin/print-rc" "$TEMP/print-rc-original"
+export PRINT_RC_TEST_BINARY="$TEMP/print-rc-original"
+cat > "$TEMP/origem9/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    printf 'PRINT_RC_KEY=Print\n'
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$TEMP/origem9/bin/print-rc"
 if printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem9/instalar.sh"; then
     echo 'ERRO: falha da integracao de atalho nao interrompeu instalacao.'
     exit 1
