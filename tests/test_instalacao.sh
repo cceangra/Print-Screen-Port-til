@@ -117,7 +117,7 @@ test ! -e "$TEMP/config-de-terceiros/opcoes.conf"
 echo '[9] Falha ao cadastrar atalho nao deixa marcador falso de instalacao'
 make_source "$TEMP/origem9"
 printf 'raise SystemExit(43)\n' > "$TEMP/origem9/scripts/atalho.py"
-if printf '\n\n\ns\ns\n' | bash "$TEMP/origem9/instalar.sh"; then
+if printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem9/instalar.sh"; then
     echo 'ERRO: falha da integracao de atalho nao interrompeu instalacao.'
     exit 1
 fi
