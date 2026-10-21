@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.9'
+          ./bin/print-rc --version | grep -F 'Print RC 0.5.0'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -72,7 +72,7 @@ jobs:
           unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.9'
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.0'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -80,18 +80,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.9.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.0.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.9 >/dev/null 2>&1; then
-            echo 'v0.4.9 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.5.0 >/dev/null 2>&1; then
+            echo 'v0.5.0 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.4.9 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.9 - Corrigir atalho Print no Trinity' \
-            --notes 'Corrige bug real do Print RC no Q4OS Trinity: o tipo SIMPLE_ACTION_DATA era rejeitado pelo khotkeysd; agora o gerador utiliza COMMAND_URL_SHORTCUT_ACTION_DATA, igual a atalhos funcionais do Trinity. Reparo da v0.4.8 com confirmacao e preservacao de atalhos e backup, testes automatizados do formato real, Print fisico X11, Xfce e desinstalacao. Melhora orientacoes de cadastro no GNOME/Plasma e demais desktops X11, sem sobrescrever suas preferencias. Capturador continua apenas X11 x86_64; Wayland depende de uma implementacao futura. ZIP e capturas preservados.'
+          gh release create v0.5.0 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.5.0 - Pressione Print, confirme SIM e capture' \
+            --notes 'Fluxo simplificado: o instalador pede para pressionar Print Screen e confirmar SIM uma unica vez. No Trinity assume a tecla, libera automaticamente as associacoes conflitantes reconhecidas em khotkeysrc e as preserva apenas para restauracao futura. No Xfce substitui a associacao personalizada Print sem perguntas extras. Se falhar apos confirmar, nao finge ter cadastrado o atalho. Mantem tipo COMMAND_URL_SHORTCUT_ACTION_DATA do Trinity e testes de conflitos e desinstalacao. Sem sudo nem servico proprio monitorando todo o teclado. O capturador continua X11 x86_64; outros desktops usam configuracao manual, Wayland nao e suportado.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
