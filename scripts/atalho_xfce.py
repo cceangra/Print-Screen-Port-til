@@ -123,6 +123,62 @@ def check_environment():
     if not shutil.which('xfconf-query'):
         raise RuntimeError('xfconf-query ausente. Configure o atalho manualmente.')
 
+def change_property(prop, current, desired):
+    """Altera SOMENTE propriedade verificada, sem apagar a tecla de terceiros."""
+    if desired is None:
+        if current is not None:
+            if prop==PROPERTY: remove_key()
+            else: remove_key(prop)
+    else:
+        if prop==PROPERTY: set_key(desired,current is not None)
+        else: set_key(desired,current is not None,prop)
+    if get(prop)!=desired:
+        raise RuntimeError('Xfce nao confirmou a atribuicao de '+prop)
+
+
+def rebind(base, launcher, key, state, desired):
+    """Trocar tecla ja atribuida mantendo diario de recuperacao durante as duas escritas."""
+    old_prop=state.get('property')
+    target_prop=shortcut_property(key)
+    if (state.get('status')!='installed' or state.get('launcher')!=str(launcher)
+            or state.get('command')!=desired or get(old_prop)!=desired):
+        print('Atalho anterior nao corresponde ao registro. Nenhuma alteracao.')
+        return False
+    old_original=state.get('old_command')
+    target_original=get(target_prop)
+    if target_original==desired:
+        print('Atalho novo ja tem o mesmo comando sem controle desta instalacao.')
+        return False
+    print('Tecla atual:',state.get('key','Print'),'-> nova tecla:',key)
+    print('Novo atalho ocupado por:',repr(target_original))
+    print('A antiga associacao sera restaurada; a nova substituida apos SIM.')
+    if not yes('Confirma trocar a tecla do Print RC?'):
+        return False
+    if get(old_prop)!=desired or get(target_prop)!=target_original:
+        print('Uma associacao mudou durante a confirmacao. Nada alterado.')
+        return False
+    recovery=dict(state)
+    recovery['status']='moving'
+    recovery['movement']={
+        'target_property':target_prop,
+        'target_old_command':target_original,
+    }
+    write_state(base,recovery)
+    try:
+        change_property(target_prop,target_original,desired)
+        change_property(old_prop,desired,old_original)
+        new_state=dict(state)
+        new_state.update({'status':'installed','key':key,'property':target_prop,
+                          'old_command':target_original,'created':target_original is None})
+        write_state(base,new_state)
+    except (OSError,subprocess.TimeoutExpired,RuntimeError) as exc:
+        print('Troca nao concluida:',exc)
+        print('Registro de recuperacao preservado. Use a opcao Liberar para desfazer.')
+        return False
+    print('Tecla',key,'cadastrada; atalho anterior restaurado.')
+    return True
+
+
 def install(base, launcher, key='Print'):
     check_environment()
     prop = shortcut_property(key)
@@ -131,11 +187,12 @@ def install(base, launcher, key='Print'):
     desired = app_command(launcher)
     if previous_state is not None:
         if (previous_state.get('launcher') == str(launcher)
-                and previous_state.get('status') == 'installed'
-                and previous_state.get('property') == prop
-                and get(prop) == desired):
-            print('Atalho Print RC do Xfce ja registrado corretamente.')
-            return True
+                and previous_state.get('status') == 'installed'):
+            if previous_state.get('property') == prop and get(prop) == desired:
+                print('Atalho Print RC do Xfce ja registrado corretamente.')
+                return True
+            if previous_state.get('property') != prop:
+                return rebind(base,launcher,key,previous_state,desired)
         print('Existe registro anterior, inconsistente ou interrompido.')
         print('Nao sobrescrever atalhos de terceiros. Verifique antes de reinstalar.')
         return False
@@ -192,6 +249,33 @@ def remove(base):
     # Desinstalacao pode ocorrer em outra sessao; melhor preservar do que
     # mexer em atalhos XFCE quando estiver logado noutro desktop.
     check_environment()
+    if state.get('status')=='moving':
+        move=state.get('movement')
+        if not isinstance(move,dict):
+            print('Estado de troca inconsistente. Nao alterar atalhos.')
+            return False
+        target=move.get('target_property')
+        try:
+            if shortcut_property(target.rsplit('/',1)[-1])!=target:
+                return False
+            original_target=move.get('target_old_command')
+            old_prop=state['property']
+            old_original=state.get('old_command')
+            desired=state['command']
+            # Restaurar os dois atalhos apenas se ainda correspondem ao diario.
+            for p,orig in ((target,original_target),(old_prop,old_original)):
+                observed=get(p)
+                if observed not in (desired,orig):
+                    print('Outro programa alterou',p,'; recuperacao interrompida.')
+                    return False
+                if observed==desired:
+                    change_property(p,desired,orig)
+            (base / STATE_FILE).unlink()
+            print('Troca interrompida recuperada; atribuicoes anteriores restauradas.')
+            return True
+        except (OSError,subprocess.TimeoutExpired,RuntimeError,ValueError,TypeError) as exc:
+            print('Recuperacao incompleta:',exc)
+            return False
     prop = state.get('property')
     current = get(prop)
     old = state.get('old_command')
