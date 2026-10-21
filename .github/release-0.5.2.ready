@@ -1,0 +1,1 @@
+Print RC v0.5.2: release autorizada apos GitHub Actions https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39668438080 com todos os testes aprovados. Novo configurar-tecla.sh gerencia atalhos Print no Trinity e Xfce, diagnostica grabs X11 sem afetar programas, preserva backup e imagens, pacote estatico x86_64 X11.
