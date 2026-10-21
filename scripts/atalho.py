@@ -132,7 +132,7 @@ def reload_trinity_shortcuts():
     if result.returncode:
         print('Trinity nao confirmou recarga:',(result.stderr or result.stdout).strip()[:200])
         return False
-    print('khotkeysd notificado para reler a tecla Print nesta sessao.')
+    print('Pedido de releitura enviado ao khotkeysd; a ativacao da tecla ainda precisa de prova real.')
     return True
 
 def repair(base, command):
