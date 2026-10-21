@@ -26,6 +26,11 @@ for dir in bin config backups capturas src scripts tests .github .github/workflo
     fi
 done
 STATE="$BASE/config/atalho-state.json"
+STATE_XFCE="$BASE/config/atalho-xfce.json"
+if [[ -L "$STATE_XFCE" ]]; then
+    echo 'Registro Xfce e um link simbolico inesperado. Remocao bloqueada.'
+    exit 2
+fi
 if [[ -L "$STATE" ]]; then
     echo 'Registro do atalho e link simbolico. Remocao bloqueada.'
     exit 2
@@ -52,6 +57,10 @@ echo '4. Pastas com imagens ou arquivos desconhecidos ficam no disco.'
 if [[ -n "$IMAGE_DIR" ]]; then
     echo "Pasta de imagens registrada: $IMAGE_DIR"
     echo 'ESSA PASTA E SUAS IMAGENS NAO SERAO APAGADAS.'
+fi
+if [[ -f "$STATE_XFCE" ]]; then
+    echo 'Atalho Xfce a restaurar: /commands/custom/Print (xfce4-keyboard-shortcuts)'
+    echo 'O Xfce pode gravar essa preferencia em ~/.config/xfce4/.'
 fi
 if [[ -f "$STATE" ]]; then
     echo "Atalho externo a restaurar: $EXTERNAL"
@@ -95,7 +104,22 @@ for proc_exe in /proc/[0-9]*/exe; do
     fi
 done
 
-# Restaurar a tecla antes de remover o programa ou seus backups.
+# Restaurar SOMENTE atalhos criados por esta instalacao, antes de
+# remover os respectivos registros. Nunca apagar atalhos configurados a mao.
+if [[ -f "$STATE_XFCE" ]]; then
+    command -v python3 >/dev/null 2>&1 || {
+        echo 'Python3 ausente: remocao do atalho Xfce e do app cancelada.'
+        exit 1
+    }
+    if [[ ! -f "$BASE/scripts/atalho_xfce.py" || -L "$BASE/scripts/atalho_xfce.py" ]]; then
+        echo 'Integrador Xfce ausente/inseguro. Nada sera apagado.'
+        exit 1
+    fi
+    python3 "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || {
+        echo 'Nao foi possivel restaurar atalho Xfce. Programa preservado.'
+        exit 1
+    }
+fi
 if [[ -f "$STATE" ]]; then
     command -v python3 >/dev/null 2>&1 || {
         echo 'Python3 nao disponivel. Programa e imagens preservados.'
