@@ -41,7 +41,7 @@ prc_message shell.286
 prc_message shell.287
 TECLA="${1:-}"
 if [[ ! "$TECLA" =~ ^[A-Za-z0-9_]{1,64}$ ]]; then
-    TECLA='a tecla configurada'
+    TECLA="$(prc_text common.configured_key)"
 fi
 prc_message shell.288 "$TECLA"
 prc_message shell.289

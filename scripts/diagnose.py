@@ -87,7 +87,8 @@ def shortcut_info():
         else:
             external=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml'
             item['registry_file_exists']=external.is_file() and not external.is_symlink()
-            item['live_registry']='NOT_QUERIED: read-only mode does not start xfconfd'
+            item['live_registry']='NOT_QUERIED'
+            item['live_registry_note']=tr('diagnostic.live_registry_note')
             if item['registry_file_exists']:
                 try:
                     tree=ET.parse(external)

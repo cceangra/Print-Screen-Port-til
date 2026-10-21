@@ -157,7 +157,11 @@ int shortcut_probe_handler(Display*, XErrorEvent* e) {
     else shortcut_probe_error=true;
     return 0;
 }
-int inspect_print_grabs() {
+int inspect_print_grabs(const char* name="Print") {
+    const KeySym selected=XStringToKeysym(name);
+    if(!safe_shortcut_name(name) || selected==NoSymbol || standalone_modifier(selected) || selected==XK_Escape) {
+        std::cerr<<prc_tr("native.invalid_key");return 2;
+    }
     if (!std::getenv("DISPLAY")) {
         std::cout<<"PRINT_RC_GRAB=indeterminado\n";
         std::cerr<<prc_tr("native.026");
@@ -178,7 +182,7 @@ int inspect_print_grabs() {
         for (int code=first;code<=last;code++) {
             for (int i=0;i<per_code;i++) {
                 const KeySym symbol=symbols[(code-first)*per_code+i];
-                if (symbol==XK_Print || symbol==XK_Sys_Req) {
+                if (symbol==selected || ((selected==XK_Print || selected==XK_Sys_Req) && (symbol==XK_Print || symbol==XK_Sys_Req))) {
                     codes.push_back(code);
                     break;
                 }

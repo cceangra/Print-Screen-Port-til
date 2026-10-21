@@ -39,6 +39,14 @@ int main(int argc,char** argv) {
     }
     if(overlay==None) { kill(pid,SIGTERM); waitpid(pid,nullptr,0); }
     assert(overlay!=None);
+    Atom language_type=0;int language_format=0;unsigned long length=0,remaining=0;
+    unsigned char* language=nullptr;
+    XGetWindowProperty(d,overlay,XInternAtom(d,"_PRINT_RC_LANGUAGE",False),0,8,False,XA_STRING,
+                       &language_type,&language_format,&length,&remaining,&language);
+    assert(language_type==XA_STRING && language_format==8 && length==5);
+    const char* requested=std::getenv("PRINT_RC_LANG");
+    if(requested) assert(std::memcmp(language,requested,5)==0);
+    XFree(language);
     XWindowAttributes attrs{};
     assert(XGetWindowAttributes(d,overlay,&attrs));
     assert(attrs.map_state==IsViewable);

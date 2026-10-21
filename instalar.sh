@@ -180,7 +180,7 @@ if ! bash "$dest/configurar.sh"; then
 fi
 echo
 prc_message shell.052
-prc_message shell.053 "${XDG_CURRENT_DESKTOP:-desconhecido}" "${XDG_SESSION_TYPE:-desconhecida}"
+prc_message shell.053 "${XDG_CURRENT_DESKTOP:-$(prc_text common.unknown)}" "${XDG_SESSION_TYPE:-$(prc_text common.unknown)}"
 prc_message shell.054
 prc_message shell.055
 prc_message shell.056
@@ -317,7 +317,7 @@ else
     prc_message shell.101
 fi
 if [[ "$atalho_registrado" == 1 ]]; then
-    prc_message shell.102 "${key_name:-indefinida}"
+    prc_message shell.102 "${key_name:-$(prc_text common.unknown)}"
     if [[ -n "${DISPLAY:-}" && -t 0 && -f "$dest/scripts/provar-atalho.sh" ]]; then
         if bash "$dest/scripts/provar-atalho.sh" "$key_name"; then
             overlay_state=verified

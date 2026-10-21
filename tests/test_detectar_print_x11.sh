@@ -75,10 +75,10 @@ cat > "$TMP/grab-other.cpp" <<'CPP'
 #include <X11/keysym.h>
 #include <unistd.h>
 #include <cstdio>
-int main() {
+int main(int argc,char** argv) {
     Display* d=XOpenDisplay(nullptr);
     if(!d) return 2;
-    KeyCode k=XKeysymToKeycode(d,XK_Print);
+    KeyCode k=XKeysymToKeycode(d,argc>1?XStringToKeysym(argv[1]):XK_Print);
     if(!k) return 3;
     XGrabKey(d,k,0,DefaultRootWindow(d),False,GrabModeAsync,GrabModeAsync);
     XSync(d,False);
@@ -147,3 +147,16 @@ wait "$PID"
 grep -Fx 'PRINT_RC_KEY=F9' "$TMP/shift-and-f9.txt"
 grep -F 'modificador sozinho' "$TMP/shift-and-f9.err"
 echo 'OK: F12, Insert, a, Return e F9 reconhecidos; modificador sozinho ignorado.'
+
+echo '[12] Reserva F12 nao pode ser confundida com Print'
+"$TMP/grab-other" F12 > "$TMP/f12-ready.txt" &
+OTHER=$!
+for _ in {1..30}; do grep -q READY "$TMP/f12-ready.txt" && break; sleep 0.1; done
+CODE=0
+"$BIN" --verificar-tecla F12 > "$TMP/f12-grab.txt" || CODE=$?
+test "$CODE" -eq 6
+"$BIN" --verificar-tecla Print > "$TMP/print-independent.txt"
+grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/print-independent.txt"
+kill "$OTHER";wait "$OTHER" || true
+"$BIN" --verificar-tecla F12 > "$TMP/f12-released.txt"
+grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/f12-released.txt"

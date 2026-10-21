@@ -14,4 +14,5 @@ inline void print_rc_stage(char stage) {
     if (errno || !end || *end || fd < 3 || fd > INT_MAX) return;
     ssize_t result;
     do { result = write(static_cast<int>(fd), &stage, 1); } while (result < 0 && errno == EINTR);
+    if(stage=='C') {close(static_cast<int>(fd));unsetenv("PRINT_RC_STATUS_FD");}
 }

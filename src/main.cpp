@@ -63,7 +63,7 @@ bool self_test() {
 }
 }
 
-int main(int argc,char** argv) {
+int run_capture_app(int argc,char** argv) {
     bool probe_overlay=false;
     std::string readiness_nonce=std::to_string(getpid());
     if (argc>1) {
@@ -77,7 +77,10 @@ int main(int argc,char** argv) {
         if (arg=="--build-info") { std::cout<<"Print RC " PRINT_RC_VERSION "\n"<<prc_tr("native.build_info");return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
-        if (arg=="--verificar-tecla") return inspect_print_grabs();
+        if (arg=="--verificar-tecla") {
+            if(argc>3) {std::cerr<<prc_tr("native.invalid_key");return 2;}
+            return inspect_print_grabs(argc==3?argv[2]:"Print");
+        }
         if (arg=="--show-config") {
             PrintRcSettings options;
             if (!print_rc_load_settings(options)) return 2;
@@ -97,6 +100,9 @@ int main(int argc,char** argv) {
     if (!std::getenv("DISPLAY")) {std::cerr<<prc_tr("native.037");return 2;}
     Display* display=XOpenDisplay(nullptr);
     if (!display) {std::cerr<<prc_tr("native.038");return 2;}
+    if(ConnectionNumber(display)<0 || ConnectionNumber(display)>=FD_SETSIZE) {
+        std::cerr<<prc_tr("native.022");XCloseDisplay(display);return 2;
+    }
     print_rc_stage('X');
     XSetErrorHandler(xerror);
     // Um unico capturador pode controlar o mouse/teclado por vez.
@@ -139,7 +145,10 @@ int main(int argc,char** argv) {
     XImage* original=XGetImage(display,root,0,0,width,height,AllPlanes,ZPixmap);
     if (!original) {std::cerr<<prc_tr("native.041");close_display();return 3;}
     if(!original->data || original->width!=width || original->height!=height
-       || original->bytes_per_line<=0 || original->bits_per_pixel<8
+       || original->bytes_per_line<=0 || (original->bits_per_pixel!=16 && original->bits_per_pixel!=24 && original->bits_per_pixel!=32)
+       || !original->red_mask || !original->green_mask || !original->blue_mask
+       || (original->red_mask&original->green_mask) || (original->red_mask&original->blue_mask)
+       || (original->green_mask&original->blue_mask)
        || static_cast<uint64_t>(original->bytes_per_line)*8 < static_cast<uint64_t>(width)*original->bits_per_pixel
        || static_cast<uint64_t>(original->bytes_per_line)*height>std::numeric_limits<size_t>::max()) {
         std::cerr<<prc_tr("native.042");
@@ -359,6 +368,9 @@ int main(int argc,char** argv) {
         XChangeProperty(display,overlay,ready_atom,XA_STRING,8,PropModeReplace,
                         reinterpret_cast<const unsigned char*>(readiness_nonce.data()),
                         static_cast<int>(readiness_nonce.size()));
+        const char* locale=prc_portuguese()?"pt-BR":"en-US";
+        XChangeProperty(display,overlay,XInternAtom(display,"_PRINT_RC_LANGUAGE",False),XA_STRING,8,PropModeReplace,
+                        reinterpret_cast<const unsigned char*>(locale),5);
         XSync(display,False);
         if(x_error_count==startup_errors) {
             print_rc_stage('R');
@@ -484,9 +496,15 @@ int main(int argc,char** argv) {
     // novos prints podem ser feitos enquanto o primeiro PNG esta pronto para Ctrl+V.
     release_instance();
     Window owner=XCreateSimpleWindow(display,root,-10,-10,1,1,0,0,0);
-    clipboard_loop(display,owner,std::move(png),
+    const bool copied=clipboard_loop(display,owner,std::move(png),
                    Clock::now()+std::chrono::seconds(kClipboardSeconds));
     XDestroyWindow(display,owner);
     close_display();
-    return saved?0:6;
+    return saved?(copied?0:8):6;
+}
+
+int main(int argc,char** argv) {
+    try {return run_capture_app(argc,argv);}
+    catch(const std::bad_alloc&) {std::cerr<<prc_tr("native.allocation_failed");return 70;}
+    catch(const std::exception& error) {std::cerr<<prc_tr("native.operation_failed")<<error.what()<<"\n";return 70;}
 }

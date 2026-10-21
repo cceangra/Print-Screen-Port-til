@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <poll.h>
+#include <cerrno>
 #include <sys/select.h>
 #include "../app/runtime.hpp"
 #include "../i18n/messages.hpp"
@@ -15,7 +16,7 @@ inline constexpr size_t kChunkSize=64*1024;
 
 namespace prc {
 struct Transfer { Window window; Atom property; size_t offset; };
-void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> png,
+bool clipboard_loop(Display* display, Window owner, std::vector<unsigned char> png,
                     Clock::time_point expires) {
     const Atom clipboard=XInternAtom(display,"CLIPBOARD",False);
     const Atom targets=XInternAtom(display,"TARGETS",False);
@@ -25,16 +26,19 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
     XFlush(display);
     if (XGetSelectionOwner(display,clipboard)!=owner) {
         std::cerr<<prc_tr("native.004");
-        return;
+        return false;
     }
+    const long request_units=XMaxRequestSize(display);
+    if(request_units<=64) {std::cerr<<prc_tr("native.004");return false;}
+    const size_t chunk=std::min(kChunkSize,static_cast<size_t>(request_units-64)*4);
+    std::vector<Transfer> transfers;transfers.reserve(16);
     print_rc_stage('C');
     std::cout<<prc_tr("native.005");
-    std::vector<Transfer> transfers;
     while (Clock::now()<expires) {
         while (XPending(display)) {
             XEvent e{};
             XNextEvent(display,&e);
-            if (e.type==SelectionClear && e.xselectionclear.selection==clipboard) return;
+            if (e.type==SelectionClear && e.xselectionclear.selection==clipboard) return true;
             if (e.type==SelectionRequest && e.xselectionrequest.selection==clipboard) {
                 const auto& request=e.xselectionrequest;
                 Atom property=request.property==None ? request.target : request.property;
@@ -45,17 +49,21 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
                                     reinterpret_cast<unsigned char*>(list),2);
                     supported=true;
                 } else if (request.target==pngAtom) {
-                    if (png.size()<=kChunkSize) {
+                    if (png.size()<=chunk) {
                         XChangeProperty(display,request.requestor,property,pngAtom,8,PropModeReplace,
                                         png.data(),static_cast<int>(png.size()));
-                    } else {
-                        XSelectInput(display,request.requestor,PropertyChangeMask);
+                    } else if(transfers.size()<16 && std::none_of(transfers.begin(),transfers.end(),[&](const Transfer& t) {
+                        return t.window==request.requestor && t.property==property;
+                    })) {
+                        XSelectInput(display,request.requestor,PropertyChangeMask|StructureNotifyMask);
                         unsigned long count=static_cast<unsigned long>(png.size());
                         XChangeProperty(display,request.requestor,property,incr,32,PropModeReplace,
                                         reinterpret_cast<unsigned char*>(&count),1);
                         transfers.push_back({request.requestor,property,0});
+                    } else {
+                        property=None;
                     }
-                    supported=true;
+                    supported=property!=None;
                 }
                 XEvent reply{};
                 reply.xselection.type=SelectionNotify;
@@ -67,10 +75,14 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
                 reply.xselection.time=request.time;
                 XSendEvent(display,request.requestor,False,0,&reply);
                 XFlush(display);
+            } else if(e.type==DestroyNotify) {
+                transfers.erase(std::remove_if(transfers.begin(),transfers.end(),[&](const Transfer& t) {
+                    return t.window==e.xdestroywindow.window;
+                }),transfers.end());
             } else if (e.type==PropertyNotify && e.xproperty.state==PropertyDelete) {
                 for (auto it=transfers.begin();it!=transfers.end();) {
                     if (it->window!=e.xproperty.window || it->property!=e.xproperty.atom) { ++it;continue; }
-                    size_t length=std::min(kChunkSize,png.size()-it->offset);
+                    size_t length=std::min(chunk,png.size()-it->offset);
                     XChangeProperty(display,it->window,it->property,pngAtom,8,PropModeReplace,
                                     length ? png.data()+it->offset : nullptr,static_cast<int>(length));
                     it->offset+=length;
@@ -83,17 +95,13 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
         }
         auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(expires-Clock::now()).count();
         if (remaining<=0) break;
-        // Sono bloqueante sem polling constante de CPU.
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        int fd=ConnectionNumber(display);
-        FD_SET(fd,&readfds);
-        timeval timeout{};
-        long wait_ms=static_cast<long>(std::min<int64_t>(remaining,1000));
-        timeout.tv_sec=wait_ms/1000;
-        timeout.tv_usec=(wait_ms%1000)*1000;
-        select(fd+1,&readfds,nullptr,nullptr,&timeout);
+        // Sleep until the next selection/property event or the actual expiry.
+        pollfd descriptor{ConnectionNumber(display),POLLIN,0};
+        const int ready=poll(&descriptor,1,static_cast<int>(remaining));
+        if(ready<0 && errno!=EINTR) return false;
+
     }
+    return true;
 }
 
 

@@ -17,3 +17,5 @@ jobs:
   test:
     needs: build
     uses: ./.github/workflows/test.yml
+    with:
+      source_ref: ${{ github.event.pull_request.head.sha || github.sha }}

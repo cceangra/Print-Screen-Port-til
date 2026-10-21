@@ -38,8 +38,21 @@ cmp -s -- "${photos[0]}" "$TEMP/colado.png" || {
     exit 1
 }
 echo "OK: PNG grande de $size bytes colado exatamente (INCR)."
-kill "$PID" 2>/dev/null || true
-wait "$PID" 2>/dev/null || true
+"$ROOT/bin/print-rc" > "$TEMP/replacement.log" 2>&1 &
+REPLACEMENT=$!
+PIDS+=("$REPLACEMENT")
+sleep 0.8
+xdotool mousemove --sync 458 35 click 1
+for i in {1..100}; do
+    if ! kill -0 "$PID" 2>/dev/null; then break; fi
+    sleep 0.05
+done
+if kill -0 "$PID" 2>/dev/null; then echo 'ERROR: previous clipboard owner remained resident';exit 1;fi
+wait "$PID"
+kill -0 "$REPLACEMENT"
+echo 'PASS: new clipboard ownership terminated the previous process'
+kill "$REPLACEMENT" 2>/dev/null || true
+wait "$REPLACEMENT" 2>/dev/null || true
 
 echo '[CLIP 2] Sem permissao de salvar, Ctrl+V continua funcionando'
 mkdir -p "$TEMP/sem-permissao"

@@ -92,6 +92,14 @@ PRINT_RC_KNOWN=(
   'tests/test_lifecycle.py'
   'diagnosticar.sh'
   'config/installation-manifest.json'
+  'tests/performance/benchmark.py'
+  'tests/performance/x11_driver.cpp'
+  'tests/test_clipboard_limits.cpp'
+  'tests/test_clipboard_limits_x11.sh'
+  'tests/test_packaged_ownership.sh'
+  'tests/test_undo_x11.sh'
+  'tests/test_visual_png.sh'
+  'tests/test_xfce_real.sh'
 )
 
 print_rc_criar_inventario() {

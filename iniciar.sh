@@ -30,7 +30,7 @@ export PRINT_RC_CONFIG="$BASE/config/opcoes.conf"
 
 # Resposta de prova SOMENTE quando a pessoa acabou de pedir teste de atalho.
 # Marcador expira automaticamente: uma interrupcao nao bloqueia capturas futuras.
-# Prova que o launcher foi executado, nao que a GUI de captura ficou visivel.
+# A resposta exige prova da interface desenhada, mapeada e com os dois controles ativos.
 PROVA="$BASE/config/.print-rc-prova-armada"
 RESPOSTA="$BASE/config/.print-rc-prova-resposta"
 if [[ -f "$PROVA" && ! -L "$PROVA" && ! -e "$RESPOSTA" && ! -L "$RESPOSTA" ]]; then

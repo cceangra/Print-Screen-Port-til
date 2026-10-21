@@ -12,7 +12,7 @@ header() {
     printf '\n===========================================\n'
     prc_format shell.170
     printf '===========================================\n'
-    prc_format shell.171 "${XDG_CURRENT_DESKTOP:-desconhecido}" "${XDG_SESSION_TYPE:-desconhecida}"
+    prc_format shell.171 "${XDG_CURRENT_DESKTOP:-$(prc_text common.unknown)}" "${XDG_SESSION_TYPE:-$(prc_text common.unknown)}"
 }
 sim() {
     local resposta
@@ -33,9 +33,22 @@ verificar() {
         prc_message shell.174
     fi
     echo
-    prc_message shell.175
+    local selected_key=Print state_file=''
+    if [[ "$DESKTOP" == *trinity* ]]; then state_file="$BASE/config/atalho-state.json"
+    elif [[ "$DESKTOP" == *xfce* ]]; then state_file="$BASE/config/atalho-xfce.json"; fi
+    if [[ -n "$state_file" && -f "$state_file" && ! -L "$state_file" ]]; then
+        selected_key="$(python3 -B - "$state_file" <<'PYKEY'
+import json,re,sys
+from pathlib import Path
+key=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8')).get('key','Print')
+if not isinstance(key,str) or not re.fullmatch(r'[A-Za-z0-9_]{1,64}',key):raise SystemExit(2)
+print(key)
+PYKEY
+)"
+    fi
+    prc_message shell.175 "$selected_key"
     local status=0
-    "$BIN" --verificar-tecla || status=$?
+    "$BIN" --verificar-tecla "$selected_key" || status=$?
     case "$status" in
       0) prc_message shell.176 ;;
       6) prc_message shell.177 ;;

@@ -20,6 +20,8 @@ jobs:
   test:
     needs: build
     uses: ./.github/workflows/test.yml
+    with:
+      source_ref: ${{ inputs.tag }}
   publish:
     needs: [build, test]
     runs-on: ubuntu-22.04
