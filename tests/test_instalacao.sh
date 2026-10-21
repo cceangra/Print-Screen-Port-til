@@ -91,4 +91,27 @@ if printf '%s\n' "$FINAL6" | bash "$TEMP/origem6/instalar.sh"; then
 fi
 test "$(cat "$FINAL6/README.md")" = 'README PESSOAL'
 test -f "$TEMP/origem6/README.md"
+echo '[7] Rejeitar marcador simbolico para arquivo do usuario'
+make_source "$TEMP/origem7"
+USER_DATA="$TEMP/arquivo-pessoal-importante.txt"
+printf 'DADO PESSOAL ORIGINAL\n' > "$USER_DATA"
+ln -s -- "$USER_DATA" "$TEMP/origem7/.print-rc-installation"
+if bash "$TEMP/origem7/instalar.sh"; then
+    echo 'ERRO: instalador aceitou marcador apontando para arquivo pessoal.'
+    exit 1
+fi
+test "$(cat "$USER_DATA")" = 'DADO PESSOAL ORIGINAL'
+
+echo '[8] Rejeitar diretorio de configuracao simbolico'
+make_source "$TEMP/origem8"
+mkdir -p "$TEMP/config-de-terceiros"
+printf 'PREFERENCIAS DE TERCEIROS\n' > "$TEMP/config-de-terceiros/meus-dados.txt"
+ln -s -- "$TEMP/config-de-terceiros" "$TEMP/origem8/config"
+if bash "$TEMP/origem8/instalar.sh"; then
+    echo 'ERRO: instalador aceitou config externa.'
+    exit 1
+fi
+test "$(cat "$TEMP/config-de-terceiros/meus-dados.txt")" = 'PREFERENCIAS DE TERCEIROS'
+test ! -e "$TEMP/config-de-terceiros/opcoes.conf"
+
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
