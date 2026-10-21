@@ -12,6 +12,12 @@ import tempfile
 CHANNEL = 'xfce4-keyboard-shortcuts'
 PROPERTY = '/commands/custom/Print'
 DEFAULT = '/commands/default/Print'
+SUPPORTED_KEYS = ('Print', 'Insert')
+
+def shortcut_property(key):
+    if key not in SUPPORTED_KEYS:
+        raise ValueError('Tecla nao suportada pelo integrador Xfce: '+str(key))
+    return '/commands/custom/'+key
 STATE_FILE = 'config/atalho-xfce.json'
 NAME = 'Print RC'
 
@@ -45,8 +51,8 @@ def get(prop=PROPERTY):
         raise RuntimeError('Falha lendo tecla Print do Xfce: ' + result.stderr.strip())
     return result.stdout.strip()
 
-def set_key(command, existed):
-    args = [PROPERTY]
+def set_key(command, existed, prop=PROPERTY):
+    args = [prop]
     if not existed:
         args += ['-n', '-t', 'string']
     args += ['-s', command]
@@ -54,8 +60,8 @@ def set_key(command, existed):
     if result.returncode:
         raise RuntimeError('Xfce recusou configuracao: ' + result.stderr.strip())
 
-def remove_key():
-    result = call(PROPERTY, '-r')
+def remove_key(prop=PROPERTY):
+    result = call(prop, '-r')
     if result.returncode:
         raise RuntimeError('Xfce recusou remocao do atalho: ' + result.stderr.strip())
 
@@ -69,7 +75,7 @@ def safe_state(base):
         raise RuntimeError('Registro de atalho nao e arquivo regular.')
     state = json.loads(path.read_text(encoding='utf-8'))
     if (not isinstance(state, dict) or state.get('backend') != 'xfce'
-            or state.get('property') != PROPERTY):
+            or state.get('property') not in tuple(shortcut_property(k) for k in SUPPORTED_KEYS)):
         raise RuntimeError('Registro de atalho inesperado: nenhuma alteracao.')
     return state
 
@@ -106,24 +112,28 @@ def check_environment():
     if not shutil.which('xfconf-query'):
         raise RuntimeError('xfconf-query ausente. Configure o atalho manualmente.')
 
-def install(base, launcher):
+def install(base, launcher, key='Print'):
     check_environment()
+    prop = shortcut_property(key)
+    default_prop = '/commands/default/'+key
     previous_state = safe_state(base)
     desired = app_command(launcher)
     if previous_state is not None:
         if (previous_state.get('launcher') == str(launcher)
                 and previous_state.get('status') == 'installed'
-                and get() == desired):
+                and previous_state.get('property') == prop
+                and get(prop) == desired):
             print('Atalho Print RC do Xfce ja registrado corretamente.')
             return True
         print('Existe registro anterior, inconsistente ou interrompido.')
         print('Nao sobrescrever atalhos de terceiros. Verifique antes de reinstalar.')
         return False
-    old = get()
-    default = get(DEFAULT)
+    old = get(prop)
+    default = get(default_prop)
     print('\n===== INTEGRACAO PRINT RC NO XFCE =====')
     print('Gerenciador de atalhos: xfconf-query / ' + CHANNEL)
-    print('Propriedade externa:', PROPERTY)
+    print('Tecla fisica escolhida:',key)
+    print('Propriedade externa:', prop)
     print('O Xfce pode gravar configuracoes em ~/.config/xfce4/xfconf/.')
     print('Comando Print RC:', desired)
     print('Atalho personalizado anterior:', repr(old))
@@ -138,18 +148,21 @@ def install(base, launcher):
     if not yes('Atribuir Print ao Print RC no Xfce, substituindo uso anterior?'):
         print('Cancelado: nenhuma associacao alterada.')
         return False
-    if get() != old:
-        print('Outro aplicativo alterou Print durante a confirmacao. Cancelado.')
+    if get(prop) != old:
+        print('Outro aplicativo alterou a tecla durante a confirmacao. Cancelado.')
         return False
     state = {
-        'backend':'xfce', 'property':PROPERTY, 'launcher':str(launcher),
+        'backend':'xfce', 'property':prop, 'key':key, 'launcher':str(launcher),
         'command':desired, 'old_command':old, 'created':old is None,
         'status':'prepared'
     }
     write_state(base, state)
     try:
-        set_key(desired, old is not None)
-        if get() != desired:
+        if prop==PROPERTY:
+            set_key(desired,old is not None)
+        else:
+            set_key(desired,old is not None,prop)
+        if get(prop) != desired:
             raise RuntimeError('Xfce nao confirmou o novo valor.')
         state['status'] = 'installed'
         write_state(base, state)
@@ -168,7 +181,8 @@ def remove(base):
     # Desinstalacao pode ocorrer em outra sessao; melhor preservar do que
     # mexer em atalhos XFCE quando estiver logado noutro desktop.
     check_environment()
-    current = get()
+    prop = state.get('property')
+    current = get(prop)
     old = state.get('old_command')
     expected = state.get('command')
     if (state.get('launcher') is None or expected != app_command(state['launcher'])
@@ -184,10 +198,12 @@ def remove(base):
     else:
         print('Restaurando SOMENTE o atalho Xfce registrado pelo Print RC.')
         if old is None:
-            remove_key()
+            if prop==PROPERTY: remove_key()
+            else: remove_key(prop)
         else:
-            set_key(old, True)
-        if get() != old:
+            if prop==PROPERTY: set_key(old,True)
+            else: set_key(old,True,prop)
+        if get(prop) != old:
             print('Nao foi possivel confirmar a restauracao. Estado interno mantido.')
             return False
     (base / STATE_FILE).unlink()
@@ -199,6 +215,7 @@ def main():
     parser.add_argument('action', choices=('install', 'remove', 'inspect'))
     parser.add_argument('--base', required=True, type=Path)
     parser.add_argument('--launcher', type=Path)
+    parser.add_argument('--key', choices=SUPPORTED_KEYS, default='Print')
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error('Nao execute como root.')
@@ -206,12 +223,16 @@ def main():
     try:
         if args.action == 'inspect':
             check_environment()
-            current=get()
-            default=get(DEFAULT)
             state=safe_state(base)
+            prop=state['property'] if isinstance(state,dict) else PROPERTY
+            current=get(prop)
+            default=get('/commands/default/'+prop.rsplit('/',1)[-1])
             print('Gerenciador: Xfce / xfconf-query')
-            print('Atalho personalizado Print:', current or '(nenhum)')
-            print('Atalho padrao Print:', default or '(nenhum)')
+            print('Tecla examinada:',prop.rsplit('/',1)[-1])
+            print('Atalho personalizado:', current or '(nenhum)')
+            print('Atalho padrao:', default or '(nenhum)')
+            if prop!=shortcut_property('Insert'):
+                print('Associacao personalizada Insert:', get(shortcut_property('Insert')) or '(nenhuma)')
             if (isinstance(state,dict) and state.get('status')=='installed'
                     and state.get('command')==current):
                 print('Print RC controla a associacao personalizada: SIM')
@@ -223,7 +244,7 @@ def main():
         elif args.action == 'install':
             if args.launcher is None:
                 parser.error('--launcher obrigatorio.')
-            if not install(base, args.launcher.resolve()):
+            if not install(base, args.launcher.resolve(),key=args.key):
                 raise SystemExit(1)
         elif not remove(base):
             raise SystemExit(1)
