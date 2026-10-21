@@ -84,14 +84,15 @@ def check_unchanged(original):
     return True
 
 
-def conflicts(text):
+def conflicts(text, target='Print'):
     sections=parse(text)
     result=[]
     for section, block in sections.items():
         if not re.fullmatch(r'Data_\d+(?:_\d+)*Triggers\d+', section):
             continue
         key=get_value(block,'Key').casefold().replace(' ','')
-        if key not in ('print','sys_req','sysreq'):
+        acceptable={'print','sys_req','sysreq'} if target in ('Print','Sys_Req') else {target.casefold()}
+        if key not in acceptable:
             continue
         owner=section.split('Triggers')[0]
         info=sections.get('['+owner+']','') or sections.get(owner,'')
@@ -172,7 +173,7 @@ def repair(base, command):
     action=sections.get(action_section,'')
     current_key=get_value(trigger,'Key')
     recorded_key=state.get('key','Print')
-    if (recorded_key not in ('Print','Sys_Req') or current_key!=recorded_key
+    if (recorded_key not in ('Print','Sys_Req','Insert') or current_key!=recorded_key
             or get_value(trigger,'Type')!='SHORTCUT'
             or get_value(action,'Type')!='COMMAND_URL'):
         print('Tecla ou tipos internos do atalho mudaram: preservando configuracao.')
@@ -282,7 +283,7 @@ def rebind(base, command, key, state):
     action=sections.get(root+'Actions0','')
     trigger=sections.get(root+'Triggers0','')
     old=state.get('key')
-    if (get_value(group,'Name')!=NAME or old not in ('Print','Sys_Req')
+    if (get_value(group,'Name')!=NAME or old not in ('Print','Sys_Req','Insert')
         or get_value(trigger,'Key')!=old or get_value(trigger,'Type')!='SHORTCUT'
         or get_value(action,'Type')!='COMMAND_URL'
         or get_value(action,'CommandURL') not in
@@ -294,7 +295,7 @@ def rebind(base, command, key, state):
     if old==key:
         return repair(base,command)
     owner_sections={root+'Triggers0'}
-    conflicts_new=[e for e in conflicts(original) if e['section'] not in owner_sections]
+    conflicts_new=[e for e in conflicts(original,target=key) if e['section'] not in owner_sections]
     known=state.get('conflicts',[])
     if not isinstance(known,list):
         print('Registro de conflitos invalido.')
@@ -338,7 +339,7 @@ def rebind(base, command, key, state):
 
 def install(base, command, key='Print'):
     # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
-    if key not in ('Print', 'Sys_Req'):
+    if key not in ('Print', 'Sys_Req', 'Insert'):
         raise ValueError('Tecla nao reconhecida como Print Screen pelo X11.')
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
@@ -385,9 +386,9 @@ def install(base, command, key='Print'):
     print('Na desinstalacao: '+('remover somente o atalho Print RC e restaurar teclas anteriores' if existed else 'APAGAR o arquivo criado, se nao tiver dados adicionados por terceiros'))
     print('Nada sera alterado sem confirmacao expressa.')
     print('='*60)
-    entries=conflicts(original)
+    entries=conflicts(original,target=key)
     if entries:
-        print('\nATENCAO: atalhos que usam Print no arquivo do Trinity:')
+        print('\nATENCAO: atalhos que usam',key,'no arquivo do Trinity:')
         for conflict in entries:
             print('  -', conflict['name'],'|',conflict['command'],'|',conflict['section'])
         print('Ao confirmar SIM, a tecla sera atribuida ao Print RC,')
@@ -461,7 +462,7 @@ def install(base, command, key='Print'):
     print('Backup interno:', backup)
     print('Na desinstalacao o proprio script vai desfazer a integracao.')
     reload_trinity_shortcuts()
-    print('Pressione Print para testar. Se preciso, saia e entre na sessao.')
+    print('Pressione a tecla configurada para testar. Se preciso, saia e entre na sessao.')
     print('Nao reinicie nem mate processos do desktop a forca.')
     return True
 
@@ -567,7 +568,7 @@ def main():
     parser.add_argument('command',choices=('install','remove','repair','inspect'))
     parser.add_argument('--base',required=True,type=Path)
     parser.add_argument('--launcher',type=Path)
-    parser.add_argument('--key',choices=('Print','Sys_Req'),default='Print')
+    parser.add_argument('--key',choices=('Print','Sys_Req','Insert'),default='Print')
     args=parser.parse_args()
     if os.geteuid()==0:
         raise SystemExit('Nao execute como root.')
