@@ -1,6 +1,16 @@
-# Print RC v0.4.4 — Linux X11 / pasta unica
+# Print RC v0.4.5 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Desinstalacao completa e segura — v0.4.5
+
+O desinstalador agora inclui no inventario de arquivos originais os testes de X11 que tinham ficado para tras e os marcadores de release em `.github/`. Isso corrige precisamente os residuos `.github/release-0.4.2.ready`, `.github/release-0.4.3.ready`, `tests/test_clipboard_x11.sh`, `tests/paint_test_pattern.cpp` e `tests/test_desinstalacao_processo_x11.sh` observados apos desinstalar uma versao anterior.
+
+A instalacao registra o hash SHA-256 de cada arquivo do aplicativo que reconhecer. Ao desinstalar, so remove arquivos com registro valido cujo conteudo **nao tenha sido modificado**. Depois percorre os diretorios conhecidos de dentro para fora e apaga **somente diretorios vazios**, incluindo `.github/`, `tests/` e a pasta principal do app. Nao usa exclusao recursiva (`rm -rf`), nao acompanha links simbolicos nem remove arquivos desconhecidos.
+
+**O ZIP baixado fora da pasta do Print RC continua onde estava; o desinstalador nao precisa nem vai apaga-lo.** Se voce guardar o ZIP *dentro* da pasta instalada, ele sera tratado como arquivo pessoal: permanece intacto e impede que essa pasta suma inteiramente. O mesmo vale para fotos, capturas e quaisquer arquivos pessoais dentro do app. Prints em pasta externa continuam no lugar, e o atalho Trinity so e restaurado quando for gerenciado pelo proprio app.
+
+O inventario de uma instalacao antiga nao pode provar quais arquivos extras preexistentes eram originais, por isso a v0.4.5 nao os exclui sem hash: a limpeza completa e garantida apenas para instalacoes **feitas com o inventario atualizado**, e desde que nenhum arquivo pessoal/modificado continue na pasta. Os testes automatizados verificam uma copia do codigo GitHub com `.github/` e `tests/`, o ZIP preservado e pastas contendo arquivos particulares.
 
 ## Correcoes de seguranca da v0.4.4
 
@@ -172,7 +182,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.4 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.5 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
