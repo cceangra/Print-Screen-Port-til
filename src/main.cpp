@@ -22,6 +22,11 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+
+#ifndef PRINT_RC_VERSION
+#define PRINT_RC_VERSION "0.6.0-dev"
+#endif
+
 namespace {
 using Clock = std::chrono::steady_clock;
 constexpr int kClipboardSeconds = 1800;
@@ -480,7 +485,7 @@ int main(int argc,char** argv) {
             if(argc>2) readiness_nonce=argv[2];
             if(argc>3 || readiness_nonce.empty() || readiness_nonce.size()>128
                || readiness_nonce.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")!=std::string::npos) return 2;
-        } else if (arg=="--version") { std::cout<<"Print RC 0.5.6 (X11)\n";return 0; }
+        } else if (arg=="--version") { std::cout<<"Print RC " PRINT_RC_VERSION " (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();

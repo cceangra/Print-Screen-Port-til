@@ -1,0 +1,46 @@
+name: Test exact candidate archive
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  packaged:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['ubuntu:20.04', 'ubuntu:22.04', 'debian:13']
+    container: ${{ matrix.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Runtime and test dependencies (CI only)
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates g++ make pkg-config libx11-dev libpng-dev binutils file python3 unzip xvfb xauth xdotool xclip x11-xserver-utils passwd
+      - uses: actions/download-artifact@v4
+        with:
+          name: gnu-x86_64-candidate
+          path: candidate
+      - name: Verify checksum and extract one application directory
+        run: |
+          cd candidate
+          sha256sum -c Print-RC-linux-x86_64-glibc.zip.sha256
+          unzip -q Print-RC-linux-x86_64-glibc.zip -d /tmp/candidate
+          useradd -m tester
+          chown -R tester:tester /tmp/candidate
+      - name: Regressions on the packaged binary as a non-root user
+        run: |
+          su -s /bin/bash tester -c 'cd /tmp/candidate/Print-RC && bash tests/run.sh' > candidate/test-output.log 2>&1 || { cat candidate/test-output.log; exit 1; }
+          cat candidate/test-output.log
+          cat /etc/os-release > candidate/runtime-os-release.txt
+          getconf GNU_LIBC_VERSION > candidate/runtime-libc.txt
+          printf '%s\n' 'Xvfb core plus simulated XFCE/Trinity adapters. No real-desktop claim.' > candidate/test-scope.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-evidence-${{ strategy.job-index }}
+          path: |
+            candidate/test-output.log
+            candidate/runtime-*.txt
+            candidate/test-scope.txt
+          if-no-files-found: warn

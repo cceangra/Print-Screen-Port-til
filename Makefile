@@ -3,6 +3,8 @@ CXXFLAGS ?= -O2 -pipe -std=c++17 -Wall -Wextra -Wpedantic
 PKGS = x11 libpng
 CPPFLAGS += $(shell pkg-config --cflags $(PKGS))
 LDLIBS += $(shell pkg-config --libs $(PKGS))
+VERSION := $(shell cat VERSION)
+CPPFLAGS += -DPRINT_RC_VERSION=\"$(VERSION)\"
 HEADERS := $(shell find src -name '*.hpp')
 
 .PHONY: all portable debug clean test

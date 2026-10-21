@@ -6,3 +6,6 @@
 *.o
 *.swp
 __pycache__/
+/dist/
+/build/
+/logs/

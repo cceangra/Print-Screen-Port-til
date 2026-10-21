@@ -6,40 +6,14 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: candidate-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  regression:
-    runs-on: ubuntu-22.04
-    env:
-      PYTHONDONTWRITEBYTECODE: "1"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install build dependencies in CI only
-        run: sudo apt-get update && sudo apt-get install -y g++ make binutils file pkg-config libx11-dev libpng-dev python3 zip xvfb xdotool xclip x11-xserver-utils
-      - name: Dynamic build
-        run: make -B portable
-      - name: Script and adapter regressions
-        run: |
-          bash -n *.sh scripts/*.sh tests/*.sh
-          python3 -B -m unittest discover -s tests -v
-          bash tests/test_launcher.sh
-          bash tests/test_instalacao.sh
-          bash tests/test_configurar_tecla.sh
-          bash tests/test_prova_atalho.sh
-          bash tests/test_xfce_integracao.sh
-          bash tests/test_desinstalacao.sh
-          bash tests/test_configuracao.sh
-          g++ -std=c++17 -O2 tests/test_settings.cpp -o /tmp/print-rc-settings
-          /tmp/print-rc-settings
-      - name: X11 integration (Xvfb, not a real desktop certification)
-        run: |
-          g++ -std=c++17 -O2 tests/test_overlay_ready.cpp -o /tmp/print-rc-overlay $(pkg-config --cflags --libs x11)
-          mkdir -p "$RUNNER_TEMP/images"
-          printf 'save_dir=%s\ncopy_clipboard=0\n' "$RUNNER_TEMP/images" > "$RUNNER_TEMP/options"
-          export PRINT_RC_CONFIG="$RUNNER_TEMP/options"
-          timeout 20s xvfb-run -a /tmp/print-rc-overlay "$PWD/bin/print-rc"
-          timeout 60s xvfb-run -a bash tests/test_gui_x11.sh
-          timeout 80s xvfb-run -a bash tests/test_clipboard_x11.sh
-          timeout 60s xvfb-run -a bash tests/test_detectar_print_x11.sh
-          g++ -std=c++17 -O2 tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard $(pkg-config --cflags --libs x11)
-          timeout 25s xvfb-run -a /tmp/print-rc-keyboard "$PWD/bin/print-rc"
-          timeout 35s xvfb-run -a bash tests/test_desinstalacao_processo_x11.sh
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      source_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  test:
+    needs: build
+    uses: ./.github/workflows/test.yml
