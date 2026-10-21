@@ -50,6 +50,32 @@ class TrinityFormatTests(unittest.TestCase):
         state=json.loads((self.base/'config/atalho-state.json').read_text())
         return state
 
+    def test_um_unico_sim_substitui_print_de_outro_app_e_restauracao(self):
+        # Simula pessoa confirmando somente UMA vez o uso da tecla.
+        old=MICROPHONE.replace('Key=Win+M','Key=Print')
+        self.file.write_text(old,encoding='utf-8')
+        with patch.object(hotkeys,'yes',return_value=True) as confirm:
+            state=self.install()
+        self.assertEqual(confirm.call_count,1)
+        data=hotkeys.parse(self.file.read_text())
+        self.assertEqual(hotkeys.get_value(data['Data_3Triggers0'],'Key'),'')
+        self.assertEqual(hotkeys.get_value(data['Data_3Actions0'],'CommandURL'),
+                         'comando-do-microfone')
+        self.assertEqual(hotkeys.get_value(data[state['group']+'Triggers0'],'Key'),'Print')
+        self.assertTrue(hotkeys.remove(self.base))
+        restored=hotkeys.parse(self.file.read_text())
+        self.assertEqual(hotkeys.get_value(restored['Data_3Triggers0'],'Key'),'Print')
+        self.assertNotIn('Name=Print RC',self.file.read_text())
+
+    def test_sem_confirmar_nao_troca_atalho_original(self):
+        original=MICROPHONE.replace('Key=Win+M','Key=Print')
+        self.file.write_text(original,encoding='utf-8')
+        with patch.object(hotkeys,'yes',return_value=False) as confirm:
+            self.assertFalse(hotkeys.install(self.base,self.launcher,key='Print'))
+        self.assertEqual(confirm.call_count,1)
+        self.assertEqual(self.file.read_text(),original)
+        self.assertFalse((self.base/'config/atalho-state.json').exists())
+
     def test_nova_instalacao_usa_tipo_suportado_pelo_trinity(self):
         s=self.install()
         groups=hotkeys.parse(self.file.read_text())
