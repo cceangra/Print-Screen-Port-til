@@ -66,4 +66,51 @@ xdotool key Print
 wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Print' "$TMP/apos-timeout.txt"
 echo 'OK: Print fisico simulado, prazo de 60 s no binario final, timeout testado, cancelamento e liberacao do teclado.'
+echo '[7] Sonda X11 sem outros programas: nao observar bloqueio'
+"$BIN" --verificar-tecla > "$TMP/grab-free.txt"
+grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/grab-free.txt"
+
+echo '[8] Sonda X11 com outro cliente reservando Print: nao pode liberar o terceiro'
+cat > "$TMP/grab-other.cpp" <<'CPP'
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <unistd.h>
+#include <cstdio>
+int main() {
+    Display* d=XOpenDisplay(nullptr);
+    if(!d) return 2;
+    KeyCode k=XKeysymToKeycode(d,XK_Print);
+    if(!k) return 3;
+    XGrabKey(d,k,0,DefaultRootWindow(d),False,GrabModeAsync,GrabModeAsync);
+    XSync(d,False);
+    puts("READY");
+    fflush(stdout);
+    sleep(8);
+    XUngrabKey(d,k,0,DefaultRootWindow(d));
+    XSync(d,False);
+    XCloseDisplay(d);
+}
+CPP
+g++ -O2 "$TMP/grab-other.cpp" -o "$TMP/grab-other" $(pkg-config --cflags --libs x11)
+"$TMP/grab-other" > "$TMP/other-ready.txt" &
+OTHER=$!
+for _ in $(seq 1 30); do
+    grep -q READY "$TMP/other-ready.txt" && break
+    sleep 0.1
+done
+grep -q READY "$TMP/other-ready.txt"
+CODE=0
+"$BIN" --verificar-tecla > "$TMP/grab-occupied.txt" || CODE=$?
+test "$CODE" -eq 6
+grep -Fx 'PRINT_RC_GRAB=ocupada' "$TMP/grab-occupied.txt"
+# Repetir prova que a sonda nao removeu o grab pertencente ao outro cliente.
+CODE=0
+"$BIN" --verificar-tecla > "$TMP/grab-still-occupied.txt" || CODE=$?
+test "$CODE" -eq 6
+kill "$OTHER" 2>/dev/null || true
+wait "$OTHER" 2>/dev/null || true
+"$BIN" --verificar-tecla > "$TMP/grab-released.txt"
+grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/grab-released.txt"
+echo 'OK: teste de sonda mostra reserva externa, sem tomar atalhos de outro processo.'
+
 
