@@ -136,8 +136,15 @@ def reload_trinity_shortcuts():
     return True
 
 def repair(base, command):
-    """Atualizar SOMENTE o comando proprio, respeitando mudancas de terceiros."""
+    """Corrige SOMENTE atalho proprio: tipo legacy invalido e launcher antigo.
+
+    Usa o registro local para provar propriedade, valida tecla/comando/tipos e
+    conserva todas as secoes alheias ao Print RC. Nao restaura backups antigos.
+    """
     statepath=base/'config/atalho-state.json'
+    if statepath.is_symlink() or not statepath.is_file():
+        print('Registro de atalho ausente ou simbolico: nao reparar.')
+        return False
     try:
         state=json.loads(statepath.read_text(encoding='utf-8'))
     except (OSError,ValueError) as exc:
@@ -156,35 +163,59 @@ def repair(base, command):
         return False
     sections=parse(original)
     root=state.get('group')
-    if not isinstance(root,str) or get_value(sections.get(root,''),'Name')!=NAME:
+    if (not isinstance(root,str) or not re.fullmatch(r'Data_\\d+',root)
+            or get_value(sections.get(root,''),'Name')!=NAME):
         print('Atalho original ausente ou alterado por terceiros.')
         return False
+    trigger=sections.get(root+'Triggers0','')
     action_section=root+'Actions0'
-    block=sections.get(action_section,'')
-    current=get_value(block,'CommandURL')
+    action=sections.get(action_section,'')
+    current_key=get_value(trigger,'Key')
+    recorded_key=state.get('key','Print')
+    if (recorded_key not in ('Print','Sys_Req') or current_key!=recorded_key
+            or get_value(trigger,'Type')!='SHORTCUT'
+            or get_value(action,'Type')!='COMMAND_URL'):
+        print('Tecla ou tipos internos do atalho mudaram: preservando configuracao.')
+        return False
+    current_command=get_value(action,'CommandURL')
     desired=command_for_launcher(command)
-    if current==desired:
-        print('Atalho Print RC ja usa /bin/bash.')
-        reload_trinity_shortcuts()
-        return True
-    if current!=legacy_command_for_launcher(command):
+    if current_command not in (desired,legacy_command_for_launcher(command)):
         print('Comando do atalho foi modificado pelo usuario. Nada alterado.')
         return False
-    print('REPARAR SOMENTE O ATALHO PRINT RC')
-    print('Arquivo a modificar:',FILE)
-    print('Antes:',current)
-    print('Depois:',desired)
-    print('O atalho original e todos os backups permanecerao preservados.')
-    if not yes('Confirma reparo deste comando?'):
+    group_block=sections[root]
+    kind=get_value(group_block,'Type')
+    correct_type='COMMAND_URL_SHORTCUT_ACTION_DATA'
+    if kind not in ('SIMPLE_ACTION_DATA',correct_type):
+        print('Tipo de acao desconhecido ou alterado por terceiros:',kind)
+        return False
+    if current_command==desired and kind==correct_type:
+        print('Atalho Trinity Print RC ja tem tipo e comando corretos.')
+        reload_trinity_shortcuts()
+        return True
+    print('REPARO DO ATALHO PRINT RC (TRINITY)')
+    print('Arquivo externo:',FILE)
+    print('Tipo anterior:',kind)
+    print('Tipo corrigido:',correct_type)
+    print('Comando anterior:',current_command)
+    print('Comando novo:',desired)
+    print('Tecla preservada:',current_key)
+    print('Outros atalhos e backup original serao mantidos sem alteracoes.')
+    if not yes('Confirma corrigir SOMENTE a acao Print RC?'):
         print('Reparo cancelado.')
         return False
-    if not check_unchanged(original): return False
-    updated=replace_block(original,action_section,set_value(block,'CommandURL',desired))
-    if not check_unchanged(original): return False
+    if not check_unchanged(original):
+        return False
+    updated=replace_block(original,root,set_value(group_block,'Type',correct_type))
+    if current_command!=desired:
+        updated=replace_block(updated,action_section,
+                              set_value(parse(updated)[action_section],'CommandURL',desired))
+    if not check_unchanged(original):
+        return False
     write_atomic(FILE,updated)
-    print('Atalho proprio reparado sem alterar outras secoes.')
-    reload_trinity_shortcuts()
-    print('Pressione Print para testar.')
+    print('Tipo e comando do atalho proprio corrigidos; outras secoes mantidas.')
+    if not reload_trinity_shortcuts():
+        print('Atalho salvo. Trinity nao confirmou recarga; teste apos novo login.')
+    print('Pressione Print depois para confirmar que a captura abre.')
     return True
 
 def install(base, command, key='Print'):
@@ -203,8 +234,7 @@ def install(base, command, key='Print'):
             print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
             return
         print('Atalho ja gerenciado; verificando se precisa de reparo.')
-        repair(base,command)
-        return
+        return repair(base,command)
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
         print('Desktop diferente de Trinity: configure manualmente a tecla Print para:')
         print(command_for_launcher(command))
@@ -271,7 +301,7 @@ def install(base, command, key='Print'):
     action=command_for_launcher(command)
     created=(
         f'[{root}]\nComment=Captura por area com o Print RC\nEnabled=true\n'
-        f'Name={NAME}\nType=SIMPLE_ACTION_DATA\n\n'
+        f'Name={NAME}\nType=COMMAND_URL_SHORTCUT_ACTION_DATA\n\n'
         f'[{root}Actions]\nActionsCount=1\n\n'
         f'[{root}Actions0]\nCommandURL={action}\nType=COMMAND_URL\n\n'
         f'[{root}Conditions]\nComment=\nConditionsCount=0\n\n'
@@ -312,6 +342,7 @@ def install(base, command, key='Print'):
     reload_trinity_shortcuts()
     print('Pressione Print para testar. Se preciso, saia e entre na sessao.')
     print('Nao reinicie nem mate processos do desktop a forca.')
+    return True
 
 
 def remove(base):
@@ -425,7 +456,8 @@ def main():
         for entry in conflicts(text): print(entry)
     elif args.command=='install':
         if args.launcher is None: parser.error('--launcher obrigatorio')
-        install(base,args.launcher.resolve(),key=args.key)
+        if install(base,args.launcher.resolve(),key=args.key) is False:
+            raise SystemExit(1)
     elif args.command=='repair':
         if args.launcher is None: parser.error('--launcher obrigatorio')
         if not repair(base,args.launcher.resolve()): raise SystemExit(1)
