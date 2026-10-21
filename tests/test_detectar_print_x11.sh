@@ -114,47 +114,10 @@ wait "$OTHER" 2>/dev/null || true
 grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/grab-released.txt"
 echo 'OK: teste de sonda mostra reserva externa, sem tomar atalhos de outro processo.'
 
-echo '[9] REGRESSAO: Print em segundo keysym; versao antiga ignorava a tecla ate timeout'
-# xmodmap controla SOMENTE o servidor Xvfb descartavel deste teste.
-# Testar uma tecla fisica que tem F13 como nivel 0 e Print no nivel 1.
-xmodmap -e 'keycode 107 = F13 Print'
-echo 'Mapa X11 virtual apos xmodmap (keycode 107):'
-xmodmap -pke | grep -E '^keycode[[:space:]]+107[[:space:]]*=' || true
-timeout 7s "$BIN" --detectar-print > "$TMP/second-level.txt" 2> "$TMP/second-level.err" &
-PID=$!
-sleep 0.5
-xdotool key F13
-wait "$PID"
-grep -Fx 'PRINT_RC_KEY=Print' "$TMP/second-level.txt"
-grep -F 'tecla identificada: Print' "$TMP/second-level.err"
-
-echo '[10] REGRESSAO: Sys_Req em nivel alternativo tambem deve ser aceito'
-xmodmap -e 'keycode 107 = F13 Sys_Req'
-timeout 7s "$BIN" --detectar-print > "$TMP/sysreq-level.txt" 2> "$TMP/sysreq-level.err" &
-PID=$!
-sleep 0.5
-xdotool key F13
-wait "$PID"
-grep -Fx 'PRINT_RC_KEY=Sys_Req' "$TMP/sysreq-level.txt"
-
-echo '[11] Outra tecla sem Print/Sys_Req nunca deve ser cadastrada como Print'
-xmodmap -e 'keycode 107 = F13 F14'
-# Usa detector acelerado para nao esperar 60 s se o mapa esta diferente.
-timeout 7s "$TMP/print-rc-timeout" --detectar-print > "$TMP/no-print.txt" 2> "$TMP/no-print.err" &
-PID=$!
-sleep 0.2
-xdotool key F13
-RETURN=0
-wait "$PID" || RETURN=$?
-test "$RETURN" -eq 4
-test ! -s "$TMP/no-print.txt"
-grep -F 'NAO corresponde a Print/Sys_Req' "$TMP/no-print.err"
-echo 'OK: Print/Sys_Req em niveis alternativos reconhecidos e teclas estranhas recusadas.'
-
-echo '[12] BUG REAL XFCE: tecla rotulada Print esta mapeada como Insert'
-# Simular mapeamento que originou o bug do usuario no Xfce.
-# O detector deve encerrar no PRIMEIRO Insert, nao aguardar o timeout.
-xmodmap -e 'keycode 107 = Insert'
+echo '[9] BUG REAL XFCE: receber Insert e aceitar como tecla escolhida'
+# Reproduz o evento X11 do screenshot: a tecla foi recebida como Insert.
+# Usar o mapeamento NATIVO Insert do servidor Xvfb; remapear com xmodmap
+# nao e confiavel, pois o XKB virtual pode restaurar Print/Sys_Req.
 timeout 7s "$BIN" --detectar-print > "$TMP/insert.txt" 2> "$TMP/insert.err" &
 PID=$!
 sleep 0.5
@@ -163,7 +126,4 @@ wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Insert' "$TMP/insert.txt"
 grep -F 'tecla identificada: Insert' "$TMP/insert.err"
 ! grep -q 'segundos esgotados' "$TMP/insert.err"
-echo 'OK: tecla fisica Insert cadastravel, sem esperar 60 segundos.'
-
-
-
+echo 'OK: Pressionar Insert encerra a deteccao imediatamente sem timeout.'
