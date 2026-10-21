@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.7'
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.8'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -72,7 +72,7 @@ jobs:
           unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.7'
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.4.8'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -80,18 +80,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.7.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.8.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.7 >/dev/null 2>&1; then
-            echo 'v0.4.7 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.4.8 >/dev/null 2>&1; then
+            echo 'v0.4.8 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.4.7 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.7 - Atalhos Xfce e deteccao de desktops' \
-            --notes 'Integra tecla Print automaticamente no Xfce/X11 por xfconf-query com consentimento, preserva e restaura atalhos antigos ao desinstalar, identifica desktop e orienta cadastro manual no GNOME, KDE Plasma, MATE, Cinnamon e LXQt. Mantem Trinity e protecao de imagens, arquivos pessoais e ZIP. Sem servico residente. Linux X11 x86_64. Linux X11 x86_64, binario C++ estatico.'
+          gh release create v0.4.8 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.8 - Detectar tecla Print fisica antes de registrar' \
+            --notes 'Corrige o instalador: agora ele solicita pressionar a tecla Print Screen para identifica-la no X11, por XGrabKeyboard temporario de ate 15 segundos. Aceita Print ou Sys_Req no Trinity, suporta Esc e timeout sem fazer cadastro falso. Mantem integracao Xfce, backups, preservacao de capturas e ZIP original. Sem servicos residentes; Linux X11 x86_64.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
