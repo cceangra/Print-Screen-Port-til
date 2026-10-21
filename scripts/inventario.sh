@@ -5,7 +5,7 @@ PRINT_RC_KNOWN=(
   'bin/print-rc'
   'src/main.cpp' 'src/settings.hpp'
   'scripts/atalho.py' 'scripts/atalho_xfce.py' 'scripts/inventario.sh'
-  'tests/test_atalho.py' 'tests/test_atalho_xfce.py' 'tests/test_settings.cpp'
+  'tests/test_atalho.py' 'tests/test_atalho_xfce.py' 'tests/test_xfce_integracao.sh' 'tests/test_settings.cpp'
   'tests/test_configuracao.sh' 'tests/test_instalacao.sh'
   'tests/test_desinstalacao.sh' 'tests/test_gui_x11.sh'
   'tests/test_keyboard_grab.cpp'
