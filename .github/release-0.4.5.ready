@@ -1,0 +1,1 @@
+Print RC v0.4.5: release autorizada depois de testes completos em GitHub Actions (inclusive inventario, remocao de .github e tests, ZIP intacto e preservacao de capturas/dados pessoais). Nao sobrescrever releases anteriores.
