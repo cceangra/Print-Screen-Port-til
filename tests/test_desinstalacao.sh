@@ -121,4 +121,57 @@ if printf 'DESINSTALAR\n' | bash "$APP6/desinstalar.sh"; then
 fi
 test -f "$APP6/bin/print-rc"
 test "$(cat "$APP6/capturas/antigo.png")" = pessoal
-echo 'TODOS OS TESTES PASSARAM: prints e arquivos pessoais preservados.'
+echo '[7] Codigo-fonte completo: remove .github, tests e pasta inteira sem residuos'
+APP7="$TEMP/source zip com espacos/Print-Screen-Port-til-main"
+make_app "$APP7"
+cp -a "$ROOT/.github" "$APP7/"
+cp -a "$ROOT/tests" "$APP7/"
+cp "$ROOT/.gitignore" "$APP7/.gitignore"
+cp "$ROOT/LICENSE" "$APP7/LICENSE"
+cp "$ROOT/Makefile" "$APP7/Makefile"
+cp "$ROOT/instalar.sh" "$APP7/instalar.sh"
+cp "$ROOT/iniciar.sh" "$APP7/iniciar.sh"
+cp "$ROOT/configurar.sh" "$APP7/configurar.sh"
+cp "$ROOT/src/settings.hpp" "$APP7/src/settings.hpp"
+for leftover in '.github/release-0.4.2.ready' '.github/release-0.4.3.ready' '.github/release-0.4.4.ready' 'tests/test_clipboard_x11.sh' 'tests/paint_test_pattern.cpp' 'tests/test_desinstalacao_processo_x11.sh'; do
+    test -f "$APP7/$leftover"
+done
+record "$APP7"
+for leftover in '.github/release-0.4.2.ready' '.github/release-0.4.3.ready' '.github/release-0.4.4.ready' 'tests/test_clipboard_x11.sh' 'tests/paint_test_pattern.cpp' 'tests/test_desinstalacao_processo_x11.sh'; do
+    grep -Fq -- "$(printf '\t%s' "$leftover")" "$APP7/config/arquivos-instalados.sha256"
+done
+ZIP7="$TEMP/Print-RC-original.zip"
+printf 'ZIP PESSOAL NAO APAGAR\n' > "$ZIP7"
+printf 'DESINSTALAR\n' | bash "$APP7/desinstalar.sh"
+test ! -e "$APP7"
+test "$(cat "$ZIP7")" = 'ZIP PESSOAL NAO APAGAR'
+
+echo '[8] Preservar dados desconhecidos em .github e tests, sem apagar ZIP'
+APP8="$TEMP/fonte com dados pessoais/Print-RC"
+make_app "$APP8"
+cp -a "$ROOT/.github" "$APP8/"
+cp -a "$ROOT/tests" "$APP8/"
+printf 'ARQUIVO PARTICULAR\n' > "$APP8/tests/anotacoes.txt"
+printf 'CONFIGURACAO PARTICULAR\n' > "$APP8/.github/meu-projeto.txt"
+record "$APP8"
+printf 'DESINSTALAR\n' | bash "$APP8/desinstalar.sh"
+test -f "$APP8/tests/anotacoes.txt"
+test -f "$APP8/.github/meu-projeto.txt"
+test "$(cat "$APP8/tests/anotacoes.txt")" = 'ARQUIVO PARTICULAR'
+test "$(cat "$APP8/.github/meu-projeto.txt")" = 'CONFIGURACAO PARTICULAR'
+test ! -e "$APP8/.github/release-0.4.2.ready"
+test ! -e "$APP8/tests/test_clipboard_x11.sh"
+test ! -e "$APP8/bin/print-rc"
+
+echo '[9] Todos os arquivos versionados do GitHub constam da lista fixa de arquivos do app'
+if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    declare -A conhecidos=()
+    for nome in "${PRINT_RC_KNOWN[@]}"; do conhecidos["$nome"]=1; done
+    while IFS= read -r -d '' nome; do
+        if [[ ! -v 'conhecidos[$nome]' ]]; then
+            echo "ERRO: arquivo versionado ausente da lista de desinstalacao: $nome"
+            exit 1
+        fi
+    done < <(git -C "$ROOT" ls-files -z)
+fi
+echo 'TODOS OS TESTES PASSARAM: pastas do app limpas e dados pessoais/ZIP preservados.'
