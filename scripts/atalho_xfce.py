@@ -129,15 +129,14 @@ def install(base, launcher):
     print('Atalho personalizado anterior:', repr(old))
     print('Atalho padrao do Xfce:', repr(default))
     if old is not None and old != desired:
-        if not yes('Substituir SOMENTE o atalho personalizado Print, restaurando depois?'):
-            print('Atalho antigo preservado.')
-            return False
+        print('O uso personalizado anterior de Print sera substituido automaticamente.')
+        print('O valor anterior ficara guardado para restauracao na desinstalacao.')
     if old == desired:
         print('Comando ja igual ao Print RC, mas nao registrado por esta instalacao.')
-        print('Nao vou assumir a propriedade de atalho criado por outra pessoa.')
+        print('Nao vou assumir atalho sem estado de recuperacao.')
         return False
-    if not yes('Cadastrar tecla Print no Xfce para executar Print RC?'):
-        print('Sem alteracoes.')
+    if not yes('Atribuir Print ao Print RC no Xfce, substituindo uso anterior?'):
+        print('Cancelado: nenhuma associacao alterada.')
         return False
     if get() != old:
         print('Outro aplicativo alterou Print durante a confirmacao. Cancelado.')
