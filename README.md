@@ -1,6 +1,17 @@
-# Print RC v0.4.6 — Linux X11 / pasta unica
+# Print RC v0.4.7 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Compatibilidade da tecla Print — v0.4.7
+
+Esta versao **detecta o ambiente grafico na instalacao** e explica como registrar a tecla Print sem precisar pressionar fisicamente a tecla durante o cadastro automatico. Nenhum daemon, observador de teclado ou pacote adicional e instalado pelo Print RC.
+
+- **Trinity/X11:** continua usando o gerenciador `khotkeysd`, detectando conflitos conhecidos e solicitando a releitura dos atalhos via DCOP.
+- **Xfce/X11:** nova integracao por `xfconf-query` (se ja estiver disponivel no sistema) para a propriedade `/commands/custom/Print`. Antes de substituir um comando preexistente, o instalador mostra o valor e pede **confirmacoes explicitas**. O comando anterior e registrado dentro da pasta do Print RC e restaurado na desinstalacao **somente se ainda estiver sob controle do aplicativo**. O atalho padrao do Xfce e mantido intacto. Caso o usuario altere a tecla depois, a desinstalacao preserva a configuracao de terceiros e interrompe a remocao para evitar perda de dados.
+- **GNOME, KDE Plasma, Cinnamon, MATE, LXQt ou outros desktops X11:** o instalador mostra instrucoes de configuracao manual e o comando exato `/bin/bash 'caminho/do/iniciar.sh'`. **Nao escreve nas configuracoes externas desses desktops sem integracao validada.** Atalhos criados manualmente devem ser desfeitos manualmente.
+- **Wayland:** continua **nao suportado**; registrar a tecla Print nao torna o capturador Xlib compatível com Wayland. O aplicativo nao tenta contornar as permissoes do compositor.
+
+No Xfce o teste automatizado simula a instalacao e a desinstalacao completas, com um atalho Print preexistente, pasta contendo espacos e fotos/ZIP externos. O Print RC nunca instala `xfconf-query`; se nao existir, orienta a associar a tecla manualmente nas preferencias do teclado.
 
 ## Auditoria do instalador — v0.4.6
 
@@ -178,21 +189,21 @@ O capturador so inicia quando chamado; apos a selecao, a interface some. Em X11,
 
 ### Tecla Print Screen
 
-No Trinity, `instalar.sh` oferece registrar a tecla `Print` no atalho global. O instalador examina conflitos conhecidos no arquivo `khotkeysrc` de `TDEHOME`, informa as acoes detectadas e pede autorizacao antes de modificar qualquer registro. Ele executa o launcher por `/bin/bash`, notifica o `khotkeysd` para reler a configuracao e permite reparo de instalacoes anteriores. Os backups continuam dentro de `Print-RC/backups/` e a desinstalacao tenta restaurar alteracoes sem apagar imagens.
+No Trinity, `instalar.sh` oferece registrar a tecla `Print` no atalho global com verificacao de conflitos e recarregamento do `khotkeysd`. No Xfce ha integracao automatica opcional via `xfconf-query` com restauracao conservadora. Em GNOME/KDE e outros desktops X11, ele fornece o comando e os passos para configurar manualmente sem modificar atalhos alheios. O cadastro do atalho e sempre separado do executavel de captura.
 
-A configuracao automatica do atalho usa `python3` **do sistema, se existir**; caso contrario, nao altera o atalho, e voce pode associa-lo manualmente pelo painel do desktop.
+A integracao usa o `python3` do sistema para alterar apenas o atalho autorizado; no Xfce tambem usa `xfconf-query` existente. Se os recursos nao estiverem presentes, mostra instrucao de cadastro manual.
 
 ## O que nao pode ficar dentro da pasta
 
 - **O kernel Linux, o servidor grafico X11, drivers, servicos do desktop e eventuais modulos dinamicos do sistema** nao fazem parte do aplicativo. Ele depende desses componentes para executar e captar teclas/tela.
-- **O registro global permanente da tecla Print** e armazenado nas configuracoes do Trinity, fora da pasta, porque um arquivo apenas dentro da pasta nao pode mudar os atalhos globais do desktop.
+- **O registro global permanente da tecla Print** e armazenado nas configuracoes do desktop, fora da pasta, porque um arquivo apenas dentro da pasta nao pode mudar os atalhos globais do desktop.
 - **O interpretador Python3, quando escolhido para registrar o atalho automaticamente**, e um recurso do sistema. O executavel C++ de captura nao precisa dele.
 
 Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC e as bibliotecas vinculadas ao executavel**, e nao um sistema Linux inteiro dentro da pasta. **Nao prometemos funcionar em todo Linux nem em Wayland.**
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.6 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.7 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
