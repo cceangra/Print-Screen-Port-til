@@ -1,6 +1,18 @@
-# Print RC v0.4.9 — Linux X11 / pasta unica
+# Print RC v0.5.0 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Atalho Print sem perguntas repetidas — v0.5.0
+
+O usuario **pressiona fisicamente Print Screen** quando o instalador solicita e responde **SIM uma unica vez** para escolher a tecla que deve abrir o Print RC. O instalador nao exige resposta adicional para sobrescrever uma associacao conflitante que ele conseguir localizar no gerenciador de atalhos suportado. Qualquer uso anterior do atalho Print fica em segundo plano depois dessa confirmacao. Nao e necessario `sudo` nem instalar servico propio que registre todas as teclas digitadas.
+
+- **Trinity/X11:** usa a acao valida `COMMAND_URL_SHORTCUT_ACTION_DATA`, substitui o atalho Print/Sys_Req identificado nos grupos `khotkeysrc` e solicita `khotkeysd.reread_configuration` por DCOP. O script **nao desinstala nem apaga os programas anteriores**; guarda a atribuicao antiga para restaurar durante a desinstalacao.
+- **Xfce/X11:** substitui `/commands/custom/Print` apos um unico SIM. Se existia comando personalizado, o estado anterior e guardado para desinstalacao. A associacao padrao em `/commands/default/Print` nao e apagada; o Xfce controla a precedencia.
+- **Outros desktops X11:** o programa informa o comando e onde cadastrar manualmente a tecla. Nao altera arquivos de outros ambientes sem implementacao validada.
+- **Wayland:** nao e compativel com o atual capturador X11; nem `sudo` pode tornar universal o registro de atalhos, que e controlado pelo compositor.
+- **Protecao:** se a tecla nao for reconhecida, nada e cadastrado. Se houver confirmacao, mas o gerenciador falhar ao registrar, o instalador **termina com erro** em vez de informar sucesso. O status de cadastro e mostrado separadamente do status do executavel.
+
+**Limite real:** o sistema pode ter outro capturador global fora do gerenciador selecionado (por exemplo, uma tecla interceptada pelo compositor ou pelo gerenciador de janelas). O Print RC nao pode garantir prioridade sobre esses atalhos somente escrevendo `khotkeysrc`; nesse caso o problema deve ser diagnosticado no desktop. Nunca usar root como alternativa silenciosa para interceptar todas as teclas.
 
 ## Correcao confirmada do formato do atalho Trinity — v0.4.9
 
@@ -28,7 +40,7 @@ No GNOME, a tecla Print costuma estar atribuída à ferramenta de captura do pr�
 
 ## Identificacao da tecla Print FISICA — v0.4.8
 
-**Correcao solicitada:** a v0.4.7 registrava `Key=Print` diretamente, sem pedir que a pessoa pressionasse a tecla. O instalador agora **pergunta se deseja cadastrar o atalho**, depois pede explicitamente **"Pressione PRINT SCREEN agora"**, usa o proprio executavel `bin/print-rc --detectar-print` para identificar um unico evento X11 e mostra o resultado. Sem reconhecer `Print` ou `Sys_Req`, nao registra o atalho automaticamente: nao confunde sucesso ao chamar `dcop` com tecla fisica detectada.
+**Historico de correcao:** a v0.4.7 registrava `Key=Print` diretamente, sem pedir que a pessoa pressionasse a tecla. O instalador agora **pergunta se deseja cadastrar o atalho**, depois pede explicitamente **"Pressione PRINT SCREEN agora"**, usa o proprio executavel `bin/print-rc --detectar-print` para identificar um unico evento X11 e mostra o resultado. Sem reconhecer `Print` ou `Sys_Req`, nao registra o atalho automaticamente: nao confunde sucesso ao chamar `dcop` com tecla fisica detectada.
 
 O detector faz `XGrabKeyboard` temporario, dura no maximo **15 segundos**, pode ser cancelado com **Esc** e libera a captura do teclado em todas as saidas normais. Em encerramento abrupto, o servidor X11 libera o grab ao encerrar a conexao. Nao registra historico de teclas, nao instala pacotes, nao cria servicos residentes e nao mexe no atalho ate que o usuario o confirme nas perguntas posteriores. Teclas diferentes sao apenas mostradas na tela e nao sao aceitas como Print.
 
@@ -125,7 +137,7 @@ Escolha:
 - **Enter**: manter tudo nesta unica pasta;
 - Digitar `/home/rc/Apps/Print-RC`: mover **a propria pasta inteira** para esse destino, desde que ele nao exista.
 
-O instalador NAO cria segunda copia, nao instala pacotes e nunca sobrescreve arquivos existentes. Pode mesclar de forma conservadora a nova instalacao em uma pasta que ainda contenha prints preservados, com confirmacao. Se houver conflito com arquivo pessoal, cancela sem sobrescrever. Pergunta separadamente se deseja registrar o atalho Print do Trinity, com confirmacao e backup.
+O instalador NAO cria segunda copia, nao instala pacotes e nunca sobrescreve arquivos existentes. Pode mesclar de forma conservadora a nova instalacao em uma pasta que ainda contenha prints preservados, com confirmacao. Se houver conflito com arquivo pessoal, cancela sem sobrescrever. Depois de detectar Print fisicamente, pede uma unica confirmacao de registro; substitui o uso anterior conhecido e guarda backup.
 
 **O ZIP original baixado pelo navegador e outro arquivo.** Se quiser 100% dos arquivos do download dentro da mesma pasta, guarde esse ZIP dentro de `Print-RC/` ou apague-o manualmente apos extrair. O instalador nao apaga documentos do usuario sem autorizacao.
 
@@ -237,7 +249,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.9 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.0 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
