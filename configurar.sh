@@ -103,8 +103,24 @@ mkdir -p -- "$BASE/config"
 temp="$(mktemp "$BASE/config/.opcoes-XXXXXXXX")"
 trap 'rm -f -- "$temp"' EXIT
 printf 'save_dir=%s\ncopy_clipboard=%s\n' "$DIR" "$CLIP" > "$temp"
+# O inventario precisa acompanhar preferencias gravadas pelo PROPRIO app,
+# senao a desinstalacao deixa config/opcoes.conf e a pasta principal para tras.
+if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
+    if [[ ! -f "$BASE/scripts/inventario.sh" || -L "$BASE/scripts/inventario.sh" ]]; then
+        echo 'ERRO: nao foi possivel atualizar inventario de seguranca.' >&2
+        exit 2
+    fi
+    source "$BASE/scripts/inventario.sh"
+fi
 mv -f -- "$temp" "$CONFIG"
 trap - EXIT
+if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
+    if ! print_rc_atualizar_inventario_opcoes "$BASE"; then
+        echo 'AVISO: preferencias salvas, mas inventario nao atualizado.' >&2
+        echo 'Ao desinstalar, pode ser necessario revisar config/opcoes.conf.' >&2
+        exit 2
+    fi
+fi
 echo
 echo 'PREFERENCIAS SALVAS COM SUCESSO.'
 echo "Arquivo: $CONFIG"
