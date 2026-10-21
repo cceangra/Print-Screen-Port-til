@@ -87,6 +87,19 @@ jobs:
         run: |
           su -s /bin/bash tester -c 'timeout 100s dbus-run-session -- xvfb-run -a -s "-screen 0 1024x768x24 -noreset" bash "/tmp/xfce-test/Print RC (ç)/tests/test_xfce_real.sh" "/tmp/xfce-test/Print RC (ç)" /tmp/xfce-test/legacy-static /tmp/xfce-test/original-dynamic /tmp/xfce-test/evidence' > /tmp/xfce-test/evidence/session.log 2>&1 || { cat /tmp/xfce-test/evidence/session.log; exit 1; }
           cat /tmp/xfce-test/evidence/session.log
+      - name: Same-host core resource comparison (Xvfb, not desktop acceptance)
+        run: |
+          su -s /bin/bash tester -c 'set -eu
+          app="/tmp/xfce-test/Print RC (ç)"
+          evidence=/tmp/xfce-test/evidence
+          for geometry in 1366x768 1920x1080 3840x2160; do
+            for kind in original-dynamic candidate; do
+              binary=/tmp/xfce-test/original-dynamic
+              if [ "$kind" = candidate ]; then binary="$app/bin/print-rc"; fi
+              timeout 90s xvfb-run -a -s "-screen 0 ${geometry}x24 -noreset" python3 -B "$app/tests/performance/benchmark.py" --binary "$binary" --driver "$evidence/driver" --repetitions 5 --label "$kind-glibc235-xvfb" --output "$evidence/performance-$kind-$geometry.json"
+            done
+          done' > /tmp/xfce-test/evidence/performance.log 2>&1 || { cat /tmp/xfce-test/evidence/performance.log; exit 1; }
+          cat /tmp/xfce-test/evidence/performance.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

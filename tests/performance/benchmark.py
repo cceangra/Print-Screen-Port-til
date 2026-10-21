@@ -25,6 +25,13 @@ def stats(pid,expected_binary=None):
         return values
     except (OSError,ValueError):return {}
 
+def machine_details():
+    """Record the measurement host, without serial numbers or user identifiers."""
+    cpu=Path('/proc/cpuinfo').read_text(errors='replace')
+    model=next((line.split(':',1)[1].strip() for line in cpu.splitlines() if line.startswith('model name')),'unknown')
+    memory=next((line.split(':',1)[1].strip() for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemTotal:')),'unknown')
+    return {'kernel':platform.release(),'cpu_model':model,'logical_cpus':os.cpu_count(),'memory_total':memory}
+
 def run_one(binary,driver,directory,clipboard=False):
     images=directory/'images';images.mkdir(exist_ok=True)
     config=directory/'options';config.write_text(f'save_dir={images}\ncopy_clipboard={int(clipboard)}\n')
@@ -85,7 +92,7 @@ def main():
     result={'schema':1,'label':args.label,'test_kind':'Xvfb development benchmark, white root background',
             'limitations':'Core binary only; no real desktop/shortcut or low-power hardware certification. PSS sampled every 5 ms; RSS/CPU from wait4. Startup includes a separate test-driver process. Clipboard idle sample is 200 ms, not a long-term endurance test. Null PSS/ticks means /proc access was unavailable; never treat it as zero memory/CPU.',
             'environment':{'os_release':Path('/etc/os-release').read_text(),'architecture':platform.machine(),
-                           'libc':platform.libc_ver(),'screen':dimensions},
+                           'libc':platform.libc_ver(),'screen':dimensions,**machine_details()},
             'binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(),
             'driver_sha256':hashlib.sha256(args.driver.read_bytes()).hexdigest(),
             'benchmark_script_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

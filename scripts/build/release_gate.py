@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 
 REQUIRED = ('zorin-17.3-lite-x86_64-x11', 'q4os-trinity-x86_64-x11',
@@ -41,13 +42,15 @@ def validate(archive, manifest, evidence_dir):
             raise ValueError('Zorin regression requires the actual 17.3 XFCE/glibc 2.35 host')
         if target.startswith('q4os-') and (host['desktop'].casefold()!='trinity' or 'q4os' not in host['os_release'].casefold()):
             raise ValueError('Q4OS regression requires a Q4OS/Trinity host')
+        if target in ('ubuntu-20.04-x86_64-x11','builder-ubuntu-20.04') and (host['libc_version']!='2.31' or '20.04' not in host['os_release'] or 'ubuntu' not in host['os_release'].casefold()):
+            raise ValueError('Baseline evidence requires Ubuntu 20.04/glibc 2.31')
         if target.startswith(('zorin-','q4os-')) and evidence.get('test_kind') not in ('physical-desktop','virtual-machine-desktop'):
             raise ValueError('Xvfb is not full desktop acceptance: '+target)
         if not all(evidence.get('checks',{}).get(check) is True for check in CHECKS):
             raise ValueError('Failed/incomplete acceptance checks: '+target)
         perf=evidence.get('performance',{})
         for key in ('repetitions','latency_median_ms','latency_p95_ms','peak_rss_kib','peak_pss_kib','cpu_seconds','baseline_peak_pss_kib','baseline_latency_p95_ms'):
-            if not isinstance(perf.get(key),(int,float)) or isinstance(perf.get(key),bool) or perf[key]<=0:
+            if not isinstance(perf.get(key),(int,float)) or isinstance(perf.get(key),bool) or not math.isfinite(perf[key]) or perf[key]<=0:
                 raise ValueError('Missing measured performance '+key+': '+target)
         if perf['repetitions']<5: raise ValueError('At least five performance repetitions required')
         if (perf['peak_pss_kib']>1.2*perf['baseline_peak_pss_kib'] or perf['latency_p95_ms']>1.2*perf['baseline_latency_p95_ms']) and not perf.get('regression_justification'):
@@ -58,6 +61,8 @@ def validate(archive, manifest, evidence_dir):
             rel=Path(item['path'])
             if rel.is_absolute() or '..' in rel.parts: raise ValueError('Unsafe evidence path')
             data=evidence_dir/rel
+            try: data.resolve().relative_to(evidence_dir.resolve())
+            except ValueError: raise ValueError('Evidence path escapes evidence directory')
             if data.is_symlink() or not data.is_file() or hashlib.sha256(data.read_bytes()).hexdigest()!=item['sha256']:
                 raise ValueError('Evidence file checksum mismatch')
     return digest

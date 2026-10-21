@@ -69,7 +69,7 @@ dynamic_pid=$!
 "$EVIDENCE/driver" cancel
 wait "$dynamic_pid"
 printf '%s\n' 'PASS: unchanged v0.5.6 source dynamically linked on glibc 2.35 mapped/drew and cancelled' > "$EVIDENCE/original-dynamic-result.txt"
-timeout 20s gdb -q -batch -ex 'set pagination off' -ex 'set debuginfod enabled off' -ex run -ex 'thread apply all bt' -ex 'info registers' -ex 'info sharedlibrary' --args "$LEGACY" > "$EVIDENCE/legacy-gdb.log" 2>&1 &
+timeout 20s gdb -q -batch -ex 'set pagination off' -ex 'set debuginfod enabled off' -ex run -ex 'thread apply all bt' -ex 'info registers' -ex 'info sharedlibrary' -ex 'info proc mappings' -ex 'x/12i $pc-16' --args "$LEGACY" > "$EVIDENCE/legacy-gdb.log" 2>&1 &
 debug_pid=$!
 if timeout 12s "$EVIDENCE/driver" wait >/dev/null 2>&1; then
     "$EVIDENCE/driver" cancel
