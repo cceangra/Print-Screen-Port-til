@@ -178,12 +178,14 @@ if ! bash "$dest/configurar.sh"; then
     exit 1
 fi
 echo
-echo '========== TECLA PRINT SCREEN =========='
+echo '========== ESCOLHA A TECLA DE CAPTURA =========='
 echo "Ambiente: ${XDG_CURRENT_DESKTOP:-desconhecido} | Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
-echo '1. Pressione a tecla fisica desejada (Print, Sys_Req ou Insert) em ate 60 segundos.'
+echo '1. Pressione UMA tecla de sua escolha em ate 60 segundos (por exemplo F9, Insert, Print, A).'
 echo '2. Depois da identificacao, confirme SIM uma vez para usar a tecla.'
 echo '3. Se o tempo acabar, voce podera tentar novamente.'
-echo '   Esc cancela a identificacao. Nenhuma senha ou sudo e necessario.'
+echo '   Esc cancela; Shift, Ctrl e Alt sozinhos nao sao atalhos validos.'
+echo '   Teclas de digitacao (letras, espaco, Enter) podem perder sua funcao normal.'
+echo '   Nenhuma senha ou sudo e necessario.'
 echo 'O uso anterior da tecla sera substituido nos desktops com integracao.'
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
 
@@ -193,16 +195,19 @@ print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
 print_rc_detectar() {
     local raw codigo resposta chave tentativa=1
     while true; do
-        printf '\n[Print RC] Tentativa %s: pressione PRINT SCREEN (limite: 60 segundos).\n' "$tentativa" >&2
+        printf '\n[Print RC] Tentativa %s: pressione a tecla desejada (ate 60 segundos).\n' "$tentativa" >&2
         if raw="$("$dest/bin/print-rc" --detectar-print)"; then
-            case "$raw" in
-                PRINT_RC_KEY=Print) chave=Print ;;
-                PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
-                PRINT_RC_KEY=Insert) chave=Insert ;;
-                *)
-                    echo 'ERRO: o detector devolveu uma tecla desconhecida.' >&2
-                    return 3 ;;
-            esac
+            if [[ "$raw" =~ ^PRINT_RC_KEY=([A-Za-z0-9_]{1,64})$ ]]; then
+                chave="${BASH_REMATCH[1]}"
+                case "$chave" in
+                    Escape|Shift_L|Shift_R|Control_L|Control_R|Alt_L|Alt_R|Meta_L|Meta_R|Super_L|Super_R|Hyper_L|Hyper_R|ISO_Level3_Shift|Mode_switch)
+                        echo 'ERRO: tecla modificadora ou Escape nao serve como atalho unico.' >&2
+                        return 3 ;;
+                esac
+            else
+                echo 'ERRO: o detector nao devolveu um nome valido de tecla X11.' >&2
+                return 3
+            fi
             printf '[Print RC] Tecla identificada: %s.\n' "$chave" >&2
             printf '%s\n' "$chave"
             return 0
@@ -254,23 +259,19 @@ if [[ "$desktop_id" == *trinity* ]]; then
         echo 'Tecla nao identificada; nenhuma associacao feita.'
     fi
 elif [[ "$desktop_id" == *xfce* ]]; then
-    echo 'Xfce: associa a tecla selecionada em /commands/custom/<Tecla> via xfconf-query.'
+    echo 'Xfce: associa a tecla escolhida em /commands/custom/<Tecla> via xfconf-query.'
     if ! command -v python3 >/dev/null 2>&1 || ! command -v xfconf-query >/dev/null 2>&1; then
         echo 'Python3 ou xfconf-query indisponivel. Nao ha integracao automatica.'
         echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos.'
         echo "Comando: $print_rc_launcher"
     elif key_name="$(print_rc_detectar)"; then
         echo "Xfce: tecla fisica escolhida = $key_name"
-        if [[ "$key_name" == Print || "$key_name" == Insert ]]; then
-            if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
-                atalho_registrado=1
-            else
-                echo 'ERRO: o Xfce nao conseguiu registrar a tecla confirmada.'
-                echo 'Instalacao interrompida antes de marcar o app como configurado.'
-                exit 1
-            fi
+        if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
+            atalho_registrado=1
         else
-            echo 'Sys_Req exige cadastro manual no Xfce desta versao; nenhuma outra tecla foi alterada.'
+            echo 'ERRO: o Xfce nao conseguiu registrar a tecla confirmada.'
+            echo 'Instalacao interrompida antes de marcar o app como configurado.'
+            exit 1
         fi
     else
         echo 'Tecla nao identificada; nenhuma associacao feita.'
@@ -314,9 +315,9 @@ else
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
 if [[ "$atalho_registrado" == 1 ]]; then
-    echo "REGISTRO_GRAVADO: tecla ${key_name:-Print} cadastrada; ativacao ainda nao comprovada."
+    echo "REGISTRO_GRAVADO: tecla ${key_name:-indefinida} cadastrada; ativacao ainda nao comprovada."
     if [[ -n "${DISPLAY:-}" && -t 0 && -f "$dest/scripts/provar-atalho.sh" ]]; then
-        if bash "$dest/scripts/provar-atalho.sh"; then
+        if bash "$dest/scripts/provar-atalho.sh" "$key_name"; then
             echo 'ATIVACAO_CONFIRMADA: o comando Print RC foi acionado nesta sessao.'
         else
             echo 'ATIVACAO_PENDENTE: o Trinity/Xfce nao acionou o Print RC durante a prova.'
@@ -331,7 +332,7 @@ if [[ "$atalho_registrado" == 1 ]]; then
 else
     echo 'ATALHO NAO CONFIGURADO: sera necessario configurar ou tentar de novo.'
 fi
-echo 'Reconhecer a tecla e gravar o arquivo NAO garantem a ativacao pelo desktop.'
+echo 'Reconhecer uma tecla e gravar o arquivo NAO garantem sua ativacao pelo desktop.'
 echo '=========================================='
 if [[ "$FRESH_INSTALL" == 1 ]]; then
     # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
