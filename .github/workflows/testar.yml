@@ -24,7 +24,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.4.5'
+          ./bin/print-rc --version | grep -F 'Print RC 0.4.6'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -74,18 +74,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.5.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.4.6.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.5 >/dev/null 2>&1; then
-            echo 'v0.4.5 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.4.6 >/dev/null 2>&1; then
+            echo 'v0.4.6 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.4.5 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.4.5 - Desinstalacao realmente limpa' \
-            --notes 'Remove arquivos que faltavam no inventario de distribuicao de codigo GitHub, incluindo marcadores .github e testes X11, e apaga apenas diretorios conhecidos que ficam vazios. Protege fotos e arquivos pessoais e deixa o ZIP original intacto. Mantem melhorias do atalho Trinity v0.4.4. Linux X11 x86_64, binario C++ estatico.'
+          gh release create v0.4.6 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.4.6 - Auditoria de seguranca e preferencias' \
+            --notes 'Corrige desinstalacao apos usuario reconfigurar opcoes e endurece instalacao contra links simbolicos que apontam para outros arquivos ou pastas. Evita marcador falso em instalacao interrompida. Preserva prints, dados pessoais e ZIP original. Linux X11 x86_64. Linux X11 x86_64, binario C++ estatico.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
