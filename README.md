@@ -1,6 +1,30 @@
-# Print RC v0.4.8 — Linux X11 / pasta unica
+# Print RC v0.4.9 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Correcao confirmada do formato do atalho Trinity — v0.4.9
+
+O diagnóstico de um Q4OS/TDE real mostrou que o Print RC registrava a tecla mas **o Trinity não executava a ação**. No `khotkeysrc` o Print RC estava com `Type=SIMPLE_ACTION_DATA` e o atalho de microfone funcional tinha `Type=COMMAND_URL_SHORTCUT_ACTION_DATA`. Os fontes do KHotKeys/KDE 3, base da implementação Trinity, confirmam que o tipo específico para acionar comando por tecla é `COMMAND_URL_SHORTCUT_ACTION_DATA`. A v0.4.9 corrige **a geração do grupo inteiro**, não somente a identificação física da tecla.
+
+O integrador agora:
+- Registra `Type=COMMAND_URL_SHORTCUT_ACTION_DATA`, `Actions0 Type=COMMAND_URL` e `Triggers0 Type=SHORTCUT` com `Print` ou `Sys_Req` detectado no X11.
+- **Repara uma instalação antiga (v0.4.8)** que tenha registro interno válido e grupo exclusivo `Print RC`: valida grupo, comando, tecla e tipos; pede confirmação; altera somente o tipo incorreto e, se necessário, o comando do próprio Print RC. Não sobrescreve atalhos do usuário, `khotkeysrc` modificado simultaneamente ou backup `backups/khotkeysrc.antes`.
+- Depois da escrita, solicita a releitura via DCOP ao `khotkeysd`. Isso apenas comprova envio da solicitação; **pressionar Print e observar a barra de captura é o teste definitivo**.
+- Testes automatizados simulam os grupos reais `Examples`, `Konqueror Gestures`, `Mutar Microfone` e `Print RC`, verificando formato, reparo, cancelamento, conservação de atalhos de terceiros, desinstalação e captura X11 virtual.
+
+**Como reparar mantendo a mesma instalação:** atualize SOMENTE o script `scripts/atalho.py` para o da v0.4.9 (não sobrescreva a pasta do aplicativo inteira) e execute `python3 -B scripts/atalho.py repair --base "$PWD" --launcher "$PWD/iniciar.sh"` dentro da pasta do Print RC. O script pede confirmação e só escreve no grupo Print RC. A atualização manual de arquivos dentro de uma instalação antiga altera seu hash SHA-256; por isso o desinstalador pode preservar esse script modificado depois. Se preferir uma desinstalação totalmente limpa, **desinstale a v0.4.8 com seu próprio `desinstalar.sh` e instale o ZIP completo da v0.4.9 em pasta nova**. Capturas externas e ZIP anterior ficam intactos.
+
+### Compatibilidade entre Linux e desktops
+
+| Sessão / desktop | Cadastro da tecla Print | Captura Print RC |
+| --- | --- | --- |
+| Q4OS Trinity / outros Trinity com X11 | Automático, formato corrigido, confirmação e reparo | C++/Xlib |
+| Xfce com X11 e xfconf-query | Automático opcional, restaura atalho preexistente quando seguro | C++/Xlib |
+| GNOME, KDE Plasma, Cinnamon, MATE, LXQt, LXDE/Openbox etc. no X11 | Manual com comando mostrado no instalador | C++/Xlib |
+| Qualquer desktop em Wayland | Ainda não suportado por este capturador | Necessita implementação de portal/compositor |
+| Processador não x86_64 | ZIP pré-compilado não atende | Compilação da fonte para a arquitetura, ainda não validada |
+
+No GNOME, a tecla Print costuma estar atribuída à ferramenta de captura do próprio sistema: libere-a em **Configurações → Teclado → Capturas de tela** antes de adicionar um atalho personalizado. No Plasma 6, use **Configurações do sistema → Atalhos → Adicionar novo → Comando ou Script**. Não editamos os bancos de atalhos desses desktops sem integração testada, pois isso poderia sobrescrever atalhos pessoais. Para Wayland há a API XDG Desktop Portal Screenshot, porém ela não fornece automaticamente as mesmas ferramentas interativas de seleção e desenho do nosso programa X11; seria uma versão separada, não uma opção que se ativa somente no instalador.
 
 ## Identificacao da tecla Print FISICA — v0.4.8
 
@@ -71,7 +95,7 @@ Na versao anterior, `iniciar.sh` podia ser distribuido sem permissao de execucao
 
 Depois de registrar ou reparar a tecla, o instalador solicita ao servico **`khotkeysd`** a releitura da configuracao via DCOP, sem reiniciar ou encerrar processos do desktop. Se DCOP nao estiver disponivel, informa que pode ser necessario encerrar a sessao e entrar novamente. O usuario deve apertar a tecla Print para verificar; a resposta do servico nao comprova sozinha que o atalho realmente acionou o aplicativo.
 
-**Reparar uma instalacao anterior com o script atualizado:** no diretorio do aplicativo, execute `python3 scripts/atalho.py repair --base "$PWD" --launcher "$PWD/iniciar.sh"`. O reparo compara o registro interno com o arquivo do Trinity, mostra a mudanca proposta, pede consentimento e altera SOMENTE o comando do atalho Print RC. Preserva todos os prints, os atalhos de terceiros e o backup original. Esse comando exige que o `scripts/atalho.py` da versao 0.4.4 esteja realmente na pasta. Nao copie a nova versao por cima da antiga sem verificar conflitos e proteger os arquivos existentes.
+**Reparo conservador do atalho (v0.4.9):** no diretorio do aplicativo, com o script atualizado, execute `python3 -B scripts/atalho.py repair --base "$PWD" --launcher "$PWD/iniciar.sh"`. Ele compara o registro interno com o arquivo do Trinity, mostra a mudança e pede confirmação antes de corrigir o tipo e/ou o comando do **próprio Print RC**; preserva todos os outros atalhos e o backup original. Para evitar resíduos de arquivos de versões diferentes, prefira desinstalar a versão anterior com o próprio desinstalador antes de instalar o novo ZIP.
 
 Em outros desktops X11, o capturador funciona, mas atalhos globais precisam ser associados pelo gerenciador de teclas do ambiente; Wayland nao e suportado por esta versao.
 
@@ -213,7 +237,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.8 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.9 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
