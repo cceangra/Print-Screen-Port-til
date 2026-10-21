@@ -7,10 +7,15 @@ trap 'rm -rf -- "$TMP"' EXIT
 APP="$TMP/Print RC com espacos"
 mkdir -p "$APP/scripts" "$APP/bin" "$APP/config"
 cp -- "$ROOT/iniciar.sh" "$APP/iniciar.sh"
+cp -- "$ROOT/bin/print-rc-launcher" "$APP/bin/"
 cp -- "$ROOT/scripts/provar-atalho.sh" "$APP/scripts/provar-atalho.sh"
 cat > "$APP/bin/print-rc" <<'SH'
 #!/usr/bin/env bash
-printf 'BINARIO_EXECUTADO\n' >> "$PRINT_RC_PROVA_LOG"
+if [[ "${1:-}" == --probe-overlay ]]; then
+    printf 'PRINT_RC_OVERLAY_READY=%s\n' "$2"
+else
+    printf 'BINARIO_EXECUTADO\n' >> "$PRINT_RC_PROVA_LOG"
+fi
 SH
 chmod +x "$APP/bin/print-rc"
 export PRINT_RC_PROVA_LOG="$TMP/executado.log"
@@ -26,7 +31,7 @@ done
 test -f "$APP/config/.print-rc-prova-armada"
 bash "$APP/iniciar.sh"
 wait "$PID"
-grep -F 'ATIVACAO_CONFIRMADA:' "$TMP/prova-ok.log"
+grep -F 'OVERLAY_VERIFICADO:' "$TMP/prova-ok.log"
 test ! -e "$PRINT_RC_PROVA_LOG"
 test ! -e "$APP/config/.print-rc-prova-armada"
 test ! -e "$APP/config/.print-rc-prova-resposta"
@@ -51,3 +56,17 @@ bash "$APP/scripts/provar-atalho.sh" > "$TMP/prova-preexistente.log" 2>&1 || COD
 test "$CODE" -eq 2
 test "$(cat "$APP/config/.print-rc-prova-resposta")" = 'DADO_PESSOAL'
 echo 'OK: prova confirma launcher, falha sem acionamento, nao rouba a tela e limpa temporarios.'
+
+echo '[5] Processo sem prova de overlay nao pode aprovar o teste'
+rm -f -- "$APP/config/.print-rc-prova-resposta"
+printf '#!/bin/bash\nexit 0\n' > "$APP/bin/print-rc"
+export PRINT_RC_PROVA_PASSOS=6
+bash "$APP/scripts/provar-atalho.sh" > "$TMP/prova-falso.log" 2>&1 &
+PID=$!
+for ((i=0;i<80;i++)); do
+    [[ -f "$APP/config/.print-rc-prova-armada" ]] && break
+    sleep 0.03
+done
+if bash "$APP/iniciar.sh"; then echo 'ERROR: false GUI success'; exit 1; fi
+if wait "$PID"; then echo 'ERROR: false activation'; exit 1; fi
+test ! -e "$APP/config/.print-rc-prova-resposta"

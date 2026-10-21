@@ -2,7 +2,9 @@
 # Lista FIXA de arquivos criados/distribuidos pelo Print RC.
 # Capturas (PNG/JPG e qualquer arquivo desconhecido) NUNCA entram nesta lista.
 PRINT_RC_KNOWN=(
-  'bin/print-rc'
+  'bin/print-rc' 'bin/print-rc-launcher'
+  'src/app/launcher.cpp' 'src/app/runtime.hpp'
+  'tests/test_overlay_ready.cpp' 'tests/test_launcher.sh'
   'src/main.cpp' 'src/settings.hpp'
   'scripts/atalho.py' 'scripts/atalho_xfce.py' 'scripts/provar-atalho.sh' 'scripts/inventario.sh'
   'tests/test_prova_atalho.sh' 'tests/test_configurar_tecla.sh' 'tests/test_atalho.py' 'tests/test_trinity_compat.py' 'tests/test_atalho_xfce.py' 'tests/test_xfce_integracao.sh' 'tests/test_settings.cpp'

@@ -17,9 +17,14 @@ if [[ -f "$PROVA" && ! -L "$PROVA" && ! -e "$RESPOSTA" && ! -L "$RESPOSTA" ]]; t
     if [[ "$TOKEN" == print-rc-* && "$VALIDADE" =~ ^[0-9]+$ ]] &&
        (( AGORA <= VALIDADE )); then
         # noclobber: nao sobrescreve arquivos externos nem respostas preexistentes.
+        # A successful process exit alone is not proof of a rendered overlay.
+        if ! OUTPUT="$("$BASE/bin/print-rc-launcher" "$BASE/bin/print-rc" --probe-overlay "$TOKEN")"; then
+            exit 1
+        fi
+        [[ "$OUTPUT" == "PRINT_RC_OVERLAY_READY=$TOKEN" ]] || exit 1
         if (set -C; umask 077; printf '%s\n' "$TOKEN" > "$RESPOSTA") 2>/dev/null; then
             exit 0
         fi
     fi
 fi
-exec "$BASE/bin/print-rc" "$@"
+exec "$BASE/bin/print-rc-launcher" "$BASE/bin/print-rc" "$@"

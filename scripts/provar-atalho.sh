@@ -36,7 +36,7 @@ if [[ ! "$TECLA" =~ ^[A-Za-z0-9_]{1,64}$ ]]; then
     TECLA='a tecla configurada'
 fi
 echo "Agora pressione $TECLA mais uma vez para conferir se o sistema executa o Print RC."
-echo 'Esta pressao serve SOMENTE para o teste; a captura nao sera aberta.'
+echo 'Este teste abre brevemente a interface, verifica mouse/teclado e fecha sem salvar imagens.'
 echo 'Prazo: 12 segundos. Nao precisa responder SIM novamente.'
 echo '===================================='
 PASSOS="${PRINT_RC_PROVA_PASSOS:-60}"
@@ -47,7 +47,7 @@ for ((n=0;n<PASSOS;n++)); do
     if [[ -f "$RESPONSE" && ! -L "$RESPONSE" ]]; then
         IFS= read -r got < "$RESPONSE" || true
         if [[ "$got" == "$TOKEN" ]]; then
-            echo 'ATIVACAO_CONFIRMADA: o atalho executou o inicializador Print RC.'
+            echo 'OVERLAY_VERIFICADO: o atalho abriu e desenhou a interface X11 com mouse/teclado prontos.'
             echo "Pressione $TECLA novamente para abrir a captura normalmente."
             exit 0
         fi

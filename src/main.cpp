@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <png.h>
 #include "settings.hpp"
+#include "app/runtime.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -26,7 +27,9 @@ using Clock = std::chrono::steady_clock;
 constexpr int kClipboardSeconds = 1800;
 constexpr size_t kChunkSize = 64 * 1024;
 
+unsigned long x_error_count=0;
 int xerror(Display*, XErrorEvent* event) {
+    ++x_error_count;
     // Uma janela de destino pode desaparecer durante uma transferencia INCR.
     if (event->error_code != BadWindow && event->error_code != BadMatch) {
         std::fprintf(stderr, "Print RC: erro X11: %u (pedido %u)\n", event->error_code, event->request_code);
@@ -65,7 +68,8 @@ unsigned long darken(unsigned long pixel, unsigned long red, unsigned long green
 }
 
 std::vector<unsigned char> encode_png(XImage* src, Rect r) {
-    if (r.w<=0||r.h<=0) return {};
+    if(!src || !src->data || r.x<0 || r.y<0 || r.w<=0 || r.h<=0
+       || r.x>src->width-r.w || r.y>src->height-r.h) return {};
     if (static_cast<uint64_t>(r.w)*r.h > 100000000ULL) return {};
     std::vector<unsigned char> pixels(static_cast<size_t>(r.w)*r.h*4);
     auto extract=[](unsigned long p,unsigned long mask)->unsigned char {
@@ -176,6 +180,7 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
         std::cerr<<"Print RC: nao foi possivel copiar para o clipboard.\n";
         return;
     }
+    print_rc_stage('C');
     std::cout<<"Print RC: imagem copiada. Ctrl+V disponivel por ate 30 minutos.\n";
     std::vector<Transfer> transfers;
     while (Clock::now()<expires) {
@@ -466,9 +471,16 @@ bool self_test() {
 }
 
 int main(int argc,char** argv) {
+    bool probe_overlay=false;
+    std::string readiness_nonce=std::to_string(getpid());
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.6 (X11)\n";return 0; }
+        if (arg=="--probe-overlay") {
+            probe_overlay=true;
+            if(argc>2) readiness_nonce=argv[2];
+            if(argc>3 || readiness_nonce.empty() || readiness_nonce.size()>128
+               || readiness_nonce.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")!=std::string::npos) return 2;
+        } else if (arg=="--version") { std::cout<<"Print RC 0.5.6 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();
@@ -484,13 +496,14 @@ int main(int argc,char** argv) {
                      <<"Uso: print-rc [--version|--help|--self-test|--show-config|--detectar-print|--verificar-tecla]\n";
             return 0;
         }
-        std::cerr<<"Parametro desconhecido. Use --help.\n";return 2;
+        if (!probe_overlay) { std::cerr<<"Parametro desconhecido. Use --help.\n";return 2; }
     }
     PrintRcSettings options;
     if (!print_rc_load_settings(options)) return 2;
     if (!std::getenv("DISPLAY")) {std::cerr<<"Print RC requer uma sessao X11.\n";return 2;}
     Display* display=XOpenDisplay(nullptr);
     if (!display) {std::cerr<<"Print RC: falha ao abrir o display X11.\n";return 2;}
+    print_rc_stage('X');
     XSetErrorHandler(xerror);
     // Um unico capturador pode controlar o mouse/teclado por vez.
     // Selecao proprietaria X11: atomica sob XGrabServer, liberada pelo servidor
@@ -524,8 +537,20 @@ int main(int argc,char** argv) {
     int screen=DefaultScreen(display);
     Window root=RootWindow(display,screen);
     const int width=DisplayWidth(display,screen), height=DisplayHeight(display,screen);
+    if(width<=0 || height<=0 || width>32767 || height>32767
+       || static_cast<uint64_t>(width)*height>100000000ULL) {
+        std::cerr<<"Print RC: X11_CAPTURE_FAILED: invalid screen geometry\n";
+        close_display();return 3;
+    }
     XImage* original=XGetImage(display,root,0,0,width,height,AllPlanes,ZPixmap);
     if (!original) {std::cerr<<"Print RC: nao foi possivel fotografar a tela.\n";close_display();return 3;}
+    if(!original->data || original->width!=width || original->height!=height
+       || original->bytes_per_line<=0 || original->bits_per_pixel<8
+       || static_cast<uint64_t>(original->bytes_per_line)*8 < static_cast<uint64_t>(width)*original->bits_per_pixel
+       || static_cast<uint64_t>(original->bytes_per_line)*height>std::numeric_limits<size_t>::max()) {
+        std::cerr<<"Print RC: X11_CAPTURE_FAILED: invalid image layout\n";
+        XDestroyImage(original);close_display();return 3;
+    }
     const auto bytes=static_cast<size_t>(original->bytes_per_line)*height;
     char* data=static_cast<char*>(std::malloc(bytes));
     if (!data) {XDestroyImage(original);close_display();return 3;}
@@ -567,6 +592,7 @@ int main(int argc,char** argv) {
     XSetWindowAttributes attrs{};
     attrs.override_redirect=True;
     attrs.event_mask=ExposureMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|KeyPressMask;
+    const auto startup_errors=x_error_count;
     Window overlay=XCreateWindow(display,root,0,0,width,height,0,CopyFromParent,InputOutput,
                                  CopyFromParent,CWOverrideRedirect|CWEventMask,&attrs);
     GC gc=XCreateGC(display,overlay,0,nullptr);
@@ -728,6 +754,24 @@ int main(int argc,char** argv) {
         XFlush(display);
     };
     redraw({0,0,width,height},{});
+    XSync(display,False);
+    XWindowAttributes mapped{};
+    const bool overlay_ready=XGetWindowAttributes(display,overlay,&mapped)
+        && mapped.map_state==IsViewable && x_error_count==startup_errors;
+    if(overlay_ready) {
+        const Atom ready_atom=XInternAtom(display,"_PRINT_RC_READY",False);
+        XChangeProperty(display,overlay,ready_atom,XA_STRING,8,PropModeReplace,
+                        reinterpret_cast<const unsigned char*>(readiness_nonce.data()),
+                        static_cast<int>(readiness_nonce.size()));
+        XSync(display,False);
+        if(x_error_count==startup_errors) {
+            print_rc_stage('R');
+            if(probe_overlay) std::cout<<"PRINT_RC_OVERLAY_READY="<<readiness_nonce<<"\n"<<std::flush;
+        }
+    }
+    const bool startup_failed=!overlay_ready || x_error_count!=startup_errors;
+    if(startup_failed) std::cerr<<"Print RC: OVERLAY_MAP_FAILED\n";
+    if(probe_overlay || startup_failed) cancel=true;
     auto set_cursor=[&](int x,int y) {
         Cursor desired=in_bar(x,y)?arrow:(tool==Tool::Pencil?pencil:cross);
         XChangeActivePointerGrab(display,ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
@@ -825,13 +869,14 @@ int main(int argc,char** argv) {
     XFreeGC(display,gc);XFreeCursor(display,cross);
     XFreeCursor(display,pencil);XFreeCursor(display,arrow);
     XDestroyImage(dim);
-    if (!done) {XDestroyImage(original);close_display();return 0;}
+    if (!done) {XDestroyImage(original);close_display();return startup_failed?4:0;}
     if(!strokes.empty()) annotate_image(original,strokes);
     std::vector<unsigned char> png=encode_png(original,chosen);
     XDestroyImage(original);
     if (png.empty()) {close_display();return 5;}
     const bool saved=print_rc_save_png(png,options.save_dir);
     if (!saved) {
+        print_rc_stage('S');
         std::cerr<<"Print RC: nao foi possivel salvar o PNG na pasta escolhida.\n";
         std::cerr<<"A captura ainda podera ser colada com Ctrl+V, se essa opcao estiver ativa.\n";
     }

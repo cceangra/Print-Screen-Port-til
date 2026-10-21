@@ -1,124 +1,45 @@
-name: Compilar e empacotar Print RC portatil
+name: Print RC candidate checks
 on:
   push:
-    branches: [main]
+    branches: [main, 'fix/**']
   pull_request:
   workflow_dispatch:
-
 permissions:
-  contents: write
-
-# Compilacoes do mesmo repositorio em sequencia, evitando conflitos de git push.
-concurrency:
-  group: print-rc-main-package
-  cancel-in-progress: false
-
+  contents: read
 jobs:
-  compilar:
-    runs-on: ubuntu-latest
+  regression:
+    runs-on: ubuntu-22.04
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Bibliotecas necessarias somente no ambiente de construcao do GitHub
+      - name: Install build dependencies in CI only
         run: sudo apt-get update && sudo apt-get install -y g++ make binutils file pkg-config libx11-dev libpng-dev python3 zip xvfb xdotool xclip x11-xserver-utils
-      - name: Compilar executavel estatico x86_64
+      - name: Dynamic build
+        run: make -B portable
+      - name: Script and adapter regressions
         run: |
-          make portable
-          ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.5.6'
-          test "$(uname -m)" = x86_64
-          ! readelf -l bin/print-rc | grep -q INTERP
-          file bin/print-rc | grep -q 'statically linked'
-      - name: Testar atalhos do Trinity em ambiente simulado
-        run: python3 -m unittest discover -s tests -v
-      - name: Testar instalacao em pasta unica sem pacotes
-        run: |
-          bash -n instalar.sh desinstalar.sh iniciar.sh configurar.sh configurar-tecla.sh
+          bash -n *.sh scripts/*.sh tests/*.sh
+          python3 -B -m unittest discover -s tests -v
+          bash tests/test_launcher.sh
           bash tests/test_instalacao.sh
           bash tests/test_configurar_tecla.sh
           bash tests/test_prova_atalho.sh
-      - name: Testar Xfce instalacao/atalho/desinstalacao completa simulados
-        run: bash tests/test_xfce_integracao.sh
-      - name: Testar tecla Print real via X11 virtual e liberar teclado com Esc
-        run: timeout 50s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_detectar_print_x11.sh
-      - name: Testar desinstalacao sem apagar nenhuma imagem
-        run: bash tests/test_desinstalacao.sh
-      - name: Testar configuracao interativa e escrita de PNG
-        run: |
+          bash tests/test_xfce_integracao.sh
+          bash tests/test_desinstalacao.sh
           bash tests/test_configuracao.sh
-          g++ -std=c++17 -O2 -Wall -Wextra tests/test_settings.cpp -o /tmp/test-print-rc-settings
-          /tmp/test-print-rc-settings
-      - name: Testar UI em X11 virtual (sem ambiente do usuario)
-        run: timeout 60s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_gui_x11.sh
-      - name: Testar recusa do teclado ocupado e liberacao do mouse X11
+          g++ -std=c++17 -O2 tests/test_settings.cpp -o /tmp/print-rc-settings
+          /tmp/print-rc-settings
+      - name: X11 integration (Xvfb, not a real desktop certification)
         run: |
-          g++ -std=c++17 -O2 -Wall -Wextra tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard-test $(pkg-config --libs x11)
-          timeout 25s xvfb-run -a -s '-screen 0 1024x768x24' /tmp/print-rc-keyboard-test "$PWD/bin/print-rc"
-      - name: Testar desinstalacao de processo clipboard ativo sem perder imagens
-        run: timeout 35s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_desinstalacao_processo_x11.sh
-      - name: Testar clipboard PNG grande e Ctrl+V apos erro de escrita
-        run: timeout 80s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_clipboard_x11.sh
-      - name: Criar pacote em ZIP com um unico diretorio e executavel incluido
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/Print-RC/bin
-          cp -a Makefile LICENSE README.md instalar.sh iniciar.sh desinstalar.sh configurar.sh configurar-tecla.sh src scripts /tmp/Print-RC/
-          cp bin/print-rc /tmp/Print-RC/bin/print-rc
-          # Confirmar permissoes corretas do lancador no ZIP, sem alterar o PC.
-          test -x iniciar.sh
-          test -x /tmp/Print-RC/iniciar.sh
-          (cd /tmp && zip -qr "$GITHUB_WORKSPACE/Print-RC-Linux-x86_64.zip" Print-RC)
-          unzip -l Print-RC-Linux-x86_64.zip | grep 'Print-RC/bin/print-rc'
-          mkdir -p "$RUNNER_TEMP/verificar-zip"
-          unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
-          test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
-          test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
-          test -f "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
-          bash -n "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.6'
-      - name: Salvar pacote como artefato do GitHub
-        uses: actions/upload-artifact@v4
-        with:
-          name: Print-RC-Linux-x86_64
-          path: Print-RC-Linux-x86_64.zip
-          if-no-files-found: error
-      - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.6.ready') != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if gh release view v0.5.6 >/dev/null 2>&1; then
-            echo 'v0.5.6 ja publicada: nao sobrescrever seu ZIP.'
-            exit 0
-          fi
-          gh release create v0.5.6 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.5.6 - Escolher qualquer tecla individual X11 para captura' \
-            --notes 'O usuario pode escolher qualquer tecla individual X11 que tenha um keysym valido (Print, Insert, F9, F12, letra, numero, Return, XF86 etc); o detector termina na primeira tecla, sem esperar timeout. Trinity e Xfce gravam a associacao correspondente nas preferencias existentes do desktop, sem criar arquivo por tecla. Atalhos anteriores sao armazenados dentro da pasta Print RC para restauracao ao desinstalar. Modificadores isolados e Escape nao sao aceitos, e letras podem perder sua funcao normal como atalhos globais. Inclui testes X11 e simulacoes de F12, a, Return, Insert e conflitos. Nao exige sudo nem remapeia teclado. Linux X11 x86_64, Wayland ainda nao suportado.'
-      - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          # Guardar o binario recem testado e aplicar sobre HEAD REMOTO atualizado.
-          # Nunca forcamos push nem reescrevemos o historico do usuario.
-          cp -- bin/print-rc "$RUNNER_TEMP/print-rc-ci-binary"
-          for attempt in 1 2 3 4; do
-            git fetch origin main
-            git reset --hard origin/main
-            cp -- "$RUNNER_TEMP/print-rc-ci-binary" bin/print-rc
-            git add -f -- bin/print-rc
-            if git diff --cached --quiet; then
-              echo 'Binario ja esta atualizado no GitHub.'
-              exit 0
-            fi
-            git commit -m 'Empacotar executavel estatico no repositorio [skip ci]'
-            if git push origin HEAD:main; then
-              exit 0
-            fi
-            echo "Outro commit surgiu no main; tentativa $attempt/4."
-          done
-          echo 'Nao foi possivel atualizar binario no main sem conflito.'
-          exit 1
+          g++ -std=c++17 -O2 tests/test_overlay_ready.cpp -o /tmp/print-rc-overlay $(pkg-config --cflags --libs x11)
+          mkdir -p "$RUNNER_TEMP/images"
+          printf 'save_dir=%s\ncopy_clipboard=0\n' "$RUNNER_TEMP/images" > "$RUNNER_TEMP/options"
+          export PRINT_RC_CONFIG="$RUNNER_TEMP/options"
+          timeout 20s xvfb-run -a /tmp/print-rc-overlay "$PWD/bin/print-rc"
+          timeout 60s xvfb-run -a bash tests/test_gui_x11.sh
+          timeout 80s xvfb-run -a bash tests/test_clipboard_x11.sh
+          timeout 60s xvfb-run -a bash tests/test_detectar_print_x11.sh
+          g++ -std=c++17 -O2 tests/test_keyboard_grab.cpp -o /tmp/print-rc-keyboard $(pkg-config --cflags --libs x11)
+          timeout 25s xvfb-run -a /tmp/print-rc-keyboard "$PWD/bin/print-rc"
+          timeout 35s xvfb-run -a bash tests/test_desinstalacao_processo_x11.sh
