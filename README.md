@@ -1,6 +1,20 @@
-# Print RC v0.5.3 — Linux X11 / pasta unica
+# Print RC v0.5.5 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Correcao da tecla fisica Print identificada como Insert — v0.5.5
+
+**Defeito relatado com imagem de um Xfce/X11 real:** a pessoa pressionava a tecla de captura do teclado, mas o X11 entregava o keysym **Insert**. O Print RC anterior aceitava exclusivamente `Print` ou `Sys_Req`, exibia repetidamente "tecla lida: Insert", ignorava o evento e esgotava os 60 segundos. A falha nao era um atalho ocupado nem falta de permissao; ocorria antes da etapa de registro.
+
+**Nova sequencia:**
+- O detector X11 reconhece **Print**, **Sys_Req** ou **Insert**. Se a pessoa pressionar a tecla fisica mapeada como Insert, ele retorna `PRINT_RC_KEY=Insert` e **encerra a escuta na primeira pressao**, sem aguardar o timeout.
+- O instalador recebe exatamente essa resposta e, no **Xfce**, registra `/commands/custom/Insert` via `xfconf-query` com o launcher do Print RC; nao registra `Print` por engano. Se havia um comando personalizado anterior vinculado a Insert, ele e guardado para restauracao durante a desinstalacao. Qualquer associacao da tecla Print separada e mantida intacta.
+- No **Trinity**, o integrador aceita `Key=Insert` e so libera conflitos que usem essa tecla.
+- A pessoa confirma **SIM uma vez**, e depois testa o acionamento real. O teste de ativacao nao deve ser confundido com simples identificacao ou escrita de configuracao.
+- Nao e feito `xmodmap`, `setxkbmap` ou remapeamento global na maquina do usuario: so o atalho do desktop e modificado com confirmacao. **Se escolher Insert, a tecla podera deixar de funcionar como Insert normal** em outros aplicativos enquanto for um atalho global. Essa e a escolha de configuracao feita pelo usuario.
+- Os testes em Xvfb reproduzem uma tecla identificada como Insert, verificam a saida imediata e tambem garantem que outra tecla como F12 continue sem ser registrada. Testes do Xfce confirmam a propriedade `/commands/custom/Insert` e a restauracao do atalho anterior.
+
+**Diagnostico correto:** o fato de o instalador mostrar "Insert" significa que o teclado esta enviando Insert. Nao significa que a tecla esta bloqueada por outro aplicativo. Se a associacao for gravada, mas nao ativada pelo Xfce, a prova real mostra a falha separadamente. O nome da tecla fisica no gabinete nao deve prevalecer sobre o keysym X11 realmente recebido.
 
 ## Comprovar que Print REALMENTE executa o programa — v0.5.3
 
@@ -295,7 +309,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.3 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.5 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
