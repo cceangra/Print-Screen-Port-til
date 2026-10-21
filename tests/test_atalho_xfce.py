@@ -88,6 +88,7 @@ class ShortcutXfceTests(unittest.TestCase):
 
     def test_recuperar_troca_interrompida_sem_sobrescrever_usuario(self):
         self.scope()
+        self.data[xfce.PROPERTY]='comando-original'
         self.assertTrue(xfce.install(self.base,self.launcher,key='Print'))
         self.data['/commands/custom/F12']='outro-f12'
         def falhar_apenas_ao_restaurar_print(command, existed, prop=xfce.PROPERTY):
@@ -100,7 +101,7 @@ class ShortcutXfceTests(unittest.TestCase):
         state=json.loads((self.base/xfce.STATE_FILE).read_text())
         self.assertEqual(state['status'],'moving')
         self.assertTrue(xfce.remove(self.base))
-        self.assertNotIn(xfce.PROPERTY,self.data)
+        self.assertEqual(self.data[xfce.PROPERTY],'comando-original')
         self.assertEqual(self.data['/commands/custom/F12'],'outro-f12')
 
     def test_f12_escolhida_gera_atalho_xfce_dinamico(self):
