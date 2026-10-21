@@ -37,15 +37,17 @@ class ShortcutTests(unittest.TestCase):
                 if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
                 else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
 
-    def test_trinity_recusa_outros_keysyms_sem_modificar(self):
+    def test_trinity_recusa_nomes_de_teclas_invalidos_sem_modificar(self):
         with tempfile.TemporaryDirectory() as temporary:
             tmp=Path(temporary)
             old_file=atalho.FILE
             try:
                 atalho.FILE=tmp/'khotkeysrc'
-                with self.assertRaises(ValueError):
-                    atalho.install(tmp,tmp/'iniciar.sh',key='F12')
+                for key in ('../../etc/passwd','Escape','Control_L','F12\\nName=Injetado'):
+                    with self.assertRaises(ValueError):
+                        atalho.install(tmp,tmp/'iniciar.sh',key=key)
                 self.assertFalse(atalho.FILE.exists())
+                self.assertTrue(atalho.valid_key('F12'))
             finally:
                 atalho.FILE=old_file
 
