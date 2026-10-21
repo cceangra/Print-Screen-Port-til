@@ -9,3 +9,5 @@ The X11 clipboard owner retains compressed PNG only, expires after 30 minutes, a
 Select language with `bash configurar.sh --language en-US` or `--language pt-BR`. `PRINT_RC_LANG` overrides it temporarily. Unknown locales fall back to English. Option names, paths, configuration schema and machine-readable status tokens stay stable.
 
 `bash configurar-tecla.sh` inspects, configures, releases or verifies shortcuts. Its X11 reservation probe is interactive and briefly attempts a grab. Use `diagnosticar.sh --read-only` for observation without grabs. After relocating an installed folder, explicitly repair/rebind desktop integration; external image folders remain user-owned destinations.
+
+`bash configurar-tecla.sh --relocate` repairs only owned shortcut/capture paths after moving the installation. A changed third-party assignment blocks the repair.

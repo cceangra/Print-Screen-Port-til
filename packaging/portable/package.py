@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ROOT_FILES = ('VERSION', 'Makefile', 'LICENSE', 'README.md', 'README.pt-BR.md',
               'CHANGELOG.md', 'CHANGELOG.pt-BR.md', 'iniciar.sh', 'instalar.sh',
               'configurar.sh', 'configurar-tecla.sh', 'diagnosticar.sh', 'desinstalar.sh')
-DIRECTORIES = ('src', 'scripts', 'i18n', 'docs', 'tests', 'compat')
+DIRECTORIES = ('.github', 'src', 'scripts', 'i18n', 'docs', 'tests', 'compat')
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -38,6 +38,9 @@ def main():
         files['bin/'+name] = path
     payload = {name: path.read_bytes() for name, path in files.items()}
     payload['build-manifest.json'] = args.manifest.read_bytes()
+    def version(s): return tuple(map(int,s.split('.')))
+    floor=max((b['symbol_requirements']['GLIBC'] for b in manifest['binaries'] if b['symbol_requirements'].get('GLIBC')),key=version)
+    payload['runtime-target.conf']=(f"architecture={manifest['architecture']}\nlibc=glibc\nminimum_glibc={floor}\nbackend=x11\n").encode()
     index = {name: hashlib.sha256(data).hexdigest() for name, data in payload.items()}
     payload['package-files.json'] = (json.dumps({'schema': 1, 'files': index}, indent=2)+'\n').encode()
     payload['SHA256SUMS'] = ''.join(f'{hashlib.sha256(data).hexdigest()}  {name}\n'

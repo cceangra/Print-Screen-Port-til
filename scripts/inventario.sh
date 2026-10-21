@@ -84,7 +84,14 @@ PRINT_RC_KNOWN=(
   '.github/workflows/release.yml'
   'build-manifest.json'
   'package-files.json'
-  'SHA256SUMS'
+  'SHA256SUMS' 'runtime-target.conf'
+  'src/config/settings.hpp'
+  'scripts/diagnose.py'
+  'scripts/lifecycle.py'
+  'scripts/relocate.py'
+  'tests/test_lifecycle.py'
+  'diagnosticar.sh'
+  'config/installation-manifest.json'
 )
 
 print_rc_criar_inventario() {
@@ -97,6 +104,17 @@ print_rc_criar_inventario() {
         prc_message shell.277
         return 1
     }
+    local package_index=0 complete=0 expected_hash expected_rel
+    declare -A package_hashes=()
+    if [[ -e "$base/package-files.json" || -L "$base/package-files.json" ]]; then
+        [[ -f "$base/package-files.json" && ! -L "$base/package-files.json" ]] || return 1
+        while IFS=$'\t' read -r expected_hash expected_rel; do
+            if [[ "$expected_hash" == COMPLETE && "$expected_rel" == package-index ]]; then complete=1
+            elif [[ "$expected_hash" =~ ^[[:xdigit:]]{64}$ ]]; then package_hashes["$expected_rel"]="$expected_hash"; fi
+        done < <(python3 -B "$base/scripts/lifecycle.py" package-entries --base "$base")
+        [[ "$complete" == 1 ]] || return 1
+        package_index=1
+    fi
     umask 077
     temp="$(mktemp -- "$base/config/.inventario-XXXXXXXX")"
     for rel in "${PRINT_RC_KNOWN[@]}"; do
@@ -104,6 +122,12 @@ print_rc_criar_inventario() {
         if [[ -f "$path" && ! -L "$path" ]]; then
             hash="$(sha256sum -- "$path")" || { rm -f -- "$temp"; return 1; }
             hash="${hash%% *}"
+            if [[ "$package_index" == 1 ]]; then
+                case "$rel" in
+                    config/opcoes.conf|config/language|config/installation-manifest.json|config/atalho-state.json|config/atalho-xfce.json|backups/khotkeysrc.antes|.print-rc-installation|package-files.json|SHA256SUMS) ;;
+                    *) [[ "${package_hashes[$rel]:-}" == "$hash" ]] || continue ;;
+                esac
+            fi
             printf '%s\t%s\n' "$hash" "$rel" >> "$temp"
         fi
     done

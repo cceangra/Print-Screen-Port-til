@@ -35,6 +35,14 @@ def shortcut_property(key):
 STATE_FILE = 'config/atalho-xfce.json'
 NAME = tr('desktop.001')
 
+def check_app_paths(base):
+    for rel in ('config','config/atalho-state.json','config/atalho-xfce.json','backups','backups/khotkeysrc.antes'):
+        current=base
+        for part in Path(rel).parts:
+            current=current/part
+            if current.is_symlink():raise RuntimeError(tr('lifecycle.unsafe'))
+
+
 def desktop_is_xfce():
     return 'xfce' in os.environ.get('XDG_CURRENT_DESKTOP', '').casefold()
 
@@ -80,6 +88,7 @@ def remove_key(prop=PROPERTY):
         raise RuntimeError(tr('desktop.168') + result.stderr.strip())
 
 def safe_state(base):
+    check_app_paths(base)
     path = base / STATE_FILE
     if path.is_symlink():
         raise RuntimeError(tr('desktop.139'))
@@ -290,7 +299,7 @@ def remove(base):
         return False
     if current == old and state.get('status') == 'prepared':
         print(tr('desktop.163'))
-    elif current != expected:
+    elif current != expected and not (state.get('status')=='relocating' and isinstance(state.get('relocation'),dict) and current==app_command(state['relocation'].get('old_launcher',''))):
         print(tr('desktop.177'))
         print(tr('desktop.178'))
         return False

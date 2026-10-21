@@ -31,6 +31,14 @@ FILE = Path(os.environ.get('TDEHOME') or (Path.home() / '.trinity')) / 'share/co
 BLOCK = re.compile(r'(?ms)^\[([^\]\n]+)\]\r?\n.*?(?=^\[[^\]\n]+\]\r?\n|\Z)')
 
 
+def check_app_paths(base):
+    for rel in ('config','config/atalho-state.json','config/atalho-xfce.json','backups','backups/khotkeysrc.antes'):
+        current=base
+        for part in Path(rel).parts:
+            current=current/part
+            if current.is_symlink():raise RuntimeError(tr('lifecycle.unsafe'))
+
+
 def parse(text):
     found = {}
     for m in BLOCK.finditer(text):
@@ -157,6 +165,7 @@ def repair(base, command):
     Usa o registro local para provar propriedade, valida tecla/comando/tipos e
     conserva todas as secoes alheias ao Print RC. Nao restaura backups antigos.
     """
+    check_app_paths(base)
     statepath=base/'config/atalho-state.json'
     if statepath.is_symlink() or not statepath.is_file():
         print(tr('desktop.043'))
@@ -277,6 +286,7 @@ def rebind(base, command, key, state):
     Valida estado, tecla e comando originais. Preserva conflitos registrados para
     restauracao posterior e acrescenta somente os novos conflitos encontrados.
     """
+    check_app_paths(base)
     statepath=base/'config/atalho-state.json'
     if statepath.is_symlink() or not statepath.is_file():
         print(tr('desktop.059'))
@@ -354,6 +364,7 @@ def rebind(base, command, key, state):
 
 
 def install(base, command, key='Print'):
+    check_app_paths(base)
     # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
     if not valid_key(key):
         raise ValueError(tr('desktop.065'))
@@ -361,7 +372,7 @@ def install(base, command, key='Print'):
     if statepath.exists():
         try:
             old_state=json.loads(statepath.read_text(encoding='utf-8'))
-            if old_state.get('status')=='prepared':
+            if old_state.get('status') in ('prepared','relocating'):
                 print(tr('desktop.117'))
                 print(tr('desktop.118'))
                 return False
@@ -484,6 +495,7 @@ def install(base, command, key='Print'):
 
 
 def remove(base):
+    check_app_paths(base)
     statepath=base/'config/atalho-state.json'
     if not statepath.exists():
         print(tr('desktop.084'))
@@ -524,6 +536,9 @@ def remove(base):
     launcher=state.get('launcher')
     if launcher:
         allowed={command_for_launcher(launcher),legacy_command_for_launcher(launcher)}
+        if state.get('status')=='relocating' and isinstance(state.get('relocation'),dict):
+            old_launcher=state['relocation'].get('old_launcher','')
+            allowed.update((command_for_launcher(old_launcher),legacy_command_for_launcher(old_launcher)))
         if get_value(ours_action,'CommandURL') not in allowed:
             print(tr('desktop.108'))
             return False

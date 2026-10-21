@@ -35,6 +35,25 @@ int main() {
         ++count;
     }
     assert(count==2);
+    // Internal destinations survive relocation; traversal is rejected.
+    std::filesystem::create_directories(dir/"old/config");
+    std::filesystem::create_directories(dir/"old/capturas");
+    {
+        std::ofstream out(dir/"old/config/opcoes.conf");
+        out<<"save_dir="<<(dir/"old/capturas").string()<<"\ncopy_clipboard=0\nsave_dir_relative=capturas\n";
+    }
+    std::filesystem::rename(dir/"old",dir/"moved (ç)");
+    auto moved=dir/"moved (ç)";
+    setenv("PRINT_RC_CONFIG",(moved/"config/opcoes.conf").c_str(),1);
+    PrintRcSettings relocated;
+    assert(print_rc_load_settings(relocated));
+    assert(relocated.save_dir==(moved/"capturas").string());
+    {
+        std::ofstream out(moved/"config/opcoes.conf");
+        out<<"save_dir=/tmp\ncopy_clipboard=0\nsave_dir_relative=../outside\n";
+    }
+    PrintRcSettings invalid;
+    assert(!print_rc_load_settings(invalid));
     std::filesystem::remove_all(dir);
     std::cout << "OK: config lida e duas imagens gravadas sem sobrescrever.\n";
 }

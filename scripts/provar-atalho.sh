@@ -25,10 +25,17 @@ TOKEN="print-rc-${BASHPID}-$(date +%s)"
 EXPIRY="$(($(date +%s)+14))"
 cleanup() {
     # Os caminhos eram inexistentes antes da prova e ficam dentro do aplicativo.
-    rm -f -- "$FLAG" "$RESPONSE"
+    local path first
+    for path in "$FLAG" "$RESPONSE"; do
+        if [[ -f "$path" && ! -L "$path" ]]; then
+            first=''; IFS= read -r first < "$path" || true
+            [[ "$first" == "$TOKEN" ]] && rm -f -- "$path"
+        fi
+    done
+    return 0
 }
 trap cleanup EXIT INT TERM
-printf '%s\n%s\n' "$TOKEN" "$EXPIRY" > "$FLAG"
+(set -C; printf '%s\n%s\n' "$TOKEN" "$EXPIRY" > "$FLAG") || exit 2
 echo
 prc_message shell.286
 prc_message shell.287

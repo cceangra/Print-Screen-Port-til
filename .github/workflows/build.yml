@@ -23,6 +23,7 @@ jobs:
           fetch-depth: 0
       - name: Dynamic GNU/glibc build; enforce actual ABI floor
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make -B portable
           ./bin/print-rc --self-test
           python3 scripts/build/manifest.py --output dist/build-manifest.json --max-glibc 2.31 --max-glibcxx 3.4.28

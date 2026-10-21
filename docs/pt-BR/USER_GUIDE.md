@@ -9,3 +9,5 @@ O proprietário do clipboard X11 guarda apenas o PNG comprimido, expira após 30
 Escolha o idioma com `bash configurar.sh --language pt-BR` ou `--language en-US`. `PRINT_RC_LANG` permite uma escolha temporária. Idiomas desconhecidos usam inglês. Nomes de opções, caminhos, formato da configuração e códigos para leitura automática permanecem estáveis.
 
 `bash configurar-tecla.sh` consulta, configura, libera ou verifica atalhos. Sua sonda de reserva X11 é interativa e tenta uma reserva breve. Use `diagnosticar.sh --read-only` para observar sem reservas. Depois de mover uma pasta instalada, repare ou recadastre a integração explicitamente; pastas externas de imagens continuam pertencendo ao usuário.
+
+`bash configurar-tecla.sh --relocate` repara apenas caminhos proprios de atalho/capturas depois de mover a instalacao. Uma atribuicao alterada por terceiros bloqueia o reparo.
