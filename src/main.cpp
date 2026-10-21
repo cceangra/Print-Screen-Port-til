@@ -422,7 +422,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.2 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.5.3 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();
