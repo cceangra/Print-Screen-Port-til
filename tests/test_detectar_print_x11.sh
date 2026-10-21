@@ -13,6 +13,7 @@ sleep 0.5
 xdotool key Print
 wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Print' "$TMP/print.txt"
+grep -F 'Voce tem ate 60 segundos' "$TMP/print.err"
 
 echo '[2] Tecla diferente nao pode virar Print; aceitar Print em seguida'
 "$BIN" --detectar-print > "$TMP/diferente.txt" 2> "$TMP/diferente.err" &
@@ -44,4 +45,25 @@ sleep 0.5
 xdotool key Print
 wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Print' "$TMP/retorno.txt"
-echo 'OK: deteccao da tecla fisica simulada em X11, Esc, recuperacao e sem servico residente.'
+echo '[5] Esgotar a espera em teste acelerado, confirmar codigo 4 e liberar grab'
+# Somente este executavel de teste usa um segundo; o ZIP real usa 60 segundos.
+g++ -std=c++17 -O1 -DPRINT_RC_DETECT_SECONDS=1 \
+    "$ROOT/src/main.cpp" -o "$TMP/print-rc-timeout" \
+    $(pkg-config --cflags --libs x11 libpng)
+"$TMP/print-rc-timeout" --detectar-print > "$TMP/timeout.txt" 2> "$TMP/timeout.err" &
+PID=$!
+CODIGO=0
+wait "$PID" || CODIGO=$?
+test "$CODIGO" -eq 4
+test ! -s "$TMP/timeout.txt"
+grep -F '1 segundos esgotados' "$TMP/timeout.err"
+
+echo '[6] Detector normal ainda captura Print apos timeout (grab liberado)'
+"$BIN" --detectar-print > "$TMP/apos-timeout.txt" 2> "$TMP/apos-timeout.err" &
+PID=$!
+sleep 0.5
+xdotool key Print
+wait "$PID"
+grep -Fx 'PRINT_RC_KEY=Print' "$TMP/apos-timeout.txt"
+echo 'OK: Print fisico simulado, prazo de 60 s no binario final, timeout testado, cancelamento e liberacao do teclado.'
+
