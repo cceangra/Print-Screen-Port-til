@@ -138,4 +138,24 @@ test ! -e "$TEMP/origem9/.print-rc-installation"
 test ! -e "$TEMP/origem9/config/arquivos-instalados.sha256"
 test -f "$TEMP/origem9/iniciar.sh"
 
+echo '[10] Sem tecla fisica detectada nao cadastrar atalho nem mentir sucesso'
+make_source "$TEMP/origem10"
+cp -- "$TEMP/origem10/bin/print-rc" "$TEMP/print-rc-antigo10"
+export PRINT_RC_TEST_BINARY="$TEMP/print-rc-antigo10"
+cat > "$TEMP/origem10/bin/print-rc" <<'SH'
+#!/bin/bash
+if [[ "${1:-}" == --detectar-print ]]; then
+    echo 'SIMULACAO: nenhum Print detectado' >&2
+    exit 4
+else
+    exec "$PRINT_RC_TEST_BINARY" "$@"
+fi
+SH
+chmod +x "$TEMP/origem10/bin/print-rc"
+printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem10/instalar.sh"
+test -f "$TEMP/origem10/.print-rc-installation"
+test -f "$TEMP/origem10/config/arquivos-instalados.sha256"
+test ! -e "$TEMP/origem10/config/atalho-state.json"
+test ! -e "$TEMP/origem10/backups/khotkeysrc.antes"
+
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
