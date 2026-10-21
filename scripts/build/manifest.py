@@ -13,7 +13,10 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 def command(*args):
-    return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT).strip()
+    result=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=False)
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} exited {result.returncode}: {result.stdout.strip()}')
+    return result.stdout.strip()
 
 def version(value):
     return tuple(map(int, value.split('.')))
