@@ -192,4 +192,34 @@ if command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --is-inside-work-t
         fi
     done < <(git -C "$ROOT" ls-files -z)
 fi
+echo '[10] Alterar preferencias varias vezes e ainda remover a pasta do app'
+APP10="$TEMP/preferencias editadas/Print-RC"
+make_app "$APP10"
+cp "$ROOT/configurar.sh" "$APP10/configurar.sh"
+record "$APP10"
+ORIGINAL="$(sha256sum "$APP10/config/opcoes.conf" | cut -d' ' -f1)"
+# Mudar Ctrl+V de 0 para 1 e depois voltar a 0 para verificar duas atualizacoes.
+printf '\\n\\ns\\n' | bash "$APP10/configurar.sh"
+CHANGED="$(sha256sum "$APP10/config/opcoes.conf" | cut -d' ' -f1)"
+test "$CHANGED" != "$ORIGINAL"
+grep -Fq -- "$(printf '%s\\tconfig/opcoes.conf' "$CHANGED")" "$APP10/config/arquivos-instalados.sha256"
+printf '\\nn\\ns\\n' | bash "$APP10/configurar.sh"
+RESTORED="$(sha256sum "$APP10/config/opcoes.conf" | cut -d' ' -f1)"
+grep -Fq -- "$(printf '%s\\tconfig/opcoes.conf' "$RESTORED")" "$APP10/config/arquivos-instalados.sha256"
+printf 'DESINSTALAR\\n' | bash "$APP10/desinstalar.sh"
+test ! -e "$APP10"
+
+echo '[11] Inventario invalido nao deve ser aceito na reconfiguracao'
+APP11="$TEMP/inventario inseguro/Print-RC"
+make_app "$APP11"
+cp "$ROOT/configurar.sh" "$APP11/configurar.sh"
+record "$APP11"
+printf 'hash-invalido\\tconfig/opcoes.conf\\n' >> "$APP11/config/arquivos-instalados.sha256"
+BEFORE="$(cat "$APP11/config/arquivos-instalados.sha256")"
+if printf '\\nn\\ns\\n' | bash "$APP11/configurar.sh"; then
+    echo 'ERRO: inventario invalido foi aceito.'
+    exit 1
+fi
+test "$(cat "$APP11/config/arquivos-instalados.sha256")" = "$BEFORE"
+
 echo 'TODOS OS TESTES PASSARAM: pastas do app limpas e dados pessoais/ZIP preservados.'
