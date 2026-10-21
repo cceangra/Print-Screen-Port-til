@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import shlex
 import shutil
@@ -12,11 +13,20 @@ import tempfile
 CHANNEL = 'xfce4-keyboard-shortcuts'
 PROPERTY = '/commands/custom/Print'
 DEFAULT = '/commands/default/Print'
-SUPPORTED_KEYS = ('Print', 'Insert')
+# Nomes de teclas X11 (keysym) sao enviados pelo detector C++.
+# Nunca aceitar um nome que possa modificar outra propriedade do xfconf.
+DISALLOWED_KEYS = {
+    'Escape','Shift_L','Shift_R','Control_L','Control_R','Alt_L','Alt_R',
+    'Meta_L','Meta_R','Super_L','Super_R','Hyper_L','Hyper_R',
+    'ISO_Level3_Shift','Mode_switch',
+}
+def valid_key(key):
+    return (isinstance(key,str) and re.fullmatch(r'[A-Za-z0-9_]{1,64}',key)
+            and key not in DISALLOWED_KEYS)
 
 def shortcut_property(key):
-    if key not in SUPPORTED_KEYS:
-        raise ValueError('Tecla nao suportada pelo integrador Xfce: '+str(key))
+    if not valid_key(key):
+        raise ValueError('Nome de tecla X11 invalido ou modificador sozinho: '+str(key))
     return '/commands/custom/'+key
 STATE_FILE = 'config/atalho-xfce.json'
 NAME = 'Print RC'
@@ -75,7 +85,8 @@ def safe_state(base):
         raise RuntimeError('Registro de atalho nao e arquivo regular.')
     state = json.loads(path.read_text(encoding='utf-8'))
     if (not isinstance(state, dict) or state.get('backend') != 'xfce'
-            or state.get('property') not in tuple(shortcut_property(k) for k in SUPPORTED_KEYS)):
+            or not isinstance(state.get('key','Print'),str)
+            or state.get('property') != shortcut_property(state.get('key','Print'))):
         raise RuntimeError('Registro de atalho inesperado: nenhuma alteracao.')
     return state
 
@@ -170,7 +181,7 @@ def install(base, launcher, key='Print'):
         print('Falha ao registrar atalho:', exc)
         print('Registro de recuperacao preservado em', base / STATE_FILE)
         return False
-    print('Atalho registrado. Pressione Print para verificar no Xfce.')
+    print('Atalho registrado. Pressione',key,'para verificar no Xfce.')
     return True
 
 def remove(base):
@@ -215,7 +226,7 @@ def main():
     parser.add_argument('action', choices=('install', 'remove', 'inspect'))
     parser.add_argument('--base', required=True, type=Path)
     parser.add_argument('--launcher', type=Path)
-    parser.add_argument('--key', choices=SUPPORTED_KEYS, default='Print')
+    parser.add_argument('--key', default='Print')
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error('Nao execute como root.')
@@ -231,8 +242,7 @@ def main():
             print('Tecla examinada:',prop.rsplit('/',1)[-1])
             print('Atalho personalizado:', current or '(nenhum)')
             print('Atalho padrao:', default or '(nenhum)')
-            if prop!=shortcut_property('Insert'):
-                print('Associacao personalizada Insert:', get(shortcut_property('Insert')) or '(nenhuma)')
+            print('Tecla selecionada pelo Print RC:',state.get('key','Print') if isinstance(state,dict) else '(nao configurada)')
             if (isinstance(state,dict) and state.get('status')=='installed'
                     and state.get('command')==current):
                 print('Print RC controla a associacao personalizada: SIM')
