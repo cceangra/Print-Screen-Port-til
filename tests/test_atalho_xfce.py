@@ -69,6 +69,39 @@ class ShortcutXfceTests(unittest.TestCase):
         self.assertTrue(xfce.remove(self.base))
         self.assertNotIn('/commands/custom/Insert',self.data)
 
+    def test_f12_escolhida_gera_atalho_xfce_dinamico(self):
+        self.scope()
+        key='F12'
+        prop='/commands/custom/F12'
+        self.data[prop]='aplicacao-original'
+        with patch.object(xfce,'yes',return_value=True) as confirm:
+            self.assertTrue(xfce.install(self.base,self.launcher,key=key))
+        self.assertEqual(confirm.call_count,1)
+        self.assertEqual(self.data[prop],xfce.app_command(self.launcher))
+        import json
+        saved=json.loads((self.base/xfce.STATE_FILE).read_text())
+        self.assertEqual(saved['property'],prop)
+        self.assertEqual(saved['key'],key)
+        self.assertTrue(xfce.remove(self.base))
+        self.assertEqual(self.data[prop],'aplicacao-original')
+        self.assertEqual(self.data[xfce.DEFAULT],'xfce4-screenshooter')
+
+    def test_letra_e_tecla_especial_sao_aceitas(self):
+        self.scope()
+        self.assertTrue(xfce.install(self.base,self.launcher,key='a'))
+        self.assertIn('/commands/custom/a',self.data)
+        self.assertTrue(xfce.remove(self.base))
+        self.assertTrue(xfce.install(self.base,self.launcher,key='Return'))
+        self.assertIn('/commands/custom/Return',self.data)
+        self.assertTrue(xfce.remove(self.base))
+
+    def test_nomes_inseguros_e_modificadores_sozinhos_sao_bloqueados(self):
+        self.scope()
+        for candidate in ('../../etc/passwd','Shift_L','Escape','Alt_R','F12\ncomando=x'):
+            with self.assertRaises(ValueError):
+                xfce.install(self.base,self.launcher,key=candidate)
+        self.assertFalse((self.base/xfce.STATE_FILE).exists())
+
     def test_uma_confirmacao_substitui_custom_print_e_restauracao(self):
         self.scope()
         self.data[xfce.PROPERTY] = 'xfce4-screenshooter -f'
