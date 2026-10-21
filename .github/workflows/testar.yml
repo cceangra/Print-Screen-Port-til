@@ -38,6 +38,8 @@ jobs:
           bash tests/test_instalacao.sh
       - name: Testar Xfce instalacao/atalho/desinstalacao completa simulados
         run: bash tests/test_xfce_integracao.sh
+      - name: Testar tecla Print real via X11 virtual e liberar teclado com Esc
+        run: timeout 35s xvfb-run -a -s '-screen 0 1024x768x24' bash tests/test_detectar_print_x11.sh
       - name: Testar desinstalacao sem apagar nenhuma imagem
         run: bash tests/test_desinstalacao.sh
       - name: Testar configuracao interativa e escrita de PNG
