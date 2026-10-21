@@ -13,7 +13,7 @@ make_source() {
     local d="$1"
     mkdir -p -- "$d"
     cp -a -- "$ROOT/instalar.sh" "$ROOT/iniciar.sh" "$ROOT/desinstalar.sh" \
-      "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" \
+      "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" "$ROOT/configurar-tecla.sh" \
       "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
     # Simular ZIP que perdeu bit de execucao, como ocorreu no Q4OS.
     chmod 644 "$d/iniciar.sh"
@@ -43,6 +43,7 @@ test -x "$FINAL/iniciar.sh"
 test -f "$FINAL/src/main.cpp"
 test -f "$FINAL/instalar.sh"
 test -f "$FINAL/configurar.sh"
+test -f "$FINAL/configurar-tecla.sh"
 test -f "$FINAL/config/opcoes.conf"
 test -f "$FINAL/config/arquivos-instalados.sha256"
 test "$(sed -n '2p' "$FINAL/.print-rc-installation")" = "$FINAL"
