@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.5.1'
+          ./bin/print-rc --version | grep -F 'Print RC 0.5.2'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -34,8 +34,9 @@ jobs:
         run: python3 -m unittest discover -s tests -v
       - name: Testar instalacao em pasta unica sem pacotes
         run: |
-          bash -n instalar.sh desinstalar.sh iniciar.sh configurar.sh
+          bash -n instalar.sh desinstalar.sh iniciar.sh configurar.sh configurar-tecla.sh
           bash tests/test_instalacao.sh
+          bash tests/test_configurar_tecla.sh
       - name: Testar Xfce instalacao/atalho/desinstalacao completa simulados
         run: bash tests/test_xfce_integracao.sh
       - name: Testar tecla Print real via X11 virtual e liberar teclado com Esc
@@ -61,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/Print-RC/bin
-          cp -a Makefile LICENSE README.md instalar.sh iniciar.sh desinstalar.sh configurar.sh src scripts /tmp/Print-RC/
+          cp -a Makefile LICENSE README.md instalar.sh iniciar.sh desinstalar.sh configurar.sh configurar-tecla.sh src scripts /tmp/Print-RC/
           cp bin/print-rc /tmp/Print-RC/bin/print-rc
           # Confirmar permissoes corretas do lancador no ZIP, sem alterar o PC.
           test -x iniciar.sh
@@ -72,7 +73,9 @@ jobs:
           unzip -q Print-RC-Linux-x86_64.zip -d "$RUNNER_TEMP/verificar-zip"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/iniciar.sh"
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.1'
+          test -f "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
+          bash -n "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.2'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -80,18 +83,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.1.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.2.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.5.1 >/dev/null 2>&1; then
-            echo 'v0.5.1 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.5.2 >/dev/null 2>&1; then
+            echo 'v0.5.2 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.5.1 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.5.1 - 60 segundos para escolher Print e tentar novamente' \
-            --notes 'A identificacao fisica da tecla Print Screen no X11 agora aguarda ate 60 segundos (antes 15). Se o tempo acabar, o instalador pergunta Tentar novamente? [s/N] e, se SIM, abre nova janela de 60 s. NAO ou Enter encerra sem modificar o atalho; Esc cancela imediatamente. Continua existindo apenas uma confirmacao para atribuir a tecla quando identificada. Trinity e Xfce mantem integracao com atalhos e restauracao segura. Inclui testes do timeout X11 acelerado e do retry do instalador. Binario x86_64 para Linux X11; Wayland nao suportado.'
+          gh release create v0.5.2 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.5.2 - Configurador de tecla Print e diagnostico de conflitos' \
+            --notes 'Novo configurar-tecla.sh dentro da pasta do Print RC permite examinar registros Trinity/Xfce, sondar brevemente reservas X11 sem liberar grabs externos, assumir Print com 60 segundos e repeticao, reassociar Print/Sys_Req quando proprio atalho e gerenciado e desfazer associacao com restauracao conservadora. Atalhos Print de terceiros registrados no Trinity ou personalizados no Xfce podem ser substituidos apos confirmacao; grabs de outros processos nao podem ser liberados a forca. Capturas, configuracoes e backups preservados. Linux X11 x86_64; Wayland nao suportado.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
