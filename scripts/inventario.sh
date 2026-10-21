@@ -5,7 +5,7 @@ PRINT_RC_KNOWN=(
   'bin/print-rc'
   'src/main.cpp' 'src/settings.hpp'
   'scripts/atalho.py' 'scripts/atalho_xfce.py' 'scripts/inventario.sh'
-  'tests/test_atalho.py' 'tests/test_trinity_compat.py' 'tests/test_atalho_xfce.py' 'tests/test_xfce_integracao.sh' 'tests/test_settings.cpp'
+  'tests/test_configurar_tecla.sh' 'tests/test_atalho.py' 'tests/test_trinity_compat.py' 'tests/test_atalho_xfce.py' 'tests/test_xfce_integracao.sh' 'tests/test_settings.cpp'
   'tests/test_configuracao.sh' 'tests/test_instalacao.sh'
   'tests/test_desinstalacao.sh' 'tests/test_gui_x11.sh'
   'tests/test_keyboard_grab.cpp'
@@ -23,11 +23,12 @@ PRINT_RC_KNOWN=(
   '.github/release-0.4.9.ready'
   '.github/release-0.5.0.ready'
   '.github/release-0.5.1.ready'
+  '.github/release-0.5.2.ready'
   '.github/workflows/testar.yml'
   'config/opcoes.conf' 'config/atalho-state.json' 'config/atalho-xfce.json'
   'backups/khotkeysrc.antes'
   'README.md' 'LICENSE' 'Makefile' '.gitignore'
-  'instalar.sh' 'iniciar.sh' 'configurar.sh'
+  'instalar.sh' 'iniciar.sh' 'configurar.sh' 'configurar-tecla.sh'
   '.print-rc-installation' 'desinstalar.sh'
 )
 
