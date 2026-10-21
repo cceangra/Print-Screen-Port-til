@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.5.5'
+          ./bin/print-rc --version | grep -F 'Print RC 0.5.6'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -76,7 +76,7 @@ jobs:
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
           test -f "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
           bash -n "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.5'
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.6'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -84,18 +84,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.5.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.6.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.5.5 >/dev/null 2>&1; then
-            echo 'v0.5.5 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.5.6 >/dev/null 2>&1; then
+            echo 'v0.5.6 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.5.5 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.5.5 - Corrigir tecla identificada como Insert no Xfce' \
-            --notes 'Corrige defeito reproduzido em Xfce X11: a tecla fisica rotulada Print enviada como Insert era ignorada ate o timeout de 60 segundos. Agora o detector aceita Print, Sys_Req e Insert (inclusive mapeamentos alternativos), e o Xfce registra /commands/custom/Insert quando Insert foi a tecla pressionada. No Trinity suporta Insert como atalho gerenciado e substitui apenas conflitos dessa tecla. O cadastro confirma o comando escrito e informa separadamente o teste de acionamento. Testes Xvfb e integrador Xfce simulam especificamente o bug, incluindo restauracao do comando anterior; nao remapeia o teclado e nao requer sudo. Versao X11 x86_64.'
+          gh release create v0.5.6 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.5.6 - Escolher qualquer tecla individual X11 para captura' \
+            --notes 'O usuario pode escolher qualquer tecla individual X11 que tenha um keysym valido (Print, Insert, F9, F12, letra, numero, Return, XF86 etc); o detector termina na primeira tecla, sem esperar timeout. Trinity e Xfce gravam a associacao correspondente nas preferencias existentes do desktop, sem criar arquivo por tecla. Atalhos anteriores sao armazenados dentro da pasta Print RC para restauracao ao desinstalar. Modificadores isolados e Escape nao sao aceitos, e letras podem perder sua funcao normal como atalhos globais. Inclui testes X11 e simulacoes de F12, a, Return, Insert e conflitos. Nao exige sudo nem remapeia teclado. Linux X11 x86_64, Wayland ainda nao suportado.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
