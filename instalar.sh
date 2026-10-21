@@ -178,31 +178,61 @@ if ! bash "$dest/configurar.sh"; then
     exit 1
 fi
 echo
-echo '====== DEFINIR TECLA DE CAPTURA ======'
-echo "Ambiente grafico: ${XDG_CURRENT_DESKTOP:-desconhecido}"
-echo "Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
-echo 'Pressione PRINT SCREEN para escolher a tecla que abre o Print RC.'
-echo 'Depois, basta UMA confirmacao: SIM atribui a tecla ao Print RC.'
-echo 'Se outro programa utilizava esta tecla, a associacao sera substituida'
-echo 'no gerenciador suportado, e a configuracao anterior sera preservada'
-echo 'para restauracao no desinstalador. Nenhum sudo e necessario.'
-echo 'O detector X11 funciona por ate 15 segundos; Esc cancela.'
+echo '========== TECLA PRINT SCREEN =========='
+echo "Ambiente: ${XDG_CURRENT_DESKTOP:-desconhecido} | Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
+echo '1. Quando solicitado, pressione PRINT SCREEN em ate 60 segundos.'
+echo '2. Depois da identificacao, confirme SIM uma vez para usar a tecla.'
+echo '3. Se o tempo acabar, voce podera tentar novamente.'
+echo '   Esc cancela a identificacao. Nenhuma senha ou sudo e necessario.'
+echo 'O uso anterior da tecla sera substituido nos desktops com integracao.'
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
+
+# Em stdout, devolver exclusivamente "Print" ou "Sys_Req".
+# As mensagens e a pergunta de nova tentativa vao para stderr,
+# inclusive quando o instalador captura o resultado por $(...).
 print_rc_detectar() {
-    local raw chave
-    if ! raw="$("$dest/bin/print-rc" --detectar-print)"; then
-        echo 'NAO FOI POSSIVEL identificar Print: atalho nao cadastrado.' >&2
-        return 1
-    fi
-    case "$raw" in
-        PRINT_RC_KEY=Print) chave=Print ;;
-        PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
-        *)
-            echo 'Deteccao invalida: atalho nao cadastrado.' >&2
-            return 1 ;;
-    esac
-    echo "Tecla identificada: $chave." >&2
-    printf '%s\n' "$chave"
+    local raw codigo resposta chave tentativa=1
+    while true; do
+        printf '\n[Print RC] Tentativa %s: pressione PRINT SCREEN (limite: 60 segundos).\n' "$tentativa" >&2
+        if raw="$("$dest/bin/print-rc" --detectar-print)"; then
+            case "$raw" in
+                PRINT_RC_KEY=Print) chave=Print ;;
+                PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
+                *)
+                    echo 'ERRO: o detector devolveu uma tecla desconhecida.' >&2
+                    return 3 ;;
+            esac
+            printf '[Print RC] Tecla identificada: %s.\n' "$chave" >&2
+            printf '%s\n' "$chave"
+            return 0
+        else
+            codigo=$?
+        fi
+        if [[ "$codigo" == 4 ]]; then
+            echo '[Print RC] O prazo de 60 segundos terminou.' >&2
+            printf '[Print RC] Tentar novamente? [s/N]: ' >&2
+            resposta=''
+            if ! IFS= read -r resposta; then
+                echo >&2
+                echo '[Print RC] Sem resposta: deteccao encerrada.' >&2
+                return 4
+            fi
+            case "${resposta,,}" in
+                s|sim)
+                    ((tentativa+=1))
+                    continue ;;
+                *)
+                    echo '[Print RC] Nao: nenhuma tecla sera associada.' >&2
+                    return 4 ;;
+            esac
+        elif [[ "$codigo" == 5 ]]; then
+            echo '[Print RC] Identificacao cancelada com Esc.' >&2
+            return 5
+        else
+            echo '[Print RC] Falha ao ler o teclado X11. Atalho nao cadastrado.' >&2
+            return "$codigo"
+        fi
+    done
 }
 desktop_id="${XDG_CURRENT_DESKTOP:-}"
 desktop_id="${desktop_id,,}"
