@@ -24,6 +24,22 @@ record() {
     print_rc_criar_inventario "$1"
     test -f "$1/config/arquivos-instalados.sha256"
 }
+# Copiar SOMENTE arquivos versionados do pacote.
+# O checkout da CI pode ter __pycache__/ gerado por testes anteriores,
+# que NAO faz parte do ZIP baixado e deve ser preservado, nao removido.
+copy_dev_package_files() {
+    local dest="$1" rel
+    for rel in "${PRINT_RC_KNOWN[@]}"; do
+        case "$rel" in
+            .github/*|tests/*)
+                if [[ -f "$ROOT/$rel" ]]; then
+                    mkdir -p -- "$dest/${rel%/*}"
+                    cp -a -- "$ROOT/$rel" "$dest/$rel"
+                fi
+                ;;
+        esac
+    done
+}
 echo '[1] Imagens internas e arquivos pessoais permanecem intactos'
 APP="$TEMP/teste interno/Print-RC"
 make_app "$APP"
@@ -124,8 +140,7 @@ test "$(cat "$APP6/capturas/antigo.png")" = pessoal
 echo '[7] Codigo-fonte completo: remove .github, tests e pasta inteira sem residuos'
 APP7="$TEMP/source zip com espacos/Print-Screen-Port-til-main"
 make_app "$APP7"
-cp -a "$ROOT/.github" "$APP7/"
-cp -a "$ROOT/tests" "$APP7/"
+copy_dev_package_files "$APP7"
 cp "$ROOT/.gitignore" "$APP7/.gitignore"
 cp "$ROOT/LICENSE" "$APP7/LICENSE"
 cp "$ROOT/Makefile" "$APP7/Makefile"
@@ -143,14 +158,17 @@ done
 ZIP7="$TEMP/Print-RC-original.zip"
 printf 'ZIP PESSOAL NAO APAGAR\n' > "$ZIP7"
 printf 'DESINSTALAR\n' | bash "$APP7/desinstalar.sh"
-test ! -e "$APP7"
+if [[ -e "$APP7" ]]; then
+    echo 'TESTE FALHOU: ainda existem arquivos dentro da pasta:'
+    find "$APP7" -mindepth 1 -print
+    exit 1
+fi
 test "$(cat "$ZIP7")" = 'ZIP PESSOAL NAO APAGAR'
 
 echo '[8] Preservar dados desconhecidos em .github e tests, sem apagar ZIP'
 APP8="$TEMP/fonte com dados pessoais/Print-RC"
 make_app "$APP8"
-cp -a "$ROOT/.github" "$APP8/"
-cp -a "$ROOT/tests" "$APP8/"
+copy_dev_package_files "$APP8"
 printf 'ARQUIVO PARTICULAR\n' > "$APP8/tests/anotacoes.txt"
 printf 'CONFIGURACAO PARTICULAR\n' > "$APP8/.github/meu-projeto.txt"
 record "$APP8"
