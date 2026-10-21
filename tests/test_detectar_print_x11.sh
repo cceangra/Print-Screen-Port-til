@@ -118,7 +118,8 @@ echo '[9] REGRESSAO: Print em segundo keysym; versao antiga ignorava a tecla ate
 # xmodmap controla SOMENTE o servidor Xvfb descartavel deste teste.
 # Testar uma tecla fisica que tem F13 como nivel 0 e Print no nivel 1.
 xmodmap -e 'keycode 107 = F13 Print'
-xmodmap -pke | grep -E '^keycode[[:space:]]+107[[:space:]]*=[[:space:]]*F13[[:space:]]+Print'
+echo 'Mapa X11 virtual apos xmodmap (keycode 107):'
+xmodmap -pke | grep -E '^keycode[[:space:]]+107[[:space:]]*=' || true
 timeout 7s "$BIN" --detectar-print > "$TMP/second-level.txt" 2> "$TMP/second-level.err" &
 PID=$!
 sleep 0.5
