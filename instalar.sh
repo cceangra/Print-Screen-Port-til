@@ -313,12 +313,24 @@ else
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
 if [[ "$atalho_registrado" == 1 ]]; then
-    echo 'ATALHO REGISTRADO: pressione Print para confirmar que a captura abre.'
+    echo 'REGISTRO_GRAVADO: tecla cadastrada no gerenciador; ativacao ainda nao comprovada.'
+    if [[ -n "${DISPLAY:-}" && -t 0 && -f "$dest/scripts/provar-atalho.sh" ]]; then
+        if bash "$dest/scripts/provar-atalho.sh"; then
+            echo 'ATIVACAO_CONFIRMADA: o comando Print RC foi acionado nesta sessao.'
+        else
+            echo 'ATIVACAO_PENDENTE: o Trinity/Xfce nao acionou o Print RC durante a prova.'
+            echo 'No Trinity, verifique o Servico de Atalhos no Gerenciador de servicos.'
+            echo 'Se necessario, faca logout e novo login, sem reinicio forcado.'
+            echo "Depois: bash \"$dest/scripts/provar-atalho.sh\""
+        fi
+    else
+        echo 'ATIVACAO_PENDENTE: teste real nao executado (sem terminal interativo ou DISPLAY).'
+        echo "Teste posteriormente: bash \"$dest/scripts/provar-atalho.sh\""
+    fi
 else
     echo 'ATALHO NAO CONFIGURADO: sera necessario configurar ou tentar de novo.'
 fi
-echo 'O cadastro nao garante que o desktop executou o comando; teste pressionando Print.'
-echo 'Detectar a tecla nao comprova que o desktop executou o atalho.'
+echo 'Reconhecer a tecla e gravar o arquivo NAO garantem a ativacao pelo desktop.'
 echo '=========================================='
 if [[ "$FRESH_INSTALL" == 1 ]]; then
     # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
