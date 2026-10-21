@@ -247,6 +247,12 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
 // Detecta apenas uma tecla durante a configuracao solicitada pelo usuario.
 // Nao guarda teclas, nao cria processo residente e nao altera atalhos do desktop.
 // XGrabKeyboard redireciona eventos somente durante a janela de ate 60 s.
+// Variacao de tempo SOMENTE na compilacao do teste de timeout acelerado.
+#ifndef PRINT_RC_DETECT_SECONDS
+#define PRINT_RC_DETECT_SECONDS 60
+#endif
+static_assert(PRINT_RC_DETECT_SECONDS > 0 && PRINT_RC_DETECT_SECONDS <= 600,
+              "Tempo de deteccao X11 invalido");
 int detect_print_key() {
     const char* displayName=std::getenv("DISPLAY");
     if (!displayName || !*displayName) {
@@ -272,10 +278,10 @@ int detect_print_key() {
         return 3;
     }
     std::cerr<<"Print RC: pressione a tecla PRINT SCREEN agora (Esc cancela).\n"
-             <<"Voce tem ate 60 segundos. Pressione Esc para cancelar.\n";
+             <<"Voce tem ate "<<PRINT_RC_DETECT_SECONDS<<" segundos. Esc cancela.\n";
     std::cerr.flush();
     int result=4;
-    const auto expires=Clock::now()+std::chrono::seconds(60);
+    const auto expires=Clock::now()+std::chrono::seconds(PRINT_RC_DETECT_SECONDS);
     while (Clock::now()<expires) {
         while (XPending(d)) {
             XEvent event{};
@@ -319,7 +325,7 @@ int detect_print_key() {
             break;
         }
     }
-    if (result==4) std::cerr<<"Print RC: 60 segundos esgotados sem pressionar PRINT SCREEN.\n";
+    if (result==4) std::cerr<<"Print RC: "<<PRINT_RC_DETECT_SECONDS<<" segundos esgotados sem pressionar PRINT SCREEN.\n";
 finished_key_detection:
     XUngrabKeyboard(d,CurrentTime);
     XSync(d,False);
