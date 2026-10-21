@@ -69,6 +69,40 @@ class ShortcutXfceTests(unittest.TestCase):
         self.assertTrue(xfce.remove(self.base))
         self.assertNotIn('/commands/custom/Insert',self.data)
 
+    def test_trocar_tecla_ja_instalada_sem_reinstalar(self):
+        self.scope()
+        self.data[xfce.PROPERTY]='programa-original'
+        self.data['/commands/custom/F12']='outro-programa-f12'
+        with patch.object(xfce,'yes',return_value=True) as confirm:
+            self.assertTrue(xfce.install(self.base,self.launcher,key='Print'))
+            self.assertTrue(xfce.install(self.base,self.launcher,key='F12'))
+        self.assertEqual(confirm.call_count,2)
+        self.assertEqual(self.data[xfce.PROPERTY],'programa-original')
+        self.assertEqual(self.data['/commands/custom/F12'],xfce.app_command(self.launcher))
+        import json
+        saved=json.loads((self.base/xfce.STATE_FILE).read_text())
+        self.assertEqual(saved['property'],'/commands/custom/F12')
+        self.assertTrue(xfce.remove(self.base))
+        self.assertEqual(self.data[xfce.PROPERTY],'programa-original')
+        self.assertEqual(self.data['/commands/custom/F12'],'outro-programa-f12')
+
+    def test_recuperar_troca_interrompida_sem_sobrescrever_usuario(self):
+        self.scope()
+        self.assertTrue(xfce.install(self.base,self.launcher,key='Print'))
+        self.data['/commands/custom/F12']='outro-f12'
+        def falhar_apenas_ao_restaurar_print(command, existed, prop=xfce.PROPERTY):
+            if prop==xfce.PROPERTY:
+                raise RuntimeError('falha simulada na segunda escrita')
+            return self.fake_set(command,existed,prop)
+        with patch.object(xfce,'set_key',side_effect=falhar_apenas_ao_restaurar_print):
+            self.assertFalse(xfce.install(self.base,self.launcher,key='F12'))
+        import json
+        state=json.loads((self.base/xfce.STATE_FILE).read_text())
+        self.assertEqual(state['status'],'moving')
+        self.assertTrue(xfce.remove(self.base))
+        self.assertNotIn(xfce.PROPERTY,self.data)
+        self.assertEqual(self.data['/commands/custom/F12'],'outro-f12')
+
     def test_f12_escolhida_gera_atalho_xfce_dinamico(self):
         self.scope()
         key='F12'
