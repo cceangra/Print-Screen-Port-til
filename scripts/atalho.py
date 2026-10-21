@@ -218,6 +218,124 @@ def repair(base, command):
     print('Pressione Print depois para confirmar que a captura abre.')
     return True
 
+def status(base):
+    """Relatorio somente leitura: nao confundir registro com reserva real X11."""
+    print('Gerenciador: Trinity / KHotKeys')
+    print('Arquivo:',FILE)
+    try:
+        raw=safe_current_text()
+    except (OSError, UnicodeError, RuntimeError) as e:
+        print('Nao foi possivel ler atalhos:',e)
+        return False
+    entries=conflicts(raw)
+    statepath=base/'config/atalho-state.json'
+    own=None
+    if statepath.is_file() and not statepath.is_symlink():
+        try:
+            own=json.loads(statepath.read_text(encoding='utf-8'))
+        except (OSError, UnicodeError, ValueError):
+            print('Registro interno invalido ou ilegivel.')
+    if isinstance(own,dict) and own.get('status')=='installed' and own.get('file')==str(FILE):
+        root=own.get('group','')
+        sections=parse(raw)
+        found=get_value(sections.get(root,''),'Name')==NAME
+        print('Print RC gerencia o grupo:',root,'| encontrado:', 'SIM' if found else 'NAO')
+        if found:
+            print('Tecla do Print RC:',get_value(sections.get(root+'Triggers0',''),'Key','ausente'))
+    else:
+        print('Print RC ainda nao possui um registro de atalho gerenciado aqui.')
+    if entries:
+        print('Atalhos que usam Print/Sys_Req neste arquivo:')
+        for e in entries:
+            print(' -',e['name'],'| tecla',e['old_key'],'| comando',e['command'])
+    else:
+        print('Nenhuma associacao Print ativa encontrada neste arquivo.')
+    print('Isso nao confirma que a tecla esteja livre no X11 ou em outros aplicativos.')
+    return True
+
+
+def rebind(base, command, key, state):
+    """Troca o keysym do Print RC ja instalado, sem desinstalar o aplicativo.
+
+    Valida estado, tecla e comando originais. Preserva conflitos registrados para
+    restauracao posterior e acrescenta somente os novos conflitos encontrados.
+    """
+    statepath=base/'config/atalho-state.json'
+    if statepath.is_symlink() or not statepath.is_file():
+        print('Registro local ausente ou simbolico; troca cancelada.')
+        return False
+    if (state.get('status')!='installed' or state.get('file')!=str(FILE)
+            or state.get('launcher')!=str(command)):
+        print('Registro original nao corresponde a esta instalacao.')
+        return False
+    try:
+        original=safe_current_text()
+    except (OSError,UnicodeError,RuntimeError) as exc:
+        print('Nao consegui ler com seguranca:',exc)
+        return False
+    sections=parse(original)
+    root=state.get('group')
+    if not isinstance(root,str) or not re.fullmatch(r'Data_\d+',root):
+        print('Grupo original invalido.')
+        return False
+    group=sections.get(root,'')
+    action=sections.get(root+'Actions0','')
+    trigger=sections.get(root+'Triggers0','')
+    old=state.get('key')
+    if (get_value(group,'Name')!=NAME or old not in ('Print','Sys_Req')
+        or get_value(trigger,'Key')!=old or get_value(trigger,'Type')!='SHORTCUT'
+        or get_value(action,'Type')!='COMMAND_URL'
+        or get_value(action,'CommandURL') not in
+           (command_for_launcher(command),legacy_command_for_launcher(command))
+        or get_value(group,'Type') not in
+           ('SIMPLE_ACTION_DATA','COMMAND_URL_SHORTCUT_ACTION_DATA')):
+        print('Atalho gerenciado sofreu mudancas; preservar e cancelar.')
+        return False
+    if old==key:
+        return repair(base,command)
+    owner_sections={root+'Triggers0'}
+    conflicts_new=[e for e in conflicts(original) if e['section'] not in owner_sections]
+    known=state.get('conflicts',[])
+    if not isinstance(known,list):
+        print('Registro de conflitos invalido.')
+        return False
+    known_sections={e.get('section') for e in known if isinstance(e,dict)}
+    print('Tecla anterior:',old,'| nova tecla:',key)
+    print('Conflitos novos encontrados:',len(conflicts_new))
+    for e in conflicts_new:
+        print(' -',e['name'],'|',e['old_key'])
+    print('Apenas as associacoes de teclado serao liberadas, nao seus aplicativos.')
+    if not yes('Confirmar reassociacao do Print RC e substituicao de conflitos?'):
+        return False
+    if not check_unchanged(original): return False
+    updated=original
+    newentries=[]
+    for e in conflicts_new:
+        section=e['section']
+        if section in known_sections: continue
+        b=parse(updated).get(section,'')
+        if not b or get_value(b,'Key')!=e['old_key']:
+            print('Conflito mudou; cancelado.')
+            return False
+        updated=replace_block(updated,section,set_value(b,'Key',''))
+        newentries.append(e)
+    sections=parse(updated)
+    updated=replace_block(updated,root,
+        set_value(sections[root],'Type','COMMAND_URL_SHORTCUT_ACTION_DATA'))
+    sections=parse(updated)
+    updated=replace_block(updated,root+'Triggers0',
+        set_value(sections[root+'Triggers0'],'Key',key))
+    new_state=dict(state)
+    new_state['key']=key
+    new_state['conflicts']=known+newentries
+    if not check_unchanged(original): return False
+    write_atomic(FILE,updated)
+    write_atomic(statepath,json.dumps(new_state,ensure_ascii=False,indent=2)+'\n')
+    print('Print RC reassociado a',key,'; estado de recuperacao atualizado.')
+    reload_trinity_shortcuts()
+    return True
+
+
 def install(base, command, key='Print'):
     # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
     if key not in ('Print', 'Sys_Req'):
@@ -233,6 +351,9 @@ def install(base, command, key='Print'):
         except (ValueError,OSError):
             print('Registro do atalho nao pode ser lido; nao sobrescreverei.')
             return False
+        if old_state.get('key')!=key:
+            print('Atalho existente: reassociar a tecla selecionada.')
+            return rebind(base,command,key,old_state)
         print('Atalho ja gerenciado; verificando se precisa de reparo.')
         return repair(base,command)
     if os.environ.get('XDG_CURRENT_DESKTOP','').casefold().find('trinity')<0:
@@ -452,8 +573,7 @@ def main():
         raise SystemExit('Nao execute como root.')
     base=args.base.resolve()
     if args.command=='inspect':
-        text=FILE.read_text(encoding='utf-8') if FILE.exists() else ''
-        for entry in conflicts(text): print(entry)
+        if not status(base): raise SystemExit(1)
     elif args.command=='install':
         if args.launcher is None: parser.error('--launcher obrigatorio')
         if install(base,args.launcher.resolve(),key=args.key) is False:
