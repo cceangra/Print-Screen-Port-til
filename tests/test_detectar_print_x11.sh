@@ -24,7 +24,8 @@ sleep 0.2
 xdotool key Print
 wait "$PID"
 grep -Fx 'PRINT_RC_KEY=Print' "$TMP/diferente.txt"
-grep -F 'tecla lida: F12' "$TMP/diferente.err"
+grep -F 'mapeamento F12' "$TMP/diferente.err"
+grep -F 'NAO corresponde a Print/Sys_Req' "$TMP/diferente.err"
 
 echo '[3] Cancelar com Esc sem emitir tecla nem manter keyboard grab'
 "$BIN" --detectar-print > "$TMP/esc.txt" 2> "$TMP/esc.err" &
@@ -112,5 +113,42 @@ wait "$OTHER" 2>/dev/null || true
 "$BIN" --verificar-tecla > "$TMP/grab-released.txt"
 grep -Fx 'PRINT_RC_GRAB=sem_bloqueio_x11' "$TMP/grab-released.txt"
 echo 'OK: teste de sonda mostra reserva externa, sem tomar atalhos de outro processo.'
+
+echo '[9] REGRESSAO: Print em segundo keysym; versao antiga ignorava a tecla ate timeout'
+# xmodmap controla SOMENTE o servidor Xvfb descartavel deste teste.
+# Testar uma tecla fisica que tem F13 como nivel 0 e Print no nivel 1.
+xmodmap -e 'keycode 107 = F13 Print'
+xmodmap -pke | grep -E '^keycode[[:space:]]+107[[:space:]]*=[[:space:]]*F13[[:space:]]+Print'
+timeout 7s "$BIN" --detectar-print > "$TMP/second-level.txt" 2> "$TMP/second-level.err" &
+PID=$!
+sleep 0.5
+xdotool key F13
+wait "$PID"
+grep -Fx 'PRINT_RC_KEY=Print' "$TMP/second-level.txt"
+grep -F 'tecla identificada: Print' "$TMP/second-level.err"
+
+echo '[10] REGRESSAO: Sys_Req em nivel alternativo tambem deve ser aceito'
+xmodmap -e 'keycode 107 = F13 Sys_Req'
+timeout 7s "$BIN" --detectar-print > "$TMP/sysreq-level.txt" 2> "$TMP/sysreq-level.err" &
+PID=$!
+sleep 0.5
+xdotool key F13
+wait "$PID"
+grep -Fx 'PRINT_RC_KEY=Sys_Req' "$TMP/sysreq-level.txt"
+
+echo '[11] Outra tecla sem Print/Sys_Req nunca deve ser cadastrada como Print'
+xmodmap -e 'keycode 107 = F13 F14'
+# Usa detector acelerado para nao esperar 60 s se o mapa esta diferente.
+timeout 7s "$TMP/print-rc-timeout" --detectar-print > "$TMP/no-print.txt" 2> "$TMP/no-print.err" &
+PID=$!
+sleep 0.2
+xdotool key F13
+RETURN=0
+wait "$PID" || RETURN=$?
+test "$RETURN" -eq 4
+test ! -s "$TMP/no-print.txt"
+grep -F 'NAO corresponde a Print/Sys_Req' "$TMP/no-print.err"
+echo 'OK: Print/Sys_Req em niveis alternativos reconhecidos e teclas estranhas recusadas.'
+
 
 
