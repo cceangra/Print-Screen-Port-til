@@ -1,0 +1,1 @@
+Print RC v0.5.0 - liberacao aprovada apos CI completa: uma confirmacao unica ao escolher tecla Print, conflitos Trinity/Xfce substituidos dentro do gerenciador suportado, tipo COMMAND_URL_SHORTCUT_ACTION_DATA, capturas preservadas e desinstalacao testada. Usar usuario comum, sem sudo. Nao sobrescrever versoes anteriores.
