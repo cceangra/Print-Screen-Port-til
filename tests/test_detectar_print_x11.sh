@@ -150,5 +150,19 @@ test ! -s "$TMP/no-print.txt"
 grep -F 'NAO corresponde a Print/Sys_Req' "$TMP/no-print.err"
 echo 'OK: Print/Sys_Req em niveis alternativos reconhecidos e teclas estranhas recusadas.'
 
+echo '[12] BUG REAL XFCE: tecla rotulada Print esta mapeada como Insert'
+# Simular mapeamento que originou o bug do usuario no Xfce.
+# O detector deve encerrar no PRIMEIRO Insert, nao aguardar o timeout.
+xmodmap -e 'keycode 107 = Insert'
+timeout 7s "$BIN" --detectar-print > "$TMP/insert.txt" 2> "$TMP/insert.err" &
+PID=$!
+sleep 0.5
+xdotool key Insert
+wait "$PID"
+grep -Fx 'PRINT_RC_KEY=Insert' "$TMP/insert.txt"
+grep -F 'tecla identificada: Insert' "$TMP/insert.err"
+! grep -q 'segundos esgotados' "$TMP/insert.err"
+echo 'OK: tecla fisica Insert cadastravel, sem esperar 60 segundos.'
+
 
 
