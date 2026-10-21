@@ -163,7 +163,7 @@ def repair(base, command):
         return False
     sections=parse(original)
     root=state.get('group')
-    if (not isinstance(root,str) or not re.fullmatch(r'Data_\\d+',root)
+    if (not isinstance(root,str) or not re.fullmatch(r'Data_\d+',root)
             or get_value(sections.get(root,''),'Name')!=NAME):
         print('Atalho original ausente ou alterado por terceiros.')
         return False
