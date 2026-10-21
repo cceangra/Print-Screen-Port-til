@@ -259,14 +259,15 @@ int detect_print_key() {
         return 2;
     }
     const Window root=DefaultRootWindow(d);
-    const Window keyWindow=XCreateSimpleWindow(d,root,-20,-20,1,1,0,0,0);
-    XSelectInput(d,keyWindow,KeyPressMask);
+    // A janela de grab deve estar VISIVEL; a root do X11 sempre esta.
+    // XSelectInput so registra eventos neste cliente, sem mudar atalhos globais.
+    XSelectInput(d,root,KeyPressMask);
     XFlush(d);
-    const int grab=XGrabKeyboard(d,keyWindow,False,GrabModeAsync,GrabModeAsync,CurrentTime);
+    const int grab=XGrabKeyboard(d,root,False,GrabModeAsync,GrabModeAsync,CurrentTime);
     if (grab!=GrabSuccess) {
         std::cerr<<"Print RC: outro aplicativo controla o teclado. Nao pude verificar Print ("
                  <<grab<<").\n";
-        XDestroyWindow(d,keyWindow);
+
         XCloseDisplay(d);
         return 3;
     }
@@ -321,7 +322,6 @@ int detect_print_key() {
     if (result==4) std::cerr<<"Print RC: tempo esgotado sem reconhecer PRINT SCREEN.\n";
 finished_key_detection:
     XUngrabKeyboard(d,CurrentTime);
-    XDestroyWindow(d,keyWindow);
     XSync(d,False);
     XCloseDisplay(d);
     return result;
