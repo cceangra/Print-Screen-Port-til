@@ -1,6 +1,14 @@
-# Print RC v0.5.5 — Linux X11 / pasta unica
+# Print RC v0.5.6 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Tecla de captura escolhida pelo usuario — v0.5.6
+
+O Print RC **nao limita mais a escolha a Print/Insert/Sys_Req**. No X11, durante os 60 segundos de configuracao, pressione uma tecla individual com keysym reconhecido (por exemplo, `F9`, `F12`, `a`, `3`, `Return`, `Insert`, `Print` ou teclas multimidia `XF86...`). O detector encerra a escuta imediatamente e passa a tecla realmente escolhida ao integrador Trinity ou Xfce. A atribuicao requer uma unica confirmacao. **Esc cancela** e modificadores sozinhos (`Shift`, `Ctrl`, `Alt`, `Super`) nao representam atalhos individuais validos; combinacoes como `Ctrl+F9` nao sao selecionadas automaticamente nesta versao.
+
+**Onde ficam as configuracoes?** Codigo, backup, estado de restauracao e `configurar-tecla.sh` ficam **dentro da pasta do Print RC**. Nao e criado um script ou arquivo externo diferente por tecla. O desktop precisa conhecer o atalho global: o Xfce usa seu canal de configuracao `xfce4-keyboard-shortcuts`, por exemplo `/commands/custom/F12` ou `/commands/custom/a`, e o Trinity usa seu **arquivo ja existente** `~/.trinity/share/config/khotkeysrc`. Se a configuracao do desktop ainda nao existia, o proprio desktop pode criar seu armazenamento padrao. A alteracao externa e a associacao necessaria para a tecla funcionar mesmo quando o Print RC estiver fechado. O desinstalador pode restaurar a associacao anterior com o registro salvo na pasta do app.
+
+**Atenção:** definir `a`, `Return` ou `space` como atalho global pode impedir sua digitacao ou uso normal em outros programas. A atribuicao deve ser feita somente com sua confirmacao e pode ser desfeita no configurador/desinstalador. Nao alteramos o mapa de teclado global (`xmodmap`) nem instalamos servicos residentes. A efetiva ativacao do atalho ainda e testada separadamente; a operacao em outras distribuicoes/Wayland permanece limitada pelo desktop.
 
 ## Correcao da tecla fisica Print identificada como Insert — v0.5.5
 
@@ -309,7 +317,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.5 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.6 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
