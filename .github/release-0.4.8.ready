@@ -1,0 +1,1 @@
+Print RC v0.4.8 — liberacao apos CI aprovada com captura voluntaria da tecla Print no X11, timeout 15s, Esc, deteccao de Sys_Req, nenhuma alteracao de atalho quando tecla nao foi reconhecida, preservacao de fotos/ZIP e desinstalacao conservadora.
