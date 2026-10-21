@@ -12,6 +12,44 @@ spec.loader.exec_module(atalho)
 OLD = '''[Main]\nVersion=2\n\n[Data]\nDataCount=1\n\n[Data_1]\nName=Capturador antigo\nType=SIMPLE_ACTION_DATA\nEnabled=true\n\n[Data_1Actions0]\nCommandURL=ksnapshot\nType=COMMAND_URL\n\n[Data_1Triggers0]\nKey=Print\nType=SHORTCUT\n\n[Misc]\nNaoAlterar=ok\n'''
 
 class ShortcutTests(unittest.TestCase):
+    def test_trinity_grava_tecla_x11_detectada_sys_req_e_restauracao(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file,old_yes=atalho.FILE,atalho.yes
+            old_desktop=os.environ.get('XDG_CURRENT_DESKTOP')
+            try:
+                atalho.FILE=tmp/'home/.trinity/share/config/khotkeysrc'
+                atalho.FILE.parent.mkdir(parents=True)
+                atalho.FILE.write_text(OLD)
+                atalho.yes=lambda question: True
+                os.environ['XDG_CURRENT_DESKTOP']='Trinity'
+                base=tmp/'app'
+                atalho.install(base,base/'iniciar.sh',key='Sys_Req')
+                import json
+                state=json.loads((base/'config/atalho-state.json').read_text())
+                own=atalho.parse(atalho.FILE.read_text())[state['group']+'Triggers0']
+                self.assertEqual(atalho.get_value(own,'Key'),'Sys_Req')
+                self.assertEqual(state['key'],'Sys_Req')
+                self.assertTrue(atalho.remove(base))
+                self.assertEqual(atalho.FILE.read_text().split('Key=Print').__len__(),2)
+            finally:
+                atalho.FILE,atalho.yes=old_file,old_yes
+                if old_desktop is None: os.environ.pop('XDG_CURRENT_DESKTOP',None)
+                else: os.environ['XDG_CURRENT_DESKTOP']=old_desktop
+
+    def test_trinity_recusa_outros_keysyms_sem_modificar(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            tmp=Path(temporary)
+            old_file=atalho.FILE
+            try:
+                atalho.FILE=tmp/'khotkeysrc'
+                with self.assertRaises(ValueError):
+                    atalho.install(tmp,tmp/'iniciar.sh',key='F12')
+                self.assertFalse(atalho.FILE.exists())
+            finally:
+                atalho.FILE=old_file
+
+
     def test_detect_install_remove_and_preserve_other_customization(self):
         with tempfile.TemporaryDirectory() as temporary:
             tmp=Path(temporary)
