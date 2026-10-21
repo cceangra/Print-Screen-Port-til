@@ -4,7 +4,7 @@
 PRINT_RC_KNOWN=(
   'bin/print-rc'
   'src/main.cpp' 'src/settings.hpp'
-  'scripts/atalho.py' 'scripts/inventario.sh'
+  'scripts/atalho.py' 'scripts/atalho_xfce.py' 'scripts/inventario.sh'
   'tests/test_atalho.py' 'tests/test_settings.cpp'
   'tests/test_configuracao.sh' 'tests/test_instalacao.sh'
   'tests/test_desinstalacao.sh' 'tests/test_gui_x11.sh'
@@ -18,7 +18,7 @@ PRINT_RC_KNOWN=(
   '.github/release-0.4.5.ready'
   '.github/release-0.4.6.ready'
   '.github/workflows/testar.yml'
-  'config/opcoes.conf' 'config/atalho-state.json'
+  'config/opcoes.conf' 'config/atalho-state.json' 'config/atalho-xfce.json'
   'backups/khotkeysrc.antes'
   'README.md' 'LICENSE' 'Makefile' '.gitignore'
   'instalar.sh' 'iniciar.sh' 'configurar.sh'
