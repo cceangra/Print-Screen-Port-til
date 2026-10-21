@@ -206,7 +206,20 @@ def main():
     try:
         if args.action == 'inspect':
             check_environment()
-            print('Xfce Print custom:', get(), 'padrao:', get(DEFAULT))
+            current=get()
+            default=get(DEFAULT)
+            state=safe_state(base)
+            print('Gerenciador: Xfce / xfconf-query')
+            print('Atalho personalizado Print:', current or '(nenhum)')
+            print('Atalho padrao Print:', default or '(nenhum)')
+            if (isinstance(state,dict) and state.get('status')=='installed'
+                    and state.get('command')==current):
+                print('Print RC controla a associacao personalizada: SIM')
+                print('Uso anterior salvo:',state.get('old_command') or '(sem atalho anterior)')
+            else:
+                print('Print RC controla a associacao personalizada: NAO ou indeterminado')
+            print('Outros atalhos do gerenciador de janelas podem existir.')
+            print('Ausencia aqui NAO confirma que a tecla esteja livre no X11.')
         elif args.action == 'install':
             if args.launcher is None:
                 parser.error('--launcher obrigatorio.')
