@@ -16,6 +16,7 @@ PRINT_RC_KNOWN=(
   '.github/release-0.4.3.ready'
   '.github/release-0.4.4.ready'
   '.github/release-0.4.5.ready'
+  '.github/release-0.4.6.ready'
   '.github/workflows/testar.yml'
   'config/opcoes.conf' 'config/atalho-state.json'
   'backups/khotkeysrc.antes'
