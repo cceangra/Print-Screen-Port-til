@@ -51,6 +51,7 @@ ler_tecla() {
             case "$bruto" in
               PRINT_RC_KEY=Print) printf 'Print\n'; return 0 ;;
               PRINT_RC_KEY=Sys_Req) printf 'Sys_Req\n'; return 0 ;;
+              PRINT_RC_KEY=Insert) printf 'Insert\n'; return 0 ;;
               *) echo 'Resposta invalida do leitor X11.' >&2; return 3 ;;
             esac
         else
@@ -88,10 +89,10 @@ configurar() {
     if ! tecla="$(ler_tecla)"; then return 1; fi
     echo
     echo "Tecla detectada: $tecla"
-    echo 'O Print RC tentara assumir a tecla no gerenciador de atalhos deste desktop.'
+    echo 'A tecla fisica escolhida sera cadastrada para abrir o Print RC neste desktop.'
     echo 'Atalhos conflitantes reconhecidos serao substituidos, com registro para restauracao.'
-    if [[ "$DESKTOP" == *xfce* && "$tecla" != Print ]]; then
-        echo 'Xfce nao permite registrar automaticamente este keysym pela integracao atual.'
+    if [[ "$DESKTOP" == *xfce* && "$tecla" != Print && "$tecla" != Insert ]]; then
+        echo 'Sys_Req exige cadastro manual no Xfce nesta versao.'
         return 2
     fi
     if [[ "$DESKTOP" == *trinity* ]]; then
@@ -99,10 +100,10 @@ configurar() {
             --launcher "$BASE/iniciar.sh" --key "$tecla"
     else
         python3 -B "$BASE/scripts/atalho_xfce.py" install --base "$BASE" \
-            --launcher "$BASE/iniciar.sh"
+            --launcher "$BASE/iniciar.sh" --key "$tecla"
     fi
     echo
-    echo 'REGISTRO_GRAVADO: aguardando prova de acionamento real.'
+    echo "REGISTRO_GRAVADO: $tecla associada; aguardando prova real."
     if [[ -n "${DISPLAY:-}" && -t 0 ]]; then
         if ! bash "$BASE/scripts/provar-atalho.sh"; then
             echo 'ATIVACAO_PENDENTE: o desktop ainda nao executou o Print RC durante o teste.'
