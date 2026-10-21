@@ -26,7 +26,7 @@ jobs:
         run: |
           make portable
           ./bin/print-rc --self-test
-          ./bin/print-rc --version | grep -F 'Print RC 0.5.2'
+          ./bin/print-rc --version | grep -F 'Print RC 0.5.3'
           test "$(uname -m)" = x86_64
           ! readelf -l bin/print-rc | grep -q INTERP
           file bin/print-rc | grep -q 'statically linked'
@@ -37,6 +37,7 @@ jobs:
           bash -n instalar.sh desinstalar.sh iniciar.sh configurar.sh configurar-tecla.sh
           bash tests/test_instalacao.sh
           bash tests/test_configurar_tecla.sh
+          bash tests/test_prova_atalho.sh
       - name: Testar Xfce instalacao/atalho/desinstalacao completa simulados
         run: bash tests/test_xfce_integracao.sh
       - name: Testar tecla Print real via X11 virtual e liberar teclado com Esc
@@ -75,7 +76,7 @@ jobs:
           test -x "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc"
           test -f "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
           bash -n "$RUNNER_TEMP/verificar-zip/Print-RC/configurar-tecla.sh"
-          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.2'
+          "$RUNNER_TEMP/verificar-zip/Print-RC/bin/print-rc" --version | grep '0.5.3'
       - name: Salvar pacote como artefato do GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -83,18 +84,18 @@ jobs:
           path: Print-RC-Linux-x86_64.zip
           if-no-files-found: error
       - name: Publicar o ZIP na aba Releases
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.2.ready') != ''
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && hashFiles('.github/release-0.5.3.ready') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.5.2 >/dev/null 2>&1; then
-            echo 'v0.5.2 ja publicada: nao sobrescrever seu ZIP.'
+          if gh release view v0.5.3 >/dev/null 2>&1; then
+            echo 'v0.5.3 ja publicada: nao sobrescrever seu ZIP.'
             exit 0
           fi
-          gh release create v0.5.2 Print-RC-Linux-x86_64.zip \
-            --title 'Print RC v0.5.2 - Configurador de tecla Print e diagnostico de conflitos' \
-            --notes 'Novo configurar-tecla.sh dentro da pasta do Print RC permite examinar registros Trinity/Xfce, sondar brevemente reservas X11 sem liberar grabs externos, assumir Print com 60 segundos e repeticao, reassociar Print/Sys_Req quando proprio atalho e gerenciado e desfazer associacao com restauracao conservadora. Atalhos Print de terceiros registrados no Trinity ou personalizados no Xfce podem ser substituidos apos confirmacao; grabs de outros processos nao podem ser liberados a forca. Capturas, configuracoes e backups preservados. Linux X11 x86_64; Wayland nao suportado.'
+          gh release create v0.5.3 Print-RC-Linux-x86_64.zip \
+            --title 'Print RC v0.5.3 - Confirmar acionamento real da tecla Print' \
+            --notes 'Novo teste opcional de acionamento real apos registrar Print: pressione a tecla uma segunda vez e o inicializador responde com um marcador temporario, sem abrir captura durante a prova. O instalador distingue tecla identificada, registro gravado e ativacao confirmada; se o Trinity nao aplicar o atalho na sessao, mostra ATIVACAO_PENDENTE e instrucoes seguras de servico/relogin sem encerrar processos. No configurador, opcao 4 ou --provar permite repetir. Todas as provas temporarias ficam na pasta do app, expiram e sao limpas; capturas e atalhos anteriores continuam protegidos. Linux X11 x86_64, Wayland ainda nao suportado.'
       - name: Incluir o executavel estatico no codigo do GitHub (Download ZIP)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
