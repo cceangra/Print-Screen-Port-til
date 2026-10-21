@@ -610,5 +610,6 @@
   "native.png_buffer_allocation": "PNG buffer allocation failed",
   "common.configured_key": "the configured key",
   "diagnostic.live_registry_note": "Live registry not queried: read-only mode does not start xfconfd.",
-  "native.invalid_key": "Print RC: INVALID_KEY: use a valid non-modifier X11 keysym.\n"
+  "native.invalid_key": "Print RC: INVALID_KEY: use a valid non-modifier X11 keysym.\n",
+  "common.missing": "missing"
 }

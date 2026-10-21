@@ -121,7 +121,7 @@ if [[ -f "$STATE_XFCE" ]]; then
         prc_message shell.248
         exit 1
     fi
-    python3 "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || {
+    python3 -B "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || {
         prc_message shell.249
         exit 1
     }
@@ -135,7 +135,7 @@ if [[ -f "$STATE" ]]; then
         prc_message shell.251
         exit 1
     fi
-    python3 "$BASE/scripts/atalho.py" remove --base "$BASE" || {
+    python3 -B "$BASE/scripts/atalho.py" remove --base "$BASE" || {
         prc_message shell.252
         prc_message shell.253
         exit 1
