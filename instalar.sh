@@ -178,75 +178,67 @@ if ! bash "$dest/configurar.sh"; then
     exit 1
 fi
 echo
-echo '====== INTEGRACAO COM A TECLA PRINT ======'
-echo "Ambiente grafico identificado: ${XDG_CURRENT_DESKTOP:-desconhecido}"
-echo "Tipo de sessao: ${XDG_SESSION_TYPE:-nao informado} (este capturador requer X11)"
-echo 'A tecla Print e cadastrada pelo gerenciador de atalhos do desktop.'
-echo 'NOVO: ao autorizar o cadastro, voce precisara PRESSIONAR PRINT SCREEN.'
-echo 'O leitor X11 fica ativo so por ate 15 segundos e nao grava outras teclas.'
-echo 'Se nao conseguir identificar, nao cadastrara um atalho automaticamente.'
+echo '====== DEFINIR TECLA DE CAPTURA ======'
+echo "Ambiente grafico: ${XDG_CURRENT_DESKTOP:-desconhecido}"
+echo "Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
+echo 'Pressione PRINT SCREEN para escolher a tecla que abre o Print RC.'
+echo 'Depois, basta UMA confirmacao: SIM atribui a tecla ao Print RC.'
+echo 'Se outro programa utilizava esta tecla, a associacao sera substituida'
+echo 'no gerenciador suportado, e a configuracao anterior sera preservada'
+echo 'para restauracao no desinstalador. Nenhum sudo e necessario.'
+echo 'O detector X11 funciona por ate 15 segundos; Esc cancela.'
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
-# Capturar UMA tecla real do X11 antes de registrar qualquer atalho externo.
-# A unica linha entregue no stdout do detector e PRINT_RC_KEY=Print|Sys_Req.
 print_rc_detectar() {
     local raw chave
     if ! raw="$("$dest/bin/print-rc" --detectar-print)"; then
-        echo 'NAO FOI POSSIVEL identificar a tecla fisica Print Screen.' >&2
-        echo 'Nao registrarei um atalho sem verificar qual tecla foi pressionada.' >&2
-        echo 'Voce pode configurar Print manualmente ou tentar novamente depois.' >&2
+        echo 'NAO FOI POSSIVEL identificar Print: atalho nao cadastrado.' >&2
         return 1
     fi
     case "$raw" in
         PRINT_RC_KEY=Print) chave=Print ;;
         PRINT_RC_KEY=Sys_Req) chave=Sys_Req ;;
         *)
-            echo 'Deteccao devolveu resposta invalida. Atalho NAO registrado.' >&2
+            echo 'Deteccao invalida: atalho nao cadastrado.' >&2
             return 1 ;;
     esac
-    echo "Tecla fisica CONFIRMADA: $chave." >&2
+    echo "Tecla identificada: $chave." >&2
     printf '%s\n' "$chave"
 }
 desktop_id="${XDG_CURRENT_DESKTOP:-}"
 desktop_id="${desktop_id,,}"
+atalho_registrado=0
 if [[ "$desktop_id" == *trinity* ]]; then
-    echo "Trinity: arquivo de atalho: ${TDEHOME:-$HOME/.trinity}/share/config/khotkeysrc"
-    echo 'O instalador verificara conflitos e pedira confirmacao antes de alterar.'
-    read -r -p 'Deseja associar Print ao Print RC no Trinity? [s/N]: ' answer || true
-    if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
-        if ! command -v python3 >/dev/null 2>&1; then
-            echo 'Python3 do sistema indisponivel: atalho nao modificado.'
-        elif key_name="$(print_rc_detectar)"; then
-            python3 "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"
+    echo "Trinity: atalhos em ${TDEHOME:-$HOME/.trinity}/share/config/khotkeysrc"
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo 'Python3 do sistema indisponivel: atalho nao modificado.'
+    elif key_name="$(print_rc_detectar)"; then
+        if python3 -B "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
+            atalho_registrado=1
         else
-            echo 'A configuracao continua, mas SEM registrar a tecla Print no Trinity.'
+            echo 'Atalho Trinity nao foi registrado. Verifique a mensagem acima.'
         fi
     else
-        echo 'Atalho Trinity nao modificado.'
+        echo 'Tecla nao identificada; nenhuma associacao feita.'
     fi
 elif [[ "$desktop_id" == *xfce* ]]; then
-    echo 'Xfce: atalho /commands/custom/Print no canal xfce4-keyboard-shortcuts.'
-    echo 'O Xfce pode armazenar essa preferencia fora da pasta, em ~/.config/xfce4/.'
+    echo 'Xfce: associacao em /commands/custom/Print via xfconf-query.'
     if ! command -v python3 >/dev/null 2>&1 || ! command -v xfconf-query >/dev/null 2>&1; then
-        echo 'Python3 ou xfconf-query ausente: atalho automatico nao disponivel.'
-        echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos > Adicionar'
+        echo 'Python3 ou xfconf-query indisponivel. Nao ha integracao automatica.'
+        echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos.'
         echo "Comando: $print_rc_launcher"
-        echo 'Tecla: Print. Libere o atalho existente no proprio Xfce, se necessario.'
-    else
-        read -r -p 'Deseja associar Print ao Print RC no Xfce? [s/N]: ' answer || true
-        if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
-            if key_name="$(print_rc_detectar)"; then
-                if [[ "$key_name" == Print ]]; then
-                    python3 "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"
-                else
-                    echo 'Xfce: X11 retornou Sys_Req; nao vou presumir que equivale a Print.'
-                    echo 'Cadastre manualmente a tecla no gerenciador de atalhos do Xfce.'
-                fi
+    elif key_name="$(print_rc_detectar)"; then
+        if [[ "$key_name" == Print ]]; then
+            if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"; then
+                atalho_registrado=1
             else
-                echo 'Atalho Xfce nao cadastrado sem verificacao da tecla.'
+                echo 'Atalho Xfce nao foi registrado. Verifique a mensagem acima.'
             fi
         else
-            echo 'Atalho Xfce nao modificado.'
+            echo 'Sys_Req detectado: no Xfce nao vou atribuir outra tecla por engano.'
+            echo 'Associe Sys_Req diretamente nas preferencias de teclado do Xfce.'
         fi
+    else
+        echo 'Tecla nao identificada; nenhuma associacao feita.'
     fi
 else
     echo 'Integracao automatica conservadora disponivel para Trinity e Xfce.'
@@ -286,7 +278,12 @@ else
     echo 'Atalhos manuais nao sao rastreados nem removidos pelo desinstalador.'
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
-echo 'Depois da instalacao, pressione Print para testar o acionamento REAL.'
+if [[ "$atalho_registrado" == 1 ]]; then
+    echo 'ATALHO REGISTRADO: pressione Print para confirmar que a captura abre.'
+else
+    echo 'ATALHO NAO CONFIGURADO: sera necessario configurar ou tentar de novo.'
+fi
+echo 'O cadastro nao garante que o desktop executou o comando; teste pressionando Print.'
 echo 'Detectar a tecla nao comprova que o desktop executou o atalho.'
 echo '=========================================='
 if [[ "$FRESH_INSTALL" == 1 ]]; then
