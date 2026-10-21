@@ -16,6 +16,8 @@ concurrency:
 jobs:
   compilar:
     runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Bibliotecas necessarias somente no ambiente de construcao do GitHub
