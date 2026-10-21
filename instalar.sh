@@ -215,7 +215,9 @@ if [[ "$desktop_id" == *trinity* ]]; then
         if python3 -B "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
             atalho_registrado=1
         else
-            echo 'Atalho Trinity nao foi registrado. Verifique a mensagem acima.'
+            echo 'ERRO: o Trinity nao conseguiu registrar a tecla confirmada.'
+            echo 'Instalacao interrompida antes de marcar o app como configurado.'
+            exit 1
         fi
     else
         echo 'Tecla nao identificada; nenhuma associacao feita.'
@@ -231,7 +233,9 @@ elif [[ "$desktop_id" == *xfce* ]]; then
             if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"; then
                 atalho_registrado=1
             else
-                echo 'Atalho Xfce nao foi registrado. Verifique a mensagem acima.'
+                echo 'ERRO: o Xfce nao conseguiu registrar a tecla confirmada.'
+                echo 'Instalacao interrompida antes de marcar o app como configurado.'
+                exit 1
             fi
         else
             echo 'Sys_Req detectado: no Xfce nao vou atribuir outra tecla por engano.'
