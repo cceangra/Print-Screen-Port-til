@@ -1,6 +1,21 @@
-# Print RC v0.5.0 — Linux X11 / pasta unica
+# Print RC v0.5.1 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Identificar tecla Print: 60 segundos e repetir se precisar — v0.5.1
+
+No instalador, o detector X11 abre um periodo de **60 segundos** (antes eram 15) para que a pessoa pressione **PRINT SCREEN**. A tela mostra a instrucao e informa claramente o prazo. Apos identificar Print ou Sys_Req, o instalador segue para **uma unica confirmacao SIM** de atribuicao da tecla, preservando a politica da v0.5.0 para conflitos conhecidos no Trinity/Xfce.
+
+Se nenhum Print for pressionado ate o prazo, o detector libera o teclado e o instalador pergunta:
+
+```text
+[Print RC] O prazo de 60 segundos terminou.
+[Print RC] Tentar novamente? [s/N]:
+```
+
+Responder `s` ou `sim` inicia outra leitura independente de ate **60 segundos**; pode repetir quantas vezes quiser. `n`, **Enter** ou fechar a entrada encerra a escolha sem registrar nenhum atalho, mas preserva a instalacao do aplicativo. **Esc cancela imediatamente**, sem perguntar por nova tentativa. Se o teclado X11 estiver indisponivel, o programa informa erro e **nao repete silenciosamente** nem pede senha.
+
+O usuario nao precisa de `sudo`. Um timeout do teclado nao altera arquivos de atalhos, nao cria registrador permanente e nao interfere em outras teclas. O C++ mantem um codigo de retorno especifico para timeout (4), cancelamento (5) e falha de teclado (2/3). Testes automatizados cobrem os dois tempos: binario real com mensagem **60 segundos** e compilacao **somente de teste** com um segundo para simular o timeout sem tornar a CI demorada. Testes integrados cobrem `SIM` -> nova tentativa bem-sucedida, `NAO` -> nenhuma associacao e `Esc` -> cancelamento imediato. A instalacao real no Trinity ainda deve ser validada pressionando Print apos configurar.
 
 ## Atalho Print sem perguntas repetidas — v0.5.0
 
@@ -42,7 +57,7 @@ No GNOME, a tecla Print costuma estar atribuída à ferramenta de captura do pr�
 
 **Historico de correcao:** a v0.4.7 registrava `Key=Print` diretamente, sem pedir que a pessoa pressionasse a tecla. O instalador agora **pergunta se deseja cadastrar o atalho**, depois pede explicitamente **"Pressione PRINT SCREEN agora"**, usa o proprio executavel `bin/print-rc --detectar-print` para identificar um unico evento X11 e mostra o resultado. Sem reconhecer `Print` ou `Sys_Req`, nao registra o atalho automaticamente: nao confunde sucesso ao chamar `dcop` com tecla fisica detectada.
 
-O detector faz `XGrabKeyboard` temporario, dura no maximo **15 segundos**, pode ser cancelado com **Esc** e libera a captura do teclado em todas as saidas normais. Em encerramento abrupto, o servidor X11 libera o grab ao encerrar a conexao. Nao registra historico de teclas, nao instala pacotes, nao cria servicos residentes e nao mexe no atalho ate que o usuario o confirme nas perguntas posteriores. Teclas diferentes sao apenas mostradas na tela e nao sao aceitas como Print.
+O detector faz `XGrabKeyboard` temporario, dura no maximo **60 segundos** (desde a v0.5.1), pode ser cancelado com **Esc** e libera a captura do teclado em todas as saidas normais. Em encerramento abrupto, o servidor X11 libera o grab ao encerrar a conexao. Nao registra historico de teclas, nao instala pacotes, nao cria servicos residentes e nao mexe no atalho ate que o usuario o confirme nas perguntas posteriores. Teclas diferentes sao apenas mostradas na tela e nao sao aceitas como Print.
 
 No Trinity o valor `Print` ou `Sys_Req` realmente identificado e enviado ao `khotkeysrc`, e o servico `khotkeysd` recebe pedido de releitura. No Xfce, por seguranca, `Sys_Req` exige cadastro manual porque a integracao automatica desta versao usa a propriedade `/commands/custom/Print`. Mesmo com a deteccao fisica correta, somente **um teste real pressionando Print depois da instalacao** confirma que o ambiente executa o atalho. Se outro programa estiver bloqueando a captura, o detector falhar ou o usuario pressionar Esc, a instalacao do programa segue, mas o atalho **nao sera registrado automaticamente**.
 
@@ -249,7 +264,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.0 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.5.1 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
