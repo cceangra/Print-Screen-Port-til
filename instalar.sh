@@ -145,6 +145,12 @@ if [[ -f "$dest/.print-rc-installation" ]]; then
        "$(sed -n '2p' "$dest/.print-rc-installation")" == "$dest" ]] || {
         echo 'Marcador de instalacao pertence a outro caminho. Cancelado.'; exit 2;
     }
+    if [[ ! -f "$dest/config/arquivos-instalados.sha256" ]]; then
+        echo 'Instalacao anterior incompleta ou muito antiga: falta inventario confiavel.'
+        echo 'Nao vou tratar arquivos desta pasta como se fossem recem-instalados.'
+        echo 'Escolha uma pasta nova para instalar com seguranca.'
+        exit 2
+    fi
 fi
 
 # Corrigir SOMENTE a permissao do inicializador, dentro da pasta do app.
@@ -171,12 +177,6 @@ if ! bash "$dest/configurar.sh"; then
     echo "Para configurar posteriormente: bash \"$dest/configurar.sh\""
     exit 1
 fi
-printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"
-
-echo
-echo 'PRONTO. Nenhuma dependencia foi instalada no Linux.'
-echo "Pasta unica: $dest"
-echo "Teste agora: \"$dest/iniciar.sh\""
 echo
 echo '====== RESUMO DOS ARQUIVOS EXTERNOS ======'
 echo 'Sem configurar tecla Print: NENHUM arquivo externo sera criado/modificado.'
@@ -201,6 +201,14 @@ else
     echo 'Atalho do sistema nao modificado.'
 fi
 if [[ "$FRESH_INSTALL" == 1 ]]; then
+    # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
+    # no momento de cadastrar Print nao deixa falso registro instalado.
+    # Inventario preexistente sem marcador e ambiguo: nao confiar nele.
+    if [[ -e "$dest/config/arquivos-instalados.sha256" || -L "$dest/config/arquivos-instalados.sha256" ]]; then
+        echo 'Inventario preexistente sem marcador valido. Instalacao cancelada.'
+        exit 2
+    fi
+    printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"
     # Registrar o checksum de CADA arquivo original antes de permitir desinstalar.
     # Nunca registrar capturas, documentos desconhecidos nem subpastas do usuario.
     if [[ -r "$dest/scripts/inventario.sh" ]]; then
@@ -218,4 +226,8 @@ else
     echo 'Reconfiguracao de instalacao existente: inventario anterior preservado.'
     echo 'Se esta e uma versao antiga sem inventario, a desinstalacao sera conservadora.'
 fi
+echo
+echo 'PRONTO. Nenhuma dependencia foi instalada no Linux.'
+echo "Pasta unica: $dest"
+echo "Teste agora: \"$dest/iniciar.sh\""
 echo 'O ZIP original baixado fora da pasta e independente: guarde-o ou apague-o manualmente.'
