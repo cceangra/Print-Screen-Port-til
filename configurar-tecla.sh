@@ -46,14 +46,20 @@ ler_tecla() {
     # Apenas o nome da tecla sai em stdout para nao confundir $(...).
     local bruto codigo tent=1 resposta
     while true; do
-        printf '\nPressione PRINT SCREEN (tentativa %d; ate 60 segundos; Esc cancela).\n' "$tent" >&2
+        printf '\nPressione a tecla desejada (tentativa %d; ate 60 segundos; Esc cancela).\n' "$tent" >&2
         if bruto="$("$BIN" --detectar-print)"; then
-            case "$bruto" in
-              PRINT_RC_KEY=Print) printf 'Print\n'; return 0 ;;
-              PRINT_RC_KEY=Sys_Req) printf 'Sys_Req\n'; return 0 ;;
-              PRINT_RC_KEY=Insert) printf 'Insert\n'; return 0 ;;
-              *) echo 'Resposta invalida do leitor X11.' >&2; return 3 ;;
-            esac
+            if [[ "$bruto" =~ ^PRINT_RC_KEY=([A-Za-z0-9_]{1,64})$ ]]; then
+                local escolhida="${BASH_REMATCH[1]}"
+                case "$escolhida" in
+                  Escape|Shift_L|Shift_R|Control_L|Control_R|Alt_L|Alt_R|Meta_L|Meta_R|Super_L|Super_R|Hyper_L|Hyper_R|ISO_Level3_Shift|Mode_switch)
+                      echo 'Nao e possivel usar um modificador sozinho.' >&2
+                      return 3 ;;
+                esac
+                printf '%s\n' "$escolhida"
+                return 0
+            fi
+            echo 'Resposta invalida do leitor X11.' >&2
+            return 3
         else
             codigo=$?
         fi
@@ -91,10 +97,7 @@ configurar() {
     echo "Tecla detectada: $tecla"
     echo 'A tecla fisica escolhida sera cadastrada para abrir o Print RC neste desktop.'
     echo 'Atalhos conflitantes reconhecidos serao substituidos, com registro para restauracao.'
-    if [[ "$DESKTOP" == *xfce* && "$tecla" != Print && "$tecla" != Insert ]]; then
-        echo 'Sys_Req exige cadastro manual no Xfce nesta versao.'
-        return 2
-    fi
+    echo 'Se escolher uma letra, Enter ou espaco, o uso normal desta tecla pode ser afetado.'
     if [[ "$DESKTOP" == *trinity* ]]; then
         python3 -B "$BASE/scripts/atalho.py" install --base "$BASE" \
             --launcher "$BASE/iniciar.sh" --key "$tecla"
@@ -105,7 +108,7 @@ configurar() {
     echo
     echo "REGISTRO_GRAVADO: $tecla associada; aguardando prova real."
     if [[ -n "${DISPLAY:-}" && -t 0 ]]; then
-        if ! bash "$BASE/scripts/provar-atalho.sh"; then
+        if ! bash "$BASE/scripts/provar-atalho.sh" "$tecla"; then
             echo 'ATIVACAO_PENDENTE: o desktop ainda nao executou o Print RC durante o teste.'
         fi
     else
@@ -157,7 +160,7 @@ esac
 while true; do
     header
     echo '1) Verificar situacao da tecla Print'
-    echo '2) Configurar / assumir tecla Print Screen'
+    echo '2) Configurar / assumir qualquer tecla X11'
     echo '3) Liberar atribuicao gerenciada pelo Print RC'
     echo '4) Testar se Print realmente abre o aplicativo'
     echo '0) Sair'
