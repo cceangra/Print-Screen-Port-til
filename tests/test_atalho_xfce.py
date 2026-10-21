@@ -42,6 +42,16 @@ class ShortcutXfceTests(unittest.TestCase):
         stack.enter_context(patch.object(xfce, 'yes', return_value=yes))
         return stack
 
+    def test_uma_confirmacao_substitui_custom_print_e_restauracao(self):
+        self.scope()
+        self.data[xfce.PROPERTY] = 'xfce4-screenshooter -f'
+        with patch.object(xfce, 'yes', return_value=True) as confirm:
+            self.assertTrue(xfce.install(self.base, self.launcher))
+        self.assertEqual(confirm.call_count, 1)
+        self.assertEqual(self.data[xfce.PROPERTY],xfce.app_command(self.launcher))
+        self.assertTrue(xfce.remove(self.base))
+        self.assertEqual(self.data[xfce.PROPERTY], 'xfce4-screenshooter -f')
+
     def test_criar_atualizar_e_restaurar_atalho_anterior(self):
         self.scope()
         self.data[xfce.PROPERTY] = 'xfce4-screenshooter -f'
