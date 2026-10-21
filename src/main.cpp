@@ -253,6 +253,24 @@ void clipboard_loop(Display* display, Window owner, std::vector<unsigned char> p
 #endif
 static_assert(PRINT_RC_DETECT_SECONDS > 0 && PRINT_RC_DETECT_SECONDS <= 600,
               "Tempo de deteccao X11 invalido");
+// Ao identificar a tecla Print, nao assumir que ela esteja no indice 0.
+// Layouts X11/XKB podem mapear Print/Sys_Req em outro nivel ou grupo;
+// neste caso a v0.5.3 recebia a tecla mas ficava esperando indefinidamente.
+KeySym print_keysym_for_event(Display* d, const XKeyEvent& ev) {
+    const KeySym first=XLookupKeysym(const_cast<XKeyEvent*>(&ev),0);
+    if(first==XK_Print || first==XK_Sys_Req) return first;
+    int count=0;
+    KeySym* syms=XGetKeyboardMapping(d,static_cast<KeyCode>(ev.keycode),1,&count);
+    if(!syms) return NoSymbol;
+    KeySym found=NoSymbol;
+    for(int i=0;i<count;i++) {
+        if(syms[i]==XK_Print) { found=XK_Print; break; }
+        if(syms[i]==XK_Sys_Req) found=XK_Sys_Req;
+    }
+    XFree(syms);
+    return found;
+}
+
 int detect_print_key() {
     const char* displayName=std::getenv("DISPLAY");
     if (!displayName || !*displayName) {
@@ -288,23 +306,26 @@ int detect_print_key() {
             XNextEvent(d,&event);
             if (event.type!=KeyPress) continue;
             const KeySym key=XLookupKeysym(&event.xkey,0);
+            const KeySym detected=print_keysym_for_event(d,event.xkey);
             if (key==XK_Escape) {
                 std::cerr<<"Print RC: identificacao cancelada com Esc.\n";
                 result=5;
                 goto finished_key_detection;
             }
-            if (key==XK_Print || key==XK_Sys_Req) {
-                std::cout<<"PRINT_RC_KEY="<<(key==XK_Print?"Print":"Sys_Req")<<"\n";
+            if (detected==XK_Print || detected==XK_Sys_Req) {
+                std::cout<<"PRINT_RC_KEY="<<(detected==XK_Print?"Print":"Sys_Req")<<"\n";
                 std::cout.flush();
                 std::cerr<<"Print RC: tecla identificada: "
-                         <<(key==XK_Print?"Print":"Sys_Req")
+                         <<(detected==XK_Print?"Print":"Sys_Req")
                          <<" (codigo fisico X11 "<<event.xkey.keycode<<").\n";
                 result=0;
                 goto finished_key_detection;
             }
             const char* name=XKeysymToString(key);
-            std::cerr<<"Print RC: tecla lida: "<<(name?name:"desconhecida")
-                     <<". Pressione PRINT SCREEN ou Esc.\n";
+            std::cerr<<"Print RC: tecla recebida (codigo X11 "<<event.xkey.keycode
+                     <<", mapeamento "<<(name?name:"desconhecido")
+                     <<"), mas NAO corresponde a Print/Sys_Req neste teclado.\n"
+                     <<"Continua aguardando Print Screen ou Esc.\n";
         }
         const int fd=ConnectionNumber(d);
         if (fd<0 || fd>=FD_SETSIZE) {
@@ -422,7 +443,7 @@ bool self_test() {
 int main(int argc,char** argv) {
     if (argc>1) {
         std::string arg=argv[1];
-        if (arg=="--version") { std::cout<<"Print RC 0.5.3 (X11)\n";return 0; }
+        if (arg=="--version") { std::cout<<"Print RC 0.5.4 (X11)\n";return 0; }
         if (arg=="--self-test") return self_test()?0:1;
         if (arg=="--detectar-print") return detect_print_key();
         if (arg=="--verificar-tecla") return inspect_print_grabs();
