@@ -178,28 +178,61 @@ if ! bash "$dest/configurar.sh"; then
     exit 1
 fi
 echo
-echo '====== RESUMO DOS ARQUIVOS EXTERNOS ======'
-echo 'Sem configurar tecla Print: NENHUM arquivo externo sera criado/modificado.'
-TRINITY_HOME="${TDEHOME:-$HOME/.trinity}"
-echo "Com tecla Print: $TRINITY_HOME/share/config/khotkeysrc"
-echo '  Se existe: modificar somente entradas de atalho, preservando as demais.'
-echo '  Se nao existe: criar; na desinstalacao, excluir se for seguro.'
-echo "  Backup e registro: $dest/backups e $dest/config"
-echo '  O programa mostrara o caminho novamente antes da confirmacao final.'
-echo '=========================================='
-echo
-read -r -p 'Deseja associar Print ao aplicativo no Trinity? [s/N]: ' answer || true
-if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
-    # O atalho so funciona integrado ao gerenciador de teclas do Trinity.
-    if command -v python3 >/dev/null 2>&1; then
-        python3 "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh"
+echo '====== INTEGRACAO COM A TECLA PRINT ======'
+echo "Ambiente grafico identificado: ${XDG_CURRENT_DESKTOP:-desconhecido}"
+echo "Tipo de sessao: ${XDG_SESSION_TYPE:-nao informado} (este capturador requer X11)"
+echo 'A tecla Print e cadastrada pelo gerenciador de atalhos do desktop.'
+echo 'Nao precisa apertar Print para que o programa conheca o nome da tecla.'
+echo 'O instalador nunca usa capturador de teclas residente.'
+print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
+desktop_id="${XDG_CURRENT_DESKTOP:-}"
+desktop_id="${desktop_id,,}"
+if [[ "$desktop_id" == *trinity* ]]; then
+    echo "Trinity: arquivo de atalho: ${TDEHOME:-$HOME/.trinity}/share/config/khotkeysrc"
+    echo 'O instalador verificara conflitos e pedira confirmacao antes de alterar.'
+    read -r -p 'Deseja associar Print ao Print RC no Trinity? [s/N]: ' answer || true
+    if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
+        if command -v python3 >/dev/null 2>&1; then
+            python3 "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh"
+        else
+            echo 'Python3 do sistema indisponivel: atalho nao modificado.'
+        fi
     else
-        echo 'Python3 do sistema nao encontrado; nenhum atalho foi alterado.'
-        echo 'Voce pode configurar Print manualmente nos atalhos do desktop.'
+        echo 'Atalho Trinity nao modificado.'
+    fi
+elif [[ "$desktop_id" == *xfce* ]]; then
+    echo 'Xfce: atalho /commands/custom/Print no canal xfce4-keyboard-shortcuts.'
+    echo 'O Xfce pode armazenar essa preferencia fora da pasta, em ~/.config/xfce4/.'
+    if ! command -v python3 >/dev/null 2>&1 || ! command -v xfconf-query >/dev/null 2>&1; then
+        echo 'Python3 ou xfconf-query ausente: atalho automatico nao disponivel.'
+        echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos > Adicionar'
+        echo "Comando: $print_rc_launcher"
+        echo 'Tecla: Print. Libere o atalho existente no proprio Xfce, se necessario.'
+    else
+        read -r -p 'Deseja associar Print ao Print RC no Xfce? [s/N]: ' answer || true
+        if [[ "${answer,,}" == s || "${answer,,}" == sim ]]; then
+            python3 "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh"
+        else
+            echo 'Atalho Xfce nao modificado.'
+        fi
     fi
 else
-    echo 'Atalho do sistema nao modificado.'
+    echo 'Integracao automatica conservadora disponivel para Trinity e Xfce.'
+    case "$desktop_id" in
+        *gnome*) echo 'GNOME: Configuracoes > Teclado > Atalhos > Atalhos personalizados.' ;;
+        *kde*|*plasma*) echo 'KDE Plasma: Configuracoes do sistema > Atalhos > Adicionar comando.' ;;
+        *cinnamon*) echo 'Cinnamon: Configuracoes do sistema > Teclado > Atalhos personalizados.' ;;
+        *mate*) echo 'MATE: Central de Controle > Atalhos de Teclado > Adicionar.' ;;
+        *lxqt*) echo 'LXQt: Configurador LXQt > Atalhos globais.' ;;
+        *) echo 'Abra as configuracoes de atalhos de teclado do seu desktop.' ;;
+    esac
+    echo 'Cadastre manualmente: Nome = Print RC; tecla = Print.'
+    echo "Comando a executar: $print_rc_launcher"
+    echo 'Se Print estiver ocupado, libere a tecla pelo proprio gerenciador.'
+    echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
+echo 'Depois da instalacao, pressione Print para testar.'
+echo '=========================================='
 if [[ "$FRESH_INSTALL" == 1 ]]; then
     # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
     # no momento de cadastrar Print nao deixa falso registro instalado.
