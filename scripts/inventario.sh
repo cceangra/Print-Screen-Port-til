@@ -19,6 +19,7 @@ PRINT_RC_KNOWN=(
   '.github/release-0.4.5.ready'
   '.github/release-0.4.6.ready'
   '.github/release-0.4.7.ready'
+  '.github/release-0.4.8.ready'
   '.github/workflows/testar.yml'
   'config/opcoes.conf' 'config/atalho-state.json' 'config/atalho-xfce.json'
   'backups/khotkeysrc.antes'
