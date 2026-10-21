@@ -1,6 +1,16 @@
-# Print RC v0.4.5 — Linux X11 / pasta unica
+# Print RC v0.4.6 — Linux X11 / pasta unica
 
 Aplicativo de captura de uma regiao da tela em **C++**, com tela escurecida, selecao por mouse e copia da imagem como PNG para Ctrl+V. Criado principalmente para **Q4OS / Trinity / X11**, em computadores **x86_64**.
+
+## Auditoria do instalador — v0.4.6
+
+**Problema corrigido: preferencias alteradas depois da instalacao.** A lista de integridade gravava o SHA-256 original de `config/opcoes.conf`; ao trocar a pasta de imagens ou a opcao Ctrl+V, o arquivo deixava de corresponder ao hash e acabava preservado na desinstalacao. Agora o `configurar.sh` atualiza de forma conservadora **somente o hash desse arquivo de preferencias** no inventario, apos salvar as opcoes. Todas as demais verificacoes de seguranca permanecem. Os testes cobrem diversas alteracoes de preferencias seguidas da exclusao da pasta inteira quando vazia.
+
+**Protecao contra links simbolicos:** o instalador e o configurador agora recusam diretorios/arquivos criticos que sejam links simbolicos inesperados (`config`, `capturas`, `.print-rc-installation` e outros), para nao escrever sem querer fora da pasta do aplicativo. Sao feitos testes com arquivos pessoais externos para verificar que nao sao alterados.
+
+**Instalacoes interrompidas:** o marcador `.print-rc-installation` agora e gravado so depois das perguntas sobre o atalho. Se o cadastro falhar ou o usuario interromper a operacao, nao aparece prematuramente o status de instalacao concluida. Instalacoes com marcador mas sem inventario nao sao tratadas como instalacoes novas confiaveis: para preservar dados existentes, o instalador cancela e orienta a escolher uma pasta nova.
+
+**O ZIP permanece intacto** e capturas salvas dentro ou fora da pasta continuam protegidas. Sem `sudo`, sem instalar pacotes, sem daemons extras. Testado automaticamente em ambiente Linux/X11 virtual do GitHub; ainda e importante validar no Trinity do computador real.
 
 ## Desinstalacao completa e segura — v0.4.5
 
@@ -182,7 +192,7 @@ Assim, 'pasta unica' aqui significa **todos os arquivos distribuidos do Print RC
 
 ## Desinstalar
 
-Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.5 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
+Na pasta instalada, execute `bash desinstalar.sh`. Digite **DESINSTALAR** para confirmar. A desinstalacao da v0.4.6 **NUNCA exclui imagens** e remove apenas os arquivos originais que tenham hash compativel com o inventario criado na instalacao. O atalho Print e desfeito quando foi configurado pelo Print RC. **Nao existe comando `rm -rf` para apagar a pasta inteira nem qualquer opcao para apagar prints.** Se houver fotos, capturas ou arquivos desconhecidos dentro da pasta do aplicativo, esses arquivos e suas pastas ficam no mesmo local, preservados. Se as imagens estiverem em uma pasta externa, essa pasta permanece completamente intacta. O atalho que voce registrou manualmente no desktop precisa ser removido manualmente, pois o programa so pode restaurar automaticamente atalhos que ele mesmo gerenciou. Se falhar ao restaurar o atalho gerenciado, a desinstalacao interrompe e preserva arquivos e backups. Nao altera pacotes instalados pelo Linux.
 
 ## Compilacao opcional para desenvolvedores
 
