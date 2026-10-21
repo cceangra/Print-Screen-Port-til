@@ -251,16 +251,39 @@ elif [[ "$desktop_id" == *xfce* ]]; then
 else
     echo 'Integracao automatica conservadora disponivel para Trinity e Xfce.'
     case "$desktop_id" in
-        *gnome*) echo 'GNOME: Configuracoes > Teclado > Atalhos > Atalhos personalizados.' ;;
-        *kde*|*plasma*) echo 'KDE Plasma: Configuracoes do sistema > Atalhos > Adicionar comando.' ;;
-        *cinnamon*) echo 'Cinnamon: Configuracoes do sistema > Teclado > Atalhos personalizados.' ;;
-        *mate*) echo 'MATE: Central de Controle > Atalhos de Teclado > Adicionar.' ;;
-        *lxqt*) echo 'LXQt: Configurador LXQt > Atalhos globais.' ;;
+        *gnome*)
+            echo 'GNOME: Configuracoes > Teclado > Ver e personalizar atalhos.'
+            echo 'Libere Print no grupo Capturas de tela antes de cadastrar o personalizado.'
+            echo 'Depois: Atalhos personalizados > Adicionar atalho.'
+            ;;
+        *kde*|*plasma*)
+            echo 'KDE Plasma 6: Configuracoes do sistema > Atalhos > Adicionar novo > Comando ou Script.'
+            echo 'Se houver conflito, libere Print no gerenciador do proprio Plasma.'
+            ;;
+        *cinnamon*)
+            echo 'Cinnamon: Configuracoes do sistema > Teclado > Atalhos personalizados.'
+            ;;
+        *mate*)
+            echo 'MATE: Central de Controle > Atalhos de Teclado > Adicionar.'
+            ;;
+        *lxqt*)
+            echo 'LXQt: Configurador LXQt > Atalhos globais.'
+            ;;
+        *lxde*|*openbox*)
+            echo 'LXDE/Openbox: associe Print nas preferencias de atalhos ou no arquivo rc.xml.'
+            echo 'Nao alteramos automaticamente arquivos de configuracao de terceiros.'
+            ;;
+        *budgie*) echo 'Budgie: Configuracoes > Teclado > Atalhos personalizados.' ;;
+        *i3*|*sway*|*hyprland*|*awesome*)
+            echo 'Gerenciador em mosaico: crie um atalho Print no arquivo do proprio WM.'
+            echo 'Este executavel de captura requer X11; Sway/Hyprland (Wayland) nao funcionarao.'
+            ;;
         *) echo 'Abra as configuracoes de atalhos de teclado do seu desktop.' ;;
     esac
     echo 'Cadastre manualmente: Nome = Print RC; tecla = Print.'
     echo "Comando a executar: $print_rc_launcher"
     echo 'Se Print estiver ocupado, libere a tecla pelo proprio gerenciador.'
+    echo 'Atalhos manuais nao sao rastreados nem removidos pelo desinstalador.'
     echo 'Nenhum arquivo de atalhos externo foi modificado.'
 fi
 echo 'Depois da instalacao, pressione Print para testar o acionamento REAL.'
