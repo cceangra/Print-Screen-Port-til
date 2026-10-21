@@ -30,15 +30,19 @@ def call(*args):
     return result
 
 def get(prop=PROPERTY):
+    # Consultar a lista, e nao o texto de erros traduzidos por locale.
+    executable = shutil.which('xfconf-query')
+    if not executable:
+        raise RuntimeError('xfconf-query indisponivel.')
+    listed = subprocess.run([executable, '-c', CHANNEL, '-l'],
+                            capture_output=True, text=True, timeout=8, check=False)
+    if listed.returncode:
+        raise RuntimeError('Falha consultando canal Xfce: ' + listed.stderr.strip())
+    if prop not in listed.stdout.splitlines():
+        return None
     result = call(prop)
     if result.returncode:
-        # Somente status sem texto e interpretado como propriedade ausente.
-        # Nao confundir falhas do servico xfconfd com ausencia do registro.
-        message = (result.stderr or result.stdout).casefold()
-        if ('does not exist' in message or 'does not exist on channel' in message
-                or 'doesn\'t exist' in message):
-            return None
-        raise RuntimeError('Erro ao consultar atalho Xfce: ' + (result.stderr or result.stdout).strip())
+        raise RuntimeError('Falha lendo tecla Print do Xfce: ' + result.stderr.strip())
     return result.stdout.strip()
 
 def set_key(command, existed):
