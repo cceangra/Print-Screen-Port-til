@@ -187,7 +187,10 @@ def repair(base, command):
     print('Pressione Print para testar.')
     return True
 
-def install(base, command):
+def install(base, command, key='Print'):
+    # Tecla validada por X11 no instalador. Chamadas antigas continuam Print.
+    if key not in ('Print', 'Sys_Req'):
+        raise ValueError('Tecla nao reconhecida como Print Screen pelo X11.')
     statepath=base/'config/atalho-state.json'
     if statepath.exists():
         try:
@@ -273,7 +276,7 @@ def install(base, command):
         f'[{root}Actions0]\nCommandURL={action}\nType=COMMAND_URL\n\n'
         f'[{root}Conditions]\nComment=\nConditionsCount=0\n\n'
         f'[{root}Triggers]\nComment=Simple_action\nTriggersCount=1\n\n'
-        f'[{root}Triggers0]\nKey=Print\nType=SHORTCUT\nUuid={{{uuid.uuid4()}}}\n\n'
+        f'[{root}Triggers0]\nKey={key}\nType=SHORTCUT\nUuid={{{uuid.uuid4()}}}\n\n'
     )
     updated=updated.rstrip('\n')+'\n\n'+created
     (base/'backups').mkdir(parents=True,exist_ok=True)
@@ -292,6 +295,7 @@ def install(base, command):
     # Se a sessao cair na metade da escrita externa, o desinstalador sabera reverter.
     state['status']='prepared'
     state['launcher']=str(command)
+    state['key']=key
     state['created_sections']=list(parse(created).keys())
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
     if not check_unchanged(original):
@@ -341,6 +345,11 @@ def remove(base):
                 return True
         print('Atalho mudou ou houve interrupcao ambigua.')
         print('Nada externo foi apagado. Verifique backups/khotkeysrc.antes.')
+        return False
+    # Nao remover um atalho que foi alterado pelo usuario apos o registro.
+    current_key=get_value(sections.get(root+'Triggers0',''),'Key')
+    if current_key!=state.get('key','Print'):
+        print('A tecla original foi modificada; preservando atalho e backup.')
         return False
     ours_action=sections.get(root+'Actions0','')
     launcher=state.get('launcher')
@@ -406,6 +415,7 @@ def main():
     parser.add_argument('command',choices=('install','remove','repair','inspect'))
     parser.add_argument('--base',required=True,type=Path)
     parser.add_argument('--launcher',type=Path)
+    parser.add_argument('--key',choices=('Print','Sys_Req'),default='Print')
     args=parser.parse_args()
     if os.geteuid()==0:
         raise SystemExit('Nao execute como root.')
@@ -415,7 +425,7 @@ def main():
         for entry in conflicts(text): print(entry)
     elif args.command=='install':
         if args.launcher is None: parser.error('--launcher obrigatorio')
-        install(base,args.launcher.resolve())
+        install(base,args.launcher.resolve(),key=args.key)
     elif args.command=='repair':
         if args.launcher is None: parser.error('--launcher obrigatorio')
         if not repair(base,args.launcher.resolve()): raise SystemExit(1)
