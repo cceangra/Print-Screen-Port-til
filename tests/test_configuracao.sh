@@ -48,4 +48,15 @@ cp "$TEMP/app5/config-before" "$TEMP/app5/config/opcoes.conf"
 printf '\ns\n\ns\n' | bash "$TEMP/app5/configurar.sh"
 grep -Fx "save_dir=$TEMP/minhas imagens anteriores" "$TEMP/app5/config/opcoes.conf"
 grep -Fx 'copy_clipboard=0' "$TEMP/app5/config/opcoes.conf"
+echo '[6] Nao escrever em configuracao apontando para pasta externa'
+mkdir -p "$TEMP/app6" "$TEMP/externa-app6"
+cp "$ROOT/configurar.sh" "$TEMP/app6/"
+printf 'DOCUMENTO INTACTO\n' > "$TEMP/externa-app6/pessoal.txt"
+ln -s -- "$TEMP/externa-app6" "$TEMP/app6/config"
+if bash "$TEMP/app6/configurar.sh"; then
+  echo 'ERRO: permitiu configuracao simbolica externa.'; exit 1
+fi
+test ! -e "$TEMP/externa-app6/opcoes.conf"
+test "$(cat "$TEMP/externa-app6/pessoal.txt")" = 'DOCUMENTO INTACTO'
+
 echo 'OK: diretório interno/externo, Ctrl+V, caminhos e cancelamento testados.'
