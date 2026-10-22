@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Teste de instalacao portatil com pasta unica, sem instalar bibliotecas.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 trap 'rm -rf -- "$TEMP"' EXIT
@@ -14,7 +15,7 @@ make_source() {
     mkdir -p -- "$d"
     cp -a -- "$ROOT/instalar.sh" "$ROOT/iniciar.sh" "$ROOT/desinstalar.sh" \
       "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/configurar.sh" "$ROOT/configurar-tecla.sh" \
-      "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
+      "$ROOT/i18n" "$ROOT/src" "$ROOT/scripts" "$ROOT/bin" "$d/"
     # Simular ZIP que perdeu bit de execucao, como ocorreu no Q4OS.
     chmod 644 "$d/iniciar.sh"
 }
@@ -36,6 +37,7 @@ test "$(sed -n '2p' "$TEMP/origem1/.print-rc-installation")" = "$TEMP/origem1"
 echo '[2] Movendo a pasta inteira para um destino com espacos'
 make_source "$TEMP/origem2"
 FINAL="$TEMP/pasta final/Print RC"
+mkdir -p "$TEMP/pasta final"
 printf '%s\ns\n\n\ns\nn\n' "$FINAL" | bash "$TEMP/origem2/instalar.sh"
 test ! -e "$TEMP/origem2"
 test -x "$FINAL/bin/print-rc"
@@ -243,3 +245,41 @@ test -f "$TEMP/origem13/.print-rc-installation"
 grep -F 'cancelada com Esc' "$TEMP/teste13.log"
 
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
+
+echo '[14] Estado externo preparado em falha fica registrado e pode ser desinstalado'
+make_source "$TEMP/origem14"
+export PRINT_RC_TEST_EXTERNAL="$TEMP/owned-external14.txt"
+cat > "$TEMP/origem14/scripts/atalho.py" <<'PY'
+import json,os,sys
+from pathlib import Path
+base=Path(sys.argv[sys.argv.index('--base')+1]);state=base/'config/atalho-state.json';external=Path(os.environ['PRINT_RC_TEST_EXTERNAL'])
+if sys.argv[1]=='install':
+    external.write_text('owned test integration')
+    state.write_text(json.dumps({'backend':'trinity','file':str(external),'key':'Insert','status':'prepared'}))
+    raise SystemExit(43)
+if sys.argv[1]=='remove':
+    assert external.read_text()=='owned test integration'
+    external.unlink();state.unlink()
+PY
+cp -- "$TEMP/origem9/bin/print-rc" "$TEMP/origem14/bin/print-rc"
+if printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem14/instalar.sh"; then
+    echo 'ERROR: failed external transaction reported successful installation';exit 1
+fi
+test -f "$TEMP/origem14/.print-rc-installation"
+grep -F 'config/atalho-state.json' "$TEMP/origem14/config/arquivos-instalados.sha256"
+python3 - "$TEMP/origem14/config/installation-manifest.json" <<'PY'
+import json,sys
+value=json.load(open(sys.argv[1]));assert value['ready'] is False
+assert value['state']=='FILES_CONFIGURED' and value['external_files']
+PY
+printf 'UNINSTALL\n' | bash "$TEMP/origem14/desinstalar.sh"
+test ! -e "$PRINT_RC_TEST_EXTERNAL"
+test ! -e "$TEMP/origem14"
+
+echo '[15] Nao criar pastas pais externas sem registro'
+make_source "$TEMP/origem15"
+if printf '%s\ns\n' "$TEMP/uncreated-parent/Print-RC" | bash "$TEMP/origem15/instalar.sh"; then
+    echo 'ERROR: installer created an external parent folder';exit 1
+fi
+test ! -e "$TEMP/uncreated-parent"
+test -f "$TEMP/origem15/instalar.sh"

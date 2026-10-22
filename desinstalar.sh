@@ -1,38 +1,40 @@
 #!/usr/bin/env bash
 # Print RC - remocao seletiva; NUNCA remove capturas nem dados pessoais.
 set -Eeuo pipefail
-[[ $EUID -ne 0 ]] || { echo 'Nao execute com sudo/root.'; exit 1; }
+PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
+source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
+[[ $EUID -ne 0 ]] || { prc_message shell.217; exit 1; }
 
-BASE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+BASE="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 MARKER="$BASE/.print-rc-installation"
 if [[ ! -f "$MARKER" || -L "$MARKER" ]]; then
-    echo 'Instalacao nao reconhecida. Nao vou remover arquivos.'; exit 2
+    prc_message shell.218; exit 2
 fi
 mapfile -t marker < "$MARKER"
 if [[ ${marker[0]:-} != PRINT-RC || ${marker[1]:-} != "$BASE" ]]; then
-    echo 'Pasta difere do registro de instalacao. Nada foi removido.'; exit 2
+    prc_message shell.219; exit 2
 fi
 case "$BASE" in
     /|"$HOME"|/home|/usr|/usr/local|/tmp|/var)
-        echo 'Destino protegido. Nao vou remover arquivos.'; exit 2;;
+        prc_message shell.220; exit 2;;
 esac
 
 # Um diretorio simbolico poderia apontar para dados externos. Recusar.
 for dir in bin config backups capturas src scripts tests .github .github/workflows; do
     if [[ -L "$BASE/$dir" ]]; then
-        echo "ATENCAO: caminho simbolico inesperado: $BASE/$dir"
-        echo 'Remocao bloqueada para preservar arquivos externos.'
+        prc_message shell.221 "$BASE" "$dir"
+        prc_message shell.222
         exit 2
     fi
 done
 STATE="$BASE/config/atalho-state.json"
 STATE_XFCE="$BASE/config/atalho-xfce.json"
 if [[ -L "$STATE_XFCE" ]]; then
-    echo 'Registro Xfce e um link simbolico inesperado. Remocao bloqueada.'
+    prc_message shell.223
     exit 2
 fi
 if [[ -L "$STATE" ]]; then
-    echo 'Registro do atalho e link simbolico. Remocao bloqueada.'
+    prc_message shell.224
     exit 2
 fi
 TRINITY_HOME="${TDEHOME:-$HOME/.trinity}"
@@ -46,37 +48,44 @@ if [[ -f "$OPTIONS" && ! -L "$OPTIONS" ]]; then
 fi
 
 echo '======================================================'
-echo '          DESINSTALAR PRINT RC - SEGURO'
+prc_message shell.225
 echo '======================================================'
-echo "Aplicativo instalado em: $BASE"
+prc_message shell.226 "$BASE"
+if [[ -f "$BASE/scripts/lifecycle.py" && ! -L "$BASE/scripts/lifecycle.py" ]]; then
+    python3 -B "$BASE/scripts/lifecycle.py" external-summary --base "$BASE" || exit 2
+fi
 echo
-echo '1. Remove SOMENTE os arquivos conhecidos do Print RC.'
-echo '2. Desfaz somente a atribuicao Print feita pelo Print RC.'
-echo '3. NUNCA exclui prints, PNG, JPG ou arquivos pessoais.'
-echo '4. Pastas com imagens ou arquivos desconhecidos ficam no disco.'
+prc_message shell.227
+prc_message shell.228
+prc_message shell.229
+prc_message shell.230
 if [[ -n "$IMAGE_DIR" ]]; then
-    echo "Pasta de imagens registrada: $IMAGE_DIR"
-    echo 'ESSA PASTA E SUAS IMAGENS NAO SERAO APAGADAS.'
+    prc_message shell.231 "$IMAGE_DIR"
+    prc_message shell.232
 fi
 if [[ -f "$STATE_XFCE" ]]; then
-    echo 'Atalho Xfce a restaurar: /commands/custom/Print (xfce4-keyboard-shortcuts)'
-    echo 'O Xfce pode gravar essa preferencia em ~/.config/xfce4/.'
+    prc_message shell.233
+    prc_message shell.234
 fi
 if [[ -f "$STATE" ]]; then
-    echo "Atalho externo a restaurar: $EXTERNAL"
-    echo 'Arquivo preexistente: preservar; arquivo criado: remover somente se seguro.'
-else
-    echo 'Nao ha atalho global registrado por esta instalacao.'
-    echo 'Atalhos registrados MANUALMENTE devem ser retirados pelo proprio usuario.'
+    prc_message shell.235 "$EXTERNAL"
+    prc_message shell.236
+elif [[ ! -f "$STATE_XFCE" ]]; then
+    prc_message shell.237
+    prc_message shell.238
 fi
 echo
-echo 'IMPORTANTE: se imagens estiverem DENTRO da pasta do app,'
-echo 'a pasta continuara existindo, apenas com os dados preservados.'
-echo 'Processos executando este Print RC poderao ser encerrados:'
-echo 'isso libera o programa para remocao, mas invalida clipboard ainda ativo.'
+prc_message shell.239
+prc_message shell.240
+prc_message shell.241
+prc_message shell.242
 echo '======================================================'
-read -r -p 'Digite DESINSTALAR para confirmar (nenhuma imagem sera apagada): ' response || true
-[[ "$response" == DESINSTALAR ]] || { echo 'Cancelado sem mudancas.'; exit 1; }
+read -r -p "$(prc_text shell.243)" response || true
+[[ "$response" == DESINSTALAR || "$response" == UNINSTALL ]] || { prc_message shell.244; exit 1; }
+
+if [[ -f "$BASE/scripts/lifecycle.py" && ! -L "$BASE/scripts/lifecycle.py" ]]; then
+    python3 -B "$BASE/scripts/lifecycle.py" verify --base "$BASE" || exit 2
+fi
 
 # Encerrar somente processos deste executavel instalado, NUNCA processos de
 # outros programas ou de outra copia do Print RC. Sem kill -9.
@@ -90,7 +99,7 @@ for proc_exe in /proc/[0-9]*/exe; do
     pid="${proc_exe#/proc/}"
     pid="${pid%%/*}"
     [[ -O "/proc/$pid" ]] || continue
-    echo "Encerrando somente Print RC instalado nesta pasta (PID $pid)."
+    prc_message shell.245 "$pid"
     kill -TERM -- "$pid" 2>/dev/null || continue
     for attempt in {1..20}; do
         if [[ "$(readlink -f -- "$proc_exe" 2>/dev/null || true)" != "$BASE/bin/print-rc" ]]; then
@@ -99,7 +108,7 @@ for proc_exe in /proc/[0-9]*/exe; do
         sleep 0.1
     done
     if [[ "$(readlink -f -- "$proc_exe" 2>/dev/null || true)" == "$BASE/bin/print-rc" ]]; then
-        echo 'Este processo ainda nao encerrou. Desinstalacao interrompida sem apagar arquivos.'
+        prc_message shell.246
         exit 1
     fi
 done
@@ -108,30 +117,30 @@ done
 # remover os respectivos registros. Nunca apagar atalhos configurados a mao.
 if [[ -f "$STATE_XFCE" ]]; then
     command -v python3 >/dev/null 2>&1 || {
-        echo 'Python3 ausente: remocao do atalho Xfce e do app cancelada.'
+        prc_message shell.247
         exit 1
     }
     if [[ ! -f "$BASE/scripts/atalho_xfce.py" || -L "$BASE/scripts/atalho_xfce.py" ]]; then
-        echo 'Integrador Xfce ausente/inseguro. Nada sera apagado.'
+        prc_message shell.248
         exit 1
     fi
-    python3 "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || {
-        echo 'Nao foi possivel restaurar atalho Xfce. Programa preservado.'
+    python3 -B "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || {
+        prc_message shell.249
         exit 1
     }
 fi
 if [[ -f "$STATE" ]]; then
     command -v python3 >/dev/null 2>&1 || {
-        echo 'Python3 nao disponivel. Programa e imagens preservados.'
+        prc_message shell.250
         exit 1
     }
     if [[ ! -f "$BASE/scripts/atalho.py" || -L "$BASE/scripts/atalho.py" ]]; then
-        echo 'Integrador de atalhos ausente/inseguro. Nao vou apagar o app.'
+        prc_message shell.251
         exit 1
     fi
-    python3 "$BASE/scripts/atalho.py" remove --base "$BASE" || {
-        echo 'Nao foi possivel restaurar a tecla com seguranca.'
-        echo 'Programa, imagens e backup foram preservados.'
+    python3 -B "$BASE/scripts/atalho.py" remove --base "$BASE" || {
+        prc_message shell.252
+        prc_message shell.253
         exit 1
     }
 fi
@@ -140,13 +149,13 @@ fi
 # Se um arquivo mudou (ou foi substituido por foto/documento), permanece intocado.
 MANIFEST="$BASE/config/arquivos-instalados.sha256"
 if [[ ! -f "$MANIFEST" || -L "$MANIFEST" ]]; then
-    echo 'SEM INVENTARIO CONFIAVEL: nenhum arquivo local sera apagado.'
-    echo 'O atalho foi tratado acima. Seus arquivos e imagens foram preservados.'
-    echo 'Em instalacoes antigas sem inventario, a limpeza de arquivos exige revisao manual.'
+    prc_message shell.254
+    prc_message shell.255
+    prc_message shell.256
     exit 2
 fi
 if [[ ! -f "$BASE/scripts/inventario.sh" || -L "$BASE/scripts/inventario.sh" ]]; then
-    echo 'Lista de arquivos conhecidos nao existe ou nao e segura. Nada local removido.'
+    prc_message shell.257
     exit 2
 fi
 source "$BASE/scripts/inventario.sh"
@@ -167,8 +176,8 @@ for rel in "${PRINT_RC_KNOWN[@]}"; do
 done
 for dir in "${!KNOWN_DIRS[@]}"; do
     if [[ -L "$BASE/$dir" ]]; then
-        echo "Diretorio conhecido virou link simbolico: $BASE/$dir"
-        echo 'Remocao interrompida antes de apagar arquivos locais.'
+        prc_message shell.258 "$BASE" "$dir"
+        prc_message shell.259
         exit 2
     fi
 done
@@ -176,45 +185,45 @@ done
 while IFS=$'\t' read -r checksum rel || [[ -n "${checksum:-}${rel:-}" ]]; do
     [[ -z "${checksum:-}" && -z "${rel:-}" ]] && continue
     if [[ ! "$checksum" =~ ^[[:xdigit:]]{64}$ || ! -v 'ALLOWED[$rel]' || -v 'EXPECTED[$rel]' ]]; then
-        echo "Inventario invalido. Nada local removido: $rel"
+        prc_message shell.260 "$rel"
         exit 2
     fi
     EXPECTED["$rel"]="$checksum"
 done < "$MANIFEST"
 if [[ ! -v 'EXPECTED[desinstalar.sh]' || ! -v 'EXPECTED[.print-rc-installation]' ]]; then
-    echo 'Inventario incompleto. Nada local removido.'
+    prc_message shell.261
     exit 2
 fi
 
 for rel in "${PRINT_RC_KNOWN[@]}"; do
     file="$BASE/$rel"
     if [[ -L "$file" ]]; then
-        echo "LINK SIMBOLICO PRESERVADO (nao pertence ao app): $file"
+        prc_message shell.262 "$file"
         continue
     fi
     if [[ ! -f "$file" ]]; then continue; fi
     if [[ ! -v 'EXPECTED[$rel]' ]]; then
-        echo "ARQUIVO SEM REGISTRO PRESERVADO: $file"
+        prc_message shell.263 "$file"
         continue
     fi
     if ! current="$(sha256sum -- "$file")"; then
-        echo "Falha ao verificar hash de $file; arquivo preservado."
+        prc_message shell.264 "$file"
         continue
     fi
     current="${current%% *}"
     if [[ "$current" != "${EXPECTED[$rel]}" ]]; then
-        echo "ARQUIVO MODIFICADO PELO USUARIO - PRESERVADO: $file"
+        prc_message shell.265 "$file"
         continue
     fi
     rm -- "$file" || {
-        echo "Falha ao remover arquivo original: $file"
-        echo 'Imagens e outros arquivos pessoais seguem preservados.'
+        prc_message shell.266 "$file"
+        prc_message shell.267
         exit 1
     }
 done
 
 # Este inventario tambem pertence ao Print RC e fica somente dentro da pasta.
-rm -- "$MANIFEST" || { echo 'Inventario nao pode ser removido.'; exit 1; }
+rm -- "$MANIFEST" || { prc_message shell.268; exit 1; }
 
 # Apagar SOMENTE diretorios conhecidos e VAZIOS, dos mais profundos
 # para os pais. Isso inclui .github, tests e novos caminhos da lista fixa.
@@ -231,14 +240,14 @@ cd -- "$HOME"
 rmdir -- "$BASE" 2>/dev/null || true
 if [[ -d "$BASE" ]]; then
     echo
-    echo "ARQUIVOS PRESERVADOS EM: $BASE"
-    echo 'A pasta nao foi excluida porque ainda contem dados.'
+    prc_message shell.269 "$BASE"
+    prc_message shell.270
 else
-    echo 'Pasta do app removida porque estava vazia.'
+    prc_message shell.271
 fi
 if [[ -n "$IMAGE_DIR" && "$IMAGE_DIR" != "$BASE/"* ]]; then
-    echo "IMAGENS EXTERNAS PRESERVADAS: $IMAGE_DIR"
+    prc_message shell.272 "$IMAGE_DIR"
 fi
-echo 'Atalho Print RC removido quando gerenciado por esta instalacao.'
-echo 'Se necessario, saia e entre novamente no desktop para atualizar os atalhos.'
-echo 'O ZIP baixado fora da instalacao nao foi modificado nem removido.'
+prc_message shell.273
+prc_message shell.274
+prc_message shell.275

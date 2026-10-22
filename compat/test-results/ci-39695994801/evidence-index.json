@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "scope": "Historical development-candidate evidence, not release acceptance or actual Zorin/Q4OS verification",
+  "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+  "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+  "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+  "files": {
+    "Print-RC-linux-x86_64-glibc.zip.sha256": "85ea9b66acfc1899c5e84185e40a2e61e939bcdbc578752079f46d2eaa36abef",
+    "binary-sha256.txt": "4ec0054fe0a56d23f1a79695948bc7ce3aa0c29f19fbf07efbcf0dd8c3b916da",
+    "build-manifest.json": "4e7529bda52558dff2681a718dd43ed02085a8fa3fe4139a40c8f669515c19f7",
+    "legacy-build-id.txt": "a77dc64029ca535cf23c72ccbb1c9d4fd92c1c12a1776447101783a5d413c049",
+    "legacy-gdb.log": "2e77338d5040ffa84db707dcb43dfac2d95a3fdf93bc76664bf3664d25e2b0d6",
+    "legacy-result.txt": "30d73444b76cd3a2903ab4defff770648b39b603ec9280b36df98189348da97e",
+    "libc.txt": "2c6c80f81a99db1604b04e9bb1bef2e7e215b2322cd3e465b70f05ad2a9e8896",
+    "original-dynamic-result.txt": "aa7c3a23d1d07289168ec5e5c3303c680b45df9b9f56530b14373020da8accc5",
+    "os-release.txt": "594d5ddd35aedb47f00d9c34d140017907a5b9f93c975aba125fc924daac5c07",
+    "shortcut-proof.log": "95ff00069db17390dfe4b4a7e5f808c9b52cbed498865379cc7d916c25cf29d0",
+    "xfce-result.txt": "293f3f476ddeef6891ad2e8660c1ab6847a66053f92b86220dbf46c33c2d92db"
+  }
+}

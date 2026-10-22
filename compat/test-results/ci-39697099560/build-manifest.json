@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "version": "0.6.0-dev",
+  "git_commit": "bb4e90a33e8f6c72d9d7ea66785002e84d6a7fe9",
+  "source_dirty": false,
+  "source_date_epoch": 1792627266,
+  "architecture": "x86_64",
+  "libc_family": "glibc",
+  "backend": "x11",
+  "builder_os": "NAME=\"Ubuntu\"\nVERSION=\"20.04.6 LTS (Focal Fossa)\"\nID=ubuntu\nID_LIKE=debian\nPRETTY_NAME=\"Ubuntu 20.04.6 LTS\"\nVERSION_ID=\"20.04\"\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nVERSION_CODENAME=focal\nUBUNTU_CODENAME=focal\n",
+  "builder_libc": "glibc 2.31",
+  "compiler": "g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0\nCopyright (C) 2019 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "linker": "GNU ld (GNU Binutils for Ubuntu) 2.34\nCopyright (C) 2020 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.",
+  "build_flags": "-O2 -pipe -std=c++17 -Wall -Wextra -Wpedantic",
+  "abi_ceiling": {
+    "GLIBC": "2.31",
+    "GLIBCXX": "3.4.28"
+  },
+  "locales": [
+    "en-US",
+    "pt-BR"
+  ],
+  "binaries": [
+    {
+      "file": "print-rc",
+      "sha256": "1a64c3eb55f5178323ae4effb2769d074b2f315a475a352f34f46300265a166e",
+      "bytes": 96576,
+      "machine": "Advanced Micro Devices X86-64",
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "build_id": "36cd132eba8dd3f581c1c0928bde578ee8745afa",
+      "needed": [
+        "libX11.so.6",
+        "libpng16.so.16",
+        "libstdc++.so.6",
+        "libgcc_s.so.1",
+        "libc.so.6"
+      ],
+      "symbol_requirements": {
+        "GLIBC": "2.15",
+        "GLIBCXX": "3.4.26",
+        "CXXABI": "1.3.9"
+      }
+    },
+    {
+      "file": "print-rc-launcher",
+      "sha256": "32ef1b7f627daeb02c8dc979c16bb38da16d5cdef9a8f83b23cdca49661bc074",
+      "bytes": 31032,
+      "machine": "Advanced Micro Devices X86-64",
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "build_id": "96525be85ae8eada270c59ca4a69220bc210405e",
+      "needed": [
+        "libstdc++.so.6",
+        "libgcc_s.so.1",
+        "libc.so.6"
+      ],
+      "symbol_requirements": {
+        "GLIBC": "2.14",
+        "GLIBCXX": "3.4.21",
+        "CXXABI": "1.3"
+      }
+    }
+  ],
+  "desktop_acceptance": "PENDING: see compat/linux-targets.json"
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Executar em Xvfb. Testa encerramento seletivo de processo clipboard na desinstalacao.
 set -Eeuo pipefail
+export PRINT_RC_LANG=pt-BR
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 TEMP="$(mktemp -d)"
 PID=''
@@ -11,7 +12,7 @@ cleanup() {
 trap cleanup EXIT
 APP="$TEMP/Print-RC"
 mkdir -p "$APP/config" "$APP/capturas"
-cp -a "$ROOT/bin" "$ROOT/scripts" "$APP/"
+cp -a "$ROOT/bin" "$ROOT/scripts" "$ROOT/i18n" "$APP/"
 cp "$ROOT/desinstalar.sh" "$ROOT/iniciar.sh" "$APP/"
 printf 'PRINT-RC\n%s\n' "$APP" > "$APP/.print-rc-installation"
 printf 'save_dir=%s\ncopy_clipboard=1\n' "$APP/capturas" > "$APP/config/opcoes.conf"

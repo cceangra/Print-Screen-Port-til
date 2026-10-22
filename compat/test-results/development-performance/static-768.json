@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "label": "v0.5.6-static",
+  "test_kind": "Xvfb development benchmark, white root background",
+  "limitations": "Core binary only; no real desktop/shortcut or low-power hardware certification. PSS sampled every 5 ms; RSS/CPU from wait4. Startup includes a separate test-driver process. Clipboard idle sample is 200 ms, not a long-term endurance test. Null PSS/ticks means /proc access was unavailable; never treat it as zero memory/CPU.",
+  "environment": {
+    "os_release": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "architecture": "x86_64",
+    "libc": [
+      "glibc",
+      "2.39"
+    ],
+    "screen": [
+      1366,
+      768
+    ]
+  },
+  "binary_sha256": "d31d197a90e3133a54aac2b07ae2a51ebd1bd316f0459e4a6e6b5b854e0ebe7e",
+  "binary_bytes": 3641184,
+  "repetitions": 5,
+  "runs": [
+    {
+      "overlay_latency_ms": 168.32405700006348,
+      "capture_wall_ms": 299.0755299997545,
+      "cpu_seconds": 0.227761,
+      "peak_rss_kib": 13696,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 5875,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 65.9191469999314,
+      "capture_wall_ms": 176.2438839996321,
+      "cpu_seconds": 0.150542,
+      "peak_rss_kib": 13824,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 5875,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 69.19155900004625,
+      "capture_wall_ms": 214.94191400006457,
+      "cpu_seconds": 0.17355199999999998,
+      "peak_rss_kib": 13824,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 5875,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 66.94341999991593,
+      "capture_wall_ms": 171.60592500022176,
+      "cpu_seconds": 0.140423,
+      "peak_rss_kib": 13824,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 5875,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 66.15623600009712,
+      "capture_wall_ms": 199.93467699987377,
+      "cpu_seconds": 0.155906,
+      "peak_rss_kib": 13824,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 5875,
+      "processes_after_capture": 0
+    }
+  ],
+  "summary": {
+    "latency_median_ms": 199.93467699987377,
+    "latency_p95_ms": 299.0755299997545,
+    "peak_rss_kib": 13824,
+    "sampled_peak_pss_kib": null,
+    "median_cpu_seconds": 0.155906
+  },
+  "clipboard": {
+    "overlay_latency_ms": 67.7351610002006,
+    "capture_wall_ms": 377.4446870002066,
+    "cpu_seconds": 0.136766,
+    "peak_rss_kib": 13824,
+    "sampled_peak_pss_kib": null,
+    "png_bytes": 5875,
+    "processes_after_capture": 1,
+    "clipboard_pss_kib": null,
+    "clipboard_rss_kib": null,
+    "clipboard_idle_cpu_ticks_200ms": null
+  }
+}

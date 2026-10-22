@@ -1,0 +1,1 @@
+PASS: real xfsettingsd/xfconf Insert launch, nonce/render proof, PNG and restoration; Print preserved

@@ -1,29 +1,42 @@
 CXX ?= g++
 CXXFLAGS ?= -O2 -pipe -std=c++17 -Wall -Wextra -Wpedantic
 PKGS = x11 libpng
-CPPFLAGS := $(shell pkg-config --cflags $(PKGS))
-LDLIBS := $(shell pkg-config --libs $(PKGS))
-STATIC_LIBS := $(shell pkg-config --static --libs $(PKGS))
+CPPFLAGS += $(shell pkg-config --cflags $(PKGS))
+LDLIBS += $(shell pkg-config --libs $(PKGS))
+VERSION := $(shell cat VERSION)
+CPPFLAGS += -DPRINT_RC_VERSION=\"$(VERSION)\"
+HEADERS := $(shell find src -name '*.hpp')
 
-.PHONY: all portable clean test
-all: bin/print-rc
+.PHONY: all portable debug clean test locales
+all: locales Print-RC bin/print-rc bin/print-rc-launcher
 
-bin/print-rc: src/main.cpp src/settings.hpp
+locales:
+	python3 scripts/build/locales.py --check
+
+bin/print-rc: src/main.cpp $(HEADERS) Makefile
 	@mkdir -p bin
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) src/main.cpp -o $@ $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) src/main.cpp -o $@ $(LDFLAGS) $(LDLIBS)
 
-# Usado na distribuicao; nenhuma biblioteca dinamica exigida pelo ELF.
-# O servidor grafico X11 e o kernel continuam sendo requisitos do sistema.
-portable:
+bin/print-rc-launcher: src/app/launcher.cpp src/i18n/messages.hpp src/i18n/generated.hpp Makefile
 	@mkdir -p bin
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -static src/main.cpp -o bin/print-rc $(STATIC_LIBS)
-	strip bin/print-rc
+	$(CXX) $(CXXFLAGS) src/app/launcher.cpp -o $@ $(LDFLAGS)
+
+Print-RC: src/app/entrypoint.cpp src/i18n/messages.hpp src/i18n/generated.hpp Makefile
+	$(CXX) $(CXXFLAGS) src/app/entrypoint.cpp -o $@ $(LDFLAGS)
+
+# GNU portable packages deliberately use the host's dynamic glibc and loader.
+# ABI requirements are checked again when packaging; this is not universal Linux.
+portable: all
+	strip Print-RC bin/print-rc bin/print-rc-launcher
 	@file bin/print-rc
-	@! readelf -l bin/print-rc | grep -q INTERP
+	@readelf -l bin/print-rc | grep -q INTERP
+
+debug:
+	$(MAKE) -B all CXXFLAGS='-Og -g3 -fno-omit-frame-pointer -std=c++17 -Wall -Wextra -Wpedantic'
 
 test: bin/print-rc
 	./bin/print-rc --self-test
 	./bin/print-rc --version
 
 clean:
-	rm -f bin/print-rc
+	rm -f Print-RC bin/print-rc bin/print-rc-launcher

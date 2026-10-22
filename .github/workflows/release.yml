@@ -1,0 +1,56 @@
+name: Release after desktop acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing explicit version tag to build and publish
+        required: true
+        type: string
+      evidence_ref:
+        description: Commit or branch containing compat/test-results/<target>.json and hashed evidence for this exact ZIP
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      source_ref: ${{ inputs.tag }}
+  test:
+    needs: build
+    uses: ./.github/workflows/test.yml
+    with:
+      source_ref: ${{ inputs.tag }}
+  publish:
+    needs: [build, test]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.evidence_ref }}
+          path: acceptance
+      - uses: actions/download-artifact@v4
+        with:
+          name: gnu-x86_64-candidate
+          path: dist
+      - name: Refuse publication without exact tag, ABI and desktop evidence
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          test "$RELEASE_TAG" = "v$(cat VERSION)"
+          test "$(git rev-parse HEAD)" = "$(python3 -c 'import json; print(json.load(open("dist/build-manifest.json"))["git_commit"])')"
+          python3 scripts/build/release_gate.py --archive dist/Print-RC-linux-x86_64-glibc.zip --manifest dist/build-manifest.json --evidence-dir acceptance/compat/test-results
+      - name: Publish a new immutable-in-normal-operation release (never clobber assets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then echo 'Release already exists; refusing replacement'; exit 1; fi
+          gh release create "$RELEASE_TAG" dist/Print-RC-linux-x86_64-glibc.zip dist/Print-RC-linux-x86_64-glibc.zip.sha256 dist/build-manifest.json --verify-tag --title "Print RC $RELEASE_TAG" --notes-file docs/en-US/RELEASE.md

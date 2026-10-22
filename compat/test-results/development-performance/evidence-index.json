@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "scope": "Historical same-developer-host core benchmark cohorts, not Zorin/Q4OS or release acceptance",
+  "files": {
+    "dynamic-1080.json": "1e0ab2f01654ff4e942ef9418eaf23d9b3e630ae0db194b756500c104b895f92",
+    "dynamic-2160.json": "bc54d272cae1df9c226d930e2039185ad736ada91c1db201f90d92b2aa26438d",
+    "dynamic-768.json": "9e7755480fd68e131b7805e2c54195673329e8ea118410b1e5a7e684d6a23e35",
+    "perf-post-1080.json": "58bf976557b998ca2ec67bfbda57c24ba1b632172b4a6b69b11f1ab5bf023db8",
+    "perf-pre-1080.json": "7872fcef03716a360fe75ae1c848a74abebd84d398e63aaf30f38948bccaca9d",
+    "perf-static-1080.json": "85bf2744837dbbab895819897d1169b5fab2f33996c020396b2030c4d6a51f65",
+    "static-1080.json": "799f724c7925ed71303e8a71934dff5bacf0ca0b83f16a326c211c1b4b1275dd",
+    "static-2160.json": "4b627e249d2e6d1144c46a1f549afd438feb7f35222ac319abaf2d9bee9c31b9",
+    "static-768.json": "42b5adc3bafa19510ca48901e2ae2f71e824d6142e3893a8fd61634caf502fcd"
+  }
+}

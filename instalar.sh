@@ -1,76 +1,77 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-LC_ALL=C
+PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
+source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
 
 if [[ ${EUID} -eq 0 ]]; then
-    echo 'Execute como usuario, sem sudo.'
+    prc_message shell.001
     exit 1
 fi
 
-source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source_dir="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 
 # Nao seguir links inesperados que possam escapar da pasta portatil.
 # Executar essa verificacao TAMBEM apos mover a pasta (--continuar).
 for relative in \
-    bin bin/print-rc config config/opcoes.conf \
-    config/atalho-state.json config/arquivos-instalados.sha256 \
+    Print-RC bin bin/print-rc config config/opcoes.conf \
+    config/atalho-state.json config/atalho-xfce.json config/arquivos-instalados.sha256 config/installation-manifest.json \
     backups backups/khotkeysrc.antes capturas scripts \
     scripts/inventario.sh scripts/atalho.py \
     .print-rc-installation iniciar.sh configurar.sh desinstalar.sh; do
     if [[ -L "$source_dir/$relative" ]]; then
-        echo "ATENCAO: link simbolico nao esperado: $source_dir/$relative"
-        echo 'Instalacao recusada: nao escreveremos em diretorios/arquivos externos.'
+        prc_message shell.002 "$source_dir" "$relative"
+        prc_message shell.003
         exit 2
     fi
 done
 
 echo '========================================'
-echo '     PRINT RC — INSTALACAO PORTATIL'
-echo '          PASTA UNICA / X11'
+prc_message shell.004
+prc_message shell.005
 echo '========================================'
-echo 'Nao instala pacotes; nao chama apt; nao compila.'
-echo 'O binario e as bibliotecas necessarias estao juntos no pacote.'
-echo 'Requer Linux X11; integra atalhos no Trinity ou Xfce quando disponivel.'
+prc_message shell.006
+prc_message shell.007
+prc_message shell.008
 echo
 
-[[ "${XDG_SESSION_TYPE:-x11}" == x11 ]] || { echo 'Esta versao requer uma sessao X11.'; exit 2; }
-[[ "$(uname -m)" == x86_64 ]] || { echo 'Este pacote foi compilado para Linux x86_64.'; exit 2; }
+[[ "${XDG_SESSION_TYPE:-x11}" == x11 ]] || { prc_message shell.009; exit 2; }
+[[ "$(uname -m)" == x86_64 ]] || { prc_message shell.010; exit 2; }
 [[ -x "$source_dir/bin/print-rc" ]] || {
-    echo 'ERRO: executavel bin/print-rc ausente!'
-    echo 'Baixe o ZIP ATUALIZADO com binario integrado, e nao a antiga versao de fonte.'
-    echo 'Nenhuma pasta foi criada ou movida.'
+    prc_message shell.011
+    prc_message shell.012
+    prc_message shell.013
     exit 2
 }
 "$source_dir/bin/print-rc" --self-test || {
-    echo 'O executavel deste pacote nao passou no teste. Nenhuma pasta foi movida.'
+    prc_message shell.014
     exit 2
 }
 
 if [[ "${1:-}" != '--continuar' ]]; then
     echo
-    echo "Pasta extraida: $source_dir"
-    read -r -p 'Destino (Enter = manter tudo nesta pasta): ' target || true
+    prc_message shell.015 "$source_dir"
+    read -r -p "$(prc_text shell.016)" target || true
     target="${target:-$source_dir}"
     if [[ "$target" == "~/"* ]]; then target="$HOME/${target:2}"; fi
     if [[ "$target" == "~" ]]; then target="$HOME"; fi
     [[ "$target" != *$'\n'* && "$target" != *$'\r'* ]] || {
-        echo 'Destino invalido.'; exit 2;
+        prc_message shell.017; exit 2;
     }
     dest="$(realpath -m -- "$target")"
     case "$dest" in
         /|"$HOME"|/home|/usr|/usr/local|/tmp|/var)
-            echo 'Destino amplo demais. Selecione uma subpasta exclusiva.'; exit 2;;
+            prc_message shell.018; exit 2;;
     esac
     if [[ "$dest" != "$source_dir" ]]; then
         case "$dest/" in "$source_dir/"*)
-            echo 'O destino nao pode estar dentro da pasta original.'; exit 2;;
+            prc_message shell.019; exit 2;;
         esac
         case "$source_dir/" in "$dest/"*)
-            echo 'A pasta extraida nao pode estar dentro do destino escolhido.'; exit 2;;
+            prc_message shell.020; exit 2;;
         esac
         if [[ -e "$dest" || -L "$dest" ]]; then
             [[ -d "$dest" && ! -L "$dest" ]] || {
-                echo 'Destino ja existe e nao e uma pasta comum. Nenhuma mudanca.'; exit 2;
+                prc_message shell.021; exit 2;
             }
             # Reinstalacao apos desinstalar: o destino pode conter capturas pessoais.
             # Verificar TODOS os caminhos antes de mover qualquer arquivo.
@@ -81,23 +82,23 @@ if [[ "${1:-}" != '--continuar' ]]; then
                 if [[ -d "$item" && ! -L "$item" ]]; then
                     if [[ -e "$target_path" || -L "$target_path" ]]; then
                         [[ -d "$target_path" && ! -L "$target_path" ]] || {
-                            echo "CONFLITO: $target_path (arquivo do usuario preservado)."
-                            echo 'Reinstalacao cancelada sem mover arquivos.'; exit 2;
+                            prc_message shell.022 "$target_path"
+                            prc_message shell.023; exit 2;
                         }
                     fi
                 else
                     if [[ -e "$target_path" || -L "$target_path" ]]; then
-                        echo "CONFLITO: $target_path (arquivo existente preservado)."
-                        echo 'Reinstalacao cancelada sem mover arquivos.'; exit 2;
+                        prc_message shell.024 "$target_path"
+                        prc_message shell.023; exit 2;
                     fi
                 fi
             done
-            echo "REINSTALAR em pasta EXISTENTE preservando dados: $dest"
-            echo 'O Print RC NAO sobrescrevera, movera ou excluira capturas anteriores.'
-            echo 'Somente novos arquivos do aplicativo serao acrescentados.'
-            read -r -p 'Confirma reinstalacao sem sobrescrever arquivos? [s/N]: ' conf || true
-            [[ "${conf,,}" == s || "${conf,,}" == sim ]] || {
-                echo 'Cancelado; nenhuma mudanca.'; exit 1;
+            prc_message shell.025 "$dest"
+            prc_message shell.026
+            prc_message shell.027
+            read -r -p "$(prc_text shell.028)" conf || true
+            [[ "${conf,,}" == s || "${conf,,}" == sim || "${conf,,}" == y || "${conf,,}" == yes ]] || {
+                prc_message shell.029; exit 1;
             }
             for item in "${contents[@]}"; do
                 rel="${item#"$source_dir"/}"
@@ -106,13 +107,13 @@ if [[ "${1:-}" != '--continuar' ]]; then
                     mkdir -p -- "$target_path"
                 else
                     if [[ -e "$target_path" || -L "$target_path" ]]; then
-                        echo "CONFLITO SURGIU DURANTE A REINSTALACAO: $target_path"
-                        echo 'Processo interrompido. Nenhum arquivo existente foi sobrescrito.'
+                        prc_message shell.030 "$target_path"
+                        prc_message shell.031
                         exit 2
                     fi
                     mv -n -- "$item" "$target_path"
                     [[ ! -e "$item" && ! -L "$item" ]] || {
-                        echo "Falha ao mover $item. Arquivos pessoais continuam preservados."
+                        prc_message shell.032 "$item"
                         exit 2
                     }
                 fi
@@ -121,16 +122,19 @@ if [[ "${1:-}" != '--continuar' ]]; then
             exec bash "$dest/instalar.sh" --continuar
         fi
         echo
-        echo "MOVER A PASTA INTEIRA: $source_dir"
-        echo "PARA: $dest"
-        echo 'A pasta antiga nao sera mantida nem copiada.'
-        read -r -p 'Confirma a movimentacao? [s/N]: ' conf || true
-        [[ "${conf,,}" == s || "${conf,,}" == sim ]] || {
-            echo 'Cancelado, sem movimentacao.'; exit 0;
+        prc_message shell.033 "$source_dir"
+        prc_message shell.034 "$dest"
+        prc_message shell.035
+        read -r -p "$(prc_text shell.036)" conf || true
+        [[ "${conf,,}" == s || "${conf,,}" == sim || "${conf,,}" == y || "${conf,,}" == yes ]] || {
+            prc_message shell.037; exit 0;
         }
-        mkdir -p -- "$(dirname -- "$dest")"
+        # Do not create untracked parent directories outside the application.
+        [[ -d "$(dirname -- "$dest")" ]] || {
+            prc_message shell.parent_missing "$(dirname -- "$dest")";exit 2;
+        }
         mv -- "$source_dir" "$dest" || {
-            echo 'Nao foi possivel mover. Confira os caminhos.'
+            prc_message shell.038
             exit 2
         }
         exec bash "$dest/instalar.sh" --continuar
@@ -138,17 +142,18 @@ if [[ "${1:-}" != '--continuar' ]]; then
 fi
 
 dest="$source_dir"
+if [[ -f "$dest/Print-RC" && ! -L "$dest/Print-RC" ]]; then chmod u+x -- "$dest/Print-RC"; fi
 FRESH_INSTALL=1
 if [[ -f "$dest/.print-rc-installation" ]]; then
     FRESH_INSTALL=0
     [[ "$(sed -n '1p' "$dest/.print-rc-installation")" == PRINT-RC &&
        "$(sed -n '2p' "$dest/.print-rc-installation")" == "$dest" ]] || {
-        echo 'Marcador de instalacao pertence a outro caminho. Cancelado.'; exit 2;
+        prc_message shell.039; exit 2;
     }
     if [[ ! -f "$dest/config/arquivos-instalados.sha256" ]]; then
-        echo 'Instalacao anterior incompleta ou muito antiga: falta inventario confiavel.'
-        echo 'Nao vou tratar arquivos desta pasta como se fossem recem-instalados.'
-        echo 'Escolha uma pasta nova para instalar com seguranca.'
+        prc_message shell.040
+        prc_message shell.041
+        prc_message shell.042
         exit 2
     fi
 fi
@@ -156,37 +161,37 @@ fi
 # Corrigir SOMENTE a permissao do inicializador, dentro da pasta do app.
 # O Trinity tambem usara /bin/bash explicitamente caso ZIP perca o bit +x.
 if [[ ! -f "$dest/iniciar.sh" || -L "$dest/iniciar.sh" ]]; then
-    echo 'Inicializador ausente ou simbolico. Instalacao cancelada sem altera-lo.'
+    prc_message shell.043
     exit 2
 fi
 if [[ ! -x "$dest/iniciar.sh" ]]; then
-    echo 'Autorizando execucao somente do iniciar.sh dentro do aplicativo.'
+    prc_message shell.044
     chmod u+x -- "$dest/iniciar.sh" || {
-        echo 'Nao foi possivel tornar o inicializador executavel.'
+        prc_message shell.045
         exit 2
     }
 fi
 mkdir -p -- "$dest/config" "$dest/backups" "$dest/capturas"
 echo
-echo 'A seguir, informe o CAMINHO COMPLETO da pasta das imagens'
-echo 'e escolha se cada captura tambem deve ser copiada para Ctrl+V.'
-echo 'As preferencias ficam dentro da pasta Print RC.'
+prc_message shell.046
+prc_message shell.047
+prc_message shell.048
 if ! bash "$dest/configurar.sh"; then
-    echo 'Configuracao cancelada. Nenhum atalho foi modificado.'
-    echo "A pasta continua em: $dest"
-    echo "Para configurar posteriormente: bash \"$dest/configurar.sh\""
+    prc_message shell.049
+    prc_message shell.050 "$dest"
+    prc_message shell.051 "$dest"
     exit 1
 fi
 echo
-echo '========== ESCOLHA A TECLA DE CAPTURA =========='
-echo "Ambiente: ${XDG_CURRENT_DESKTOP:-desconhecido} | Sessao: ${XDG_SESSION_TYPE:-desconhecida}"
-echo '1. Pressione UMA tecla de sua escolha em ate 60 segundos (por exemplo F9, Insert, Print, A).'
-echo '2. Depois da identificacao, confirme SIM uma vez para usar a tecla.'
-echo '3. Se o tempo acabar, voce podera tentar novamente.'
-echo '   Esc cancela; Shift, Ctrl e Alt sozinhos nao sao atalhos validos.'
-echo '   Teclas de digitacao (letras, espaco, Enter) podem perder sua funcao normal.'
-echo '   Nenhuma senha ou sudo e necessario.'
-echo 'O uso anterior da tecla sera substituido nos desktops com integracao.'
+prc_message shell.052
+prc_message shell.053 "${XDG_CURRENT_DESKTOP:-$(prc_text common.unknown)}" "${XDG_SESSION_TYPE:-$(prc_text common.unknown)}"
+prc_message shell.054
+prc_message shell.055
+prc_message shell.056
+prc_message shell.057
+prc_message shell.058
+prc_message shell.059
+prc_message shell.060
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
 
 # Em stdout, devolver exclusivamente "Print" ou "Sys_Req".
@@ -195,47 +200,47 @@ print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
 print_rc_detectar() {
     local raw codigo resposta chave tentativa=1
     while true; do
-        printf '\n[Print RC] Tentativa %s: pressione a tecla desejada (ate 60 segundos).\n' "$tentativa" >&2
+        prc_format shell.061 "$tentativa" >&2
         if raw="$("$dest/bin/print-rc" --detectar-print)"; then
             if [[ "$raw" =~ ^PRINT_RC_KEY=([A-Za-z0-9_]{1,64})$ ]]; then
                 chave="${BASH_REMATCH[1]}"
                 case "$chave" in
                     Escape|Shift_L|Shift_R|Control_L|Control_R|Alt_L|Alt_R|Meta_L|Meta_R|Super_L|Super_R|Hyper_L|Hyper_R|ISO_Level3_Shift|Mode_switch)
-                        echo 'ERRO: tecla modificadora ou Escape nao serve como atalho unico.' >&2
+                        prc_message shell.062 >&2
                         return 3 ;;
                 esac
             else
-                echo 'ERRO: o detector nao devolveu um nome valido de tecla X11.' >&2
+                prc_message shell.063 >&2
                 return 3
             fi
-            printf '[Print RC] Tecla identificada: %s.\n' "$chave" >&2
+            prc_format shell.064 "$chave" >&2
             printf '%s\n' "$chave"
             return 0
         else
             codigo=$?
         fi
         if [[ "$codigo" == 4 ]]; then
-            echo '[Print RC] O prazo de 60 segundos terminou.' >&2
-            printf '[Print RC] Tentar novamente? [s/N]: ' >&2
+            prc_message shell.065 >&2
+            prc_format shell.066 >&2
             resposta=''
             if ! IFS= read -r resposta; then
                 echo >&2
-                echo '[Print RC] Sem resposta: deteccao encerrada.' >&2
+                prc_message shell.067 >&2
                 return 4
             fi
             case "${resposta,,}" in
-                s|sim)
+                s|sim|y|yes)
                     ((tentativa+=1))
                     continue ;;
                 *)
-                    echo '[Print RC] Nao: nenhuma tecla sera associada.' >&2
+                    prc_message shell.068 >&2
                     return 4 ;;
             esac
         elif [[ "$codigo" == 5 ]]; then
-            echo '[Print RC] Identificacao cancelada com Esc.' >&2
+            prc_message shell.069 >&2
             return 5
         else
-            echo '[Print RC] Falha ao ler o teclado X11. Atalho nao cadastrado.' >&2
+            prc_message shell.070 >&2
             return "$codigo"
         fi
     done
@@ -243,103 +248,129 @@ print_rc_detectar() {
 desktop_id="${XDG_CURRENT_DESKTOP:-}"
 desktop_id="${desktop_id,,}"
 atalho_registrado=0
+overlay_state=pending
+recovery_state=''
+print_rc_partial_recovery() {
+    local result=$?
+    trap - EXIT
+    # A prepared external transaction must remain uninstallable after failure
+    # or interruption. An ownership receipt does not mean activation succeeded.
+    if [[ "$result" != 0 && -n "$recovery_state" && -f "$recovery_state" && ! -L "$recovery_state" &&
+          ! -e "$dest/.print-rc-installation" && ! -L "$dest/.print-rc-installation" &&
+          ! -e "$dest/config/arquivos-instalados.sha256" && ! -L "$dest/config/arquivos-instalados.sha256" ]]; then
+        if python3 -B "$dest/scripts/lifecycle.py" record --base "$dest" --overlay-state pending &&
+           (set -C; printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"); then
+            source "$dest/scripts/inventario.sh"
+            if print_rc_criar_inventario "$dest"; then prc_message shell.partial_recorded "$dest"; fi
+        fi
+    fi
+    return "$result"
+}
+trap print_rc_partial_recovery EXIT
 if [[ "$desktop_id" == *trinity* ]]; then
-    echo "Trinity: atalhos em ${TDEHOME:-$HOME/.trinity}/share/config/khotkeysrc"
+    prc_message shell.071 "${TDEHOME:-$HOME/.trinity}"
     if ! command -v python3 >/dev/null 2>&1; then
-        echo 'Python3 do sistema indisponivel: atalho nao modificado.'
+        prc_message shell.072
     elif key_name="$(print_rc_detectar)"; then
+        [[ -e "$dest/config/atalho-state.json" || -L "$dest/config/atalho-state.json" ]] || recovery_state="$dest/config/atalho-state.json"
         if python3 -B "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
             atalho_registrado=1
         else
-            echo 'ERRO: o Trinity nao conseguiu registrar a tecla confirmada.'
-            echo 'Instalacao interrompida antes de marcar o app como configurado.'
+            prc_message shell.073
+            prc_message shell.074
+            prc_message shell.shortcut_next "$dest"
             exit 1
         fi
     else
-        echo 'Tecla nao identificada; nenhuma associacao feita.'
+        prc_message shell.075
     fi
 elif [[ "$desktop_id" == *xfce* ]]; then
-    echo 'Xfce: associa a tecla escolhida em /commands/custom/<Tecla> via xfconf-query.'
+    prc_message shell.076
     if ! command -v python3 >/dev/null 2>&1 || ! command -v xfconf-query >/dev/null 2>&1; then
-        echo 'Python3 ou xfconf-query indisponivel. Nao ha integracao automatica.'
-        echo 'Xfce > Configuracoes > Teclado > Atalhos de aplicativos.'
-        echo "Comando: $print_rc_launcher"
+        prc_message shell.077
+        prc_message shell.078
+        prc_message shell.079 "$print_rc_launcher"
     elif key_name="$(print_rc_detectar)"; then
-        echo "Xfce: tecla fisica escolhida = $key_name"
+        prc_message shell.080 "$key_name"
+        [[ -e "$dest/config/atalho-xfce.json" || -L "$dest/config/atalho-xfce.json" ]] || recovery_state="$dest/config/atalho-xfce.json"
         if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
             atalho_registrado=1
         else
-            echo 'ERRO: o Xfce nao conseguiu registrar a tecla confirmada.'
-            echo 'Instalacao interrompida antes de marcar o app como configurado.'
+            prc_message shell.081
+            prc_message shell.074
+            prc_message shell.shortcut_next "$dest"
             exit 1
         fi
     else
-        echo 'Tecla nao identificada; nenhuma associacao feita.'
+        prc_message shell.075
     fi
 else
-    echo 'Integracao automatica conservadora disponivel para Trinity e Xfce.'
+    prc_message shell.082
     case "$desktop_id" in
         *gnome*)
-            echo 'GNOME: Configuracoes > Teclado > Ver e personalizar atalhos.'
-            echo 'Libere Print no grupo Capturas de tela antes de cadastrar o personalizado.'
-            echo 'Depois: Atalhos personalizados > Adicionar atalho.'
+            prc_message shell.083
+            prc_message shell.084
+            prc_message shell.085
             ;;
         *kde*|*plasma*)
-            echo 'KDE Plasma 6: Configuracoes do sistema > Atalhos > Adicionar novo > Comando ou Script.'
-            echo 'Se houver conflito, libere Print no gerenciador do proprio Plasma.'
+            prc_message shell.086
+            prc_message shell.087
             ;;
         *cinnamon*)
-            echo 'Cinnamon: Configuracoes do sistema > Teclado > Atalhos personalizados.'
+            prc_message shell.088
             ;;
         *mate*)
-            echo 'MATE: Central de Controle > Atalhos de Teclado > Adicionar.'
+            prc_message shell.089
             ;;
         *lxqt*)
-            echo 'LXQt: Configurador LXQt > Atalhos globais.'
+            prc_message shell.090
             ;;
         *lxde*|*openbox*)
-            echo 'LXDE/Openbox: associe Print nas preferencias de atalhos ou no arquivo rc.xml.'
-            echo 'Nao alteramos automaticamente arquivos de configuracao de terceiros.'
+            prc_message shell.091
+            prc_message shell.092
             ;;
-        *budgie*) echo 'Budgie: Configuracoes > Teclado > Atalhos personalizados.' ;;
+        *budgie*) prc_message shell.093 ;;
         *i3*|*sway*|*hyprland*|*awesome*)
-            echo 'Gerenciador em mosaico: crie um atalho Print no arquivo do proprio WM.'
-            echo 'Este executavel de captura requer X11; Sway/Hyprland (Wayland) nao funcionarao.'
+            prc_message shell.094
+            prc_message shell.095
             ;;
-        *) echo 'Abra as configuracoes de atalhos de teclado do seu desktop.' ;;
+        *) prc_message shell.096 ;;
     esac
-    echo 'Cadastre manualmente: Nome = Print RC; tecla = Print.'
-    echo "Comando a executar: $print_rc_launcher"
-    echo 'Se Print estiver ocupado, libere a tecla pelo proprio gerenciador.'
-    echo 'Atalhos manuais nao sao rastreados nem removidos pelo desinstalador.'
-    echo 'Nenhum arquivo de atalhos externo foi modificado.'
+    prc_message shell.097
+    prc_message shell.098 "$print_rc_launcher"
+    prc_message shell.099
+    prc_message shell.100
+    prc_message shell.101
 fi
 if [[ "$atalho_registrado" == 1 ]]; then
-    echo "REGISTRO_GRAVADO: tecla ${key_name:-indefinida} cadastrada; ativacao ainda nao comprovada."
+    prc_message shell.102 "${key_name:-$(prc_text common.unknown)}"
     if [[ -n "${DISPLAY:-}" && -t 0 && -f "$dest/scripts/provar-atalho.sh" ]]; then
         if bash "$dest/scripts/provar-atalho.sh" "$key_name"; then
-            echo 'ATIVACAO_CONFIRMADA: o comando Print RC foi acionado nesta sessao.'
+            overlay_state=verified
+            prc_message shell.103
         else
-            echo 'ATIVACAO_PENDENTE: o Trinity/Xfce nao acionou o Print RC durante a prova.'
-            echo 'No Trinity, verifique o Servico de Atalhos no Gerenciador de servicos.'
-            echo 'Se necessario, faca logout e novo login, sem reinicio forcado.'
-            echo "Depois: bash \"$dest/scripts/provar-atalho.sh\""
+            prc_message shell.104
+            prc_message shell.105
+            prc_message shell.106
+            prc_message shell.107 "$dest"
         fi
     else
-        echo 'ATIVACAO_PENDENTE: teste real nao executado (sem terminal interativo ou DISPLAY).'
-        echo "Teste posteriormente: bash \"$dest/scripts/provar-atalho.sh\""
+        prc_message shell.108
+        prc_message shell.109 "$dest"
     fi
 else
-    echo 'ATALHO NAO CONFIGURADO: sera necessario configurar ou tentar de novo.'
+    prc_message shell.110
 fi
-echo 'Reconhecer uma tecla e gravar o arquivo NAO garantem sua ativacao pelo desktop.'
+prc_message shell.shortcut_next "$dest"
+prc_message shell.111
 echo '=========================================='
+python3 -B "$dest/scripts/lifecycle.py" record --base "$dest" --overlay-state "$overlay_state"
 if [[ "$FRESH_INSTALL" == 1 ]]; then
     # O marcador so e criado ao FINAL do fluxo interativo. Assim Ctrl+C
     # no momento de cadastrar Print nao deixa falso registro instalado.
     # Inventario preexistente sem marcador e ambiguo: nao confiar nele.
     if [[ -e "$dest/config/arquivos-instalados.sha256" || -L "$dest/config/arquivos-instalados.sha256" ]]; then
-        echo 'Inventario preexistente sem marcador valido. Instalacao cancelada.'
+        prc_message shell.112
         exit 2
     fi
     printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"
@@ -348,20 +379,20 @@ if [[ "$FRESH_INSTALL" == 1 ]]; then
     if [[ -r "$dest/scripts/inventario.sh" ]]; then
         source "$dest/scripts/inventario.sh"
         print_rc_criar_inventario "$dest" || {
-            echo 'FALHA: nao consegui registrar integridade dos arquivos.'
-            echo 'Nada sera removido automaticamente sem inventario verificavel.'
+            prc_message shell.113
+            prc_message shell.114
             exit 1
         }
     else
-        echo 'Inventario de seguranca indisponivel. Instalacao incompleta.'
+        prc_message shell.115
         exit 1
     fi
 else
-    echo 'Reconfiguracao de instalacao existente: inventario anterior preservado.'
-    echo 'Se esta e uma versao antiga sem inventario, a desinstalacao sera conservadora.'
+    prc_message shell.116
+    prc_message shell.117
 fi
 echo
-echo 'PRONTO. Nenhuma dependencia foi instalada no Linux.'
-echo "Pasta unica: $dest"
-echo "Teste agora: \"$dest/iniciar.sh\""
-echo 'O ZIP original baixado fora da pasta e independente: guarde-o ou apague-o manualmente.'
+prc_message shell.118
+prc_message shell.119 "$dest"
+prc_message shell.120 "$dest"
+prc_message shell.121

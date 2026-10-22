@@ -165,8 +165,7 @@ class ShortcutTests(unittest.TestCase):
                 atalho.FILE.write_text(OLD)
                 os.environ['XDG_CURRENT_DESKTOP']='Trinity'
                 def answer(question):
-                    if 'Registrar a tecla Print' in question:
-                        atalho.FILE.write_text(OLD.replace('NaoAlterar=ok','NaoAlterar=outro-app'))
+                    atalho.FILE.write_text(OLD.replace('NaoAlterar=ok','NaoAlterar=outro-app'))
                     return True
                 atalho.yes=answer
                 base=tmp/'app'

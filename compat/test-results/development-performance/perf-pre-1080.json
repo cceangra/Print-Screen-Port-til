@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "label": "dynamic-pre-optimization",
+  "test_kind": "Xvfb development benchmark, white root background",
+  "limitations": "Core binary only; no real desktop/shortcut or low-power hardware certification. PSS sampled every 5 ms; RSS/CPU from wait4. Startup includes a separate test-driver process. Clipboard idle sample is 200 ms, not a long-term endurance test.",
+  "environment": {
+    "os_release": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "architecture": "x86_64",
+    "libc": [
+      "glibc",
+      "2.39"
+    ],
+    "screen": [
+      1920,
+      1080
+    ]
+  },
+  "binary_sha256": "6539cef2dd942542c4fd74e4e5066942831006c7babe03a6ad2da52533bbefa9",
+  "binary_bytes": 106592,
+  "repetitions": 5,
+  "runs": [
+    {
+      "overlay_latency_ms": 217.11525900036577,
+      "capture_wall_ms": 589.7179309999956,
+      "cpu_seconds": 0.5331819999999999,
+      "peak_rss_kib": 19328,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 10592,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 117.57829299995137,
+      "capture_wall_ms": 319.61902100010775,
+      "cpu_seconds": 0.267709,
+      "peak_rss_kib": 19328,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 10592,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 168.16842700018242,
+      "capture_wall_ms": 514.8484670003199,
+      "cpu_seconds": 0.483012,
+      "peak_rss_kib": 19332,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 10592,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 115.77369500037094,
+      "capture_wall_ms": 318.36236800018014,
+      "cpu_seconds": 0.253308,
+      "peak_rss_kib": 19332,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 10592,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 116.53533699973195,
+      "capture_wall_ms": 451.4019329999428,
+      "cpu_seconds": 0.403342,
+      "peak_rss_kib": 19332,
+      "sampled_peak_pss_kib": null,
+      "png_bytes": 10592,
+      "processes_after_capture": 0
+    }
+  ],
+  "summary": {
+    "latency_median_ms": 451.4019329999428,
+    "latency_p95_ms": 589.7179309999956,
+    "peak_rss_kib": 19332,
+    "sampled_peak_pss_kib": null,
+    "median_cpu_seconds": 0.403342
+  },
+  "clipboard": {
+    "overlay_latency_ms": 66.29254300014509,
+    "capture_wall_ms": 538.3144849997734,
+    "cpu_seconds": 0.289771,
+    "peak_rss_kib": 19332,
+    "sampled_peak_pss_kib": null,
+    "png_bytes": 10592,
+    "processes_after_capture": 1,
+    "clipboard_pss_kib": null,
+    "clipboard_rss_kib": null,
+    "clipboard_idle_cpu_ticks_200ms": null
+  },
+  "cohort_note": "Preliminary shared-host development cohort, before final benchmark instrumentation. /proc was unavailable; old zero PSS/clipboard counters normalized to null. Not a final artifact acceptance result."
+}

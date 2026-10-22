@@ -10,6 +10,12 @@ import shutil
 import subprocess
 import tempfile
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.dont_write_bytecode=True
+from print_rc_i18n import tr, affirmative, localize_argparse
+from lifecycle import track_shortcut_write
+
 CHANNEL = 'xfce4-keyboard-shortcuts'
 PROPERTY = '/commands/custom/Print'
 DEFAULT = '/commands/default/Print'
@@ -26,10 +32,18 @@ def valid_key(key):
 
 def shortcut_property(key):
     if not valid_key(key):
-        raise ValueError('Nome de tecla X11 invalido ou modificador sozinho: '+str(key))
+        raise ValueError(tr('desktop.164')+str(key))
     return '/commands/custom/'+key
 STATE_FILE = 'config/atalho-xfce.json'
-NAME = 'Print RC'
+NAME = tr('desktop.001')
+
+def check_app_paths(base):
+    for rel in ('config','config/atalho-state.json','config/atalho-xfce.json','backups','backups/khotkeysrc.antes'):
+        current=base
+        for part in Path(rel).parts:
+            current=current/part
+            if current.is_symlink():raise RuntimeError(tr('lifecycle.unsafe'))
+
 
 def desktop_is_xfce():
     return 'xfce' in os.environ.get('XDG_CURRENT_DESKTOP', '').casefold()
@@ -40,7 +54,7 @@ def app_command(launcher):
 def call(*args):
     executable = shutil.which('xfconf-query')
     if not executable:
-        raise RuntimeError('xfconf-query nao esta disponivel neste ambiente.')
+        raise RuntimeError(tr('desktop.137'))
     result = subprocess.run([executable, '-c', CHANNEL, '-p', *args],
                             capture_output=True, text=True, timeout=8, check=False)
     return result
@@ -49,16 +63,16 @@ def get(prop=PROPERTY):
     # Consultar a lista, e nao o texto de erros traduzidos por locale.
     executable = shutil.which('xfconf-query')
     if not executable:
-        raise RuntimeError('xfconf-query indisponivel.')
+        raise RuntimeError(tr('desktop.138'))
     listed = subprocess.run([executable, '-c', CHANNEL, '-l'],
                             capture_output=True, text=True, timeout=8, check=False)
     if listed.returncode:
-        raise RuntimeError('Falha consultando canal Xfce: ' + listed.stderr.strip())
+        raise RuntimeError(tr('desktop.165') + listed.stderr.strip())
     if prop not in listed.stdout.splitlines():
         return None
     result = call(prop)
     if result.returncode:
-        raise RuntimeError('Falha lendo tecla Print do Xfce: ' + result.stderr.strip())
+        raise RuntimeError(tr('desktop.166') + result.stderr.strip())
     return result.stdout.strip()
 
 def set_key(command, existed, prop=PROPERTY):
@@ -68,34 +82,36 @@ def set_key(command, existed, prop=PROPERTY):
     args += ['-s', command]
     result = call(*args)
     if result.returncode:
-        raise RuntimeError('Xfce recusou configuracao: ' + result.stderr.strip())
+        raise RuntimeError(tr('desktop.167') + result.stderr.strip())
 
 def remove_key(prop=PROPERTY):
     result = call(prop, '-r')
     if result.returncode:
-        raise RuntimeError('Xfce recusou remocao do atalho: ' + result.stderr.strip())
+        raise RuntimeError(tr('desktop.168') + result.stderr.strip())
 
 def safe_state(base):
+    check_app_paths(base)
     path = base / STATE_FILE
     if path.is_symlink():
-        raise RuntimeError('Registro de atalho e link simbolico. Nenhuma alteracao.')
+        raise RuntimeError(tr('desktop.139'))
     if not path.exists():
         return None
     if not path.is_file():
-        raise RuntimeError('Registro de atalho nao e arquivo regular.')
+        raise RuntimeError(tr('desktop.140'))
     state = json.loads(path.read_text(encoding='utf-8'))
     if (not isinstance(state, dict) or state.get('backend') != 'xfce'
             or not isinstance(state.get('key','Print'),str)
             or state.get('property') != shortcut_property(state.get('key','Print'))):
-        raise RuntimeError('Registro de atalho inesperado: nenhuma alteracao.')
+        raise RuntimeError(tr('desktop.141'))
     return state
 
 def write_state(base, data):
     path = base / STATE_FILE
     if path.is_symlink() or (path.exists() and not path.is_file()):
-        raise RuntimeError('Registro de atalho nao e arquivo regular seguro.')
+        raise RuntimeError(tr('desktop.142'))
     if not path.parent.is_dir() or path.parent.is_symlink():
-        raise RuntimeError('Diretorio interno config/ inexistente ou simbolico.')
+        raise RuntimeError(tr('desktop.143'))
+    data.setdefault('storage_file',str(Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml'))
     fd, tmp = tempfile.mkstemp(prefix='.atalho-xfce-', dir=path.parent)
     try:
         os.fchmod(fd, 0o600)
@@ -105,26 +121,28 @@ def write_state(base, data):
             output.flush()
             os.fsync(output.fileno())
         os.replace(tmp, path)
+        track_shortcut_write(base,STATE_FILE)
     finally:
         if os.path.lexists(tmp):
             os.unlink(tmp)
 
 def yes(question):
     try:
-        return input(question + ' [s/N]: ').strip().casefold() in ('s', 'sim')
+        return input(question + tr('common.confirm')).strip().casefold() in ('s', 'sim', 'y', 'yes')
     except EOFError:
         return False
 
 def check_environment():
     if not desktop_is_xfce():
-        raise RuntimeError('O escritorio ativo nao e Xfce. Nenhuma alteracao.')
+        raise RuntimeError(tr('desktop.144'))
     if os.environ.get('XDG_SESSION_TYPE', 'x11').casefold() != 'x11':
-        raise RuntimeError('Capturador atual e compativel somente com X11.')
+        raise RuntimeError(tr('desktop.145'))
     if not shutil.which('xfconf-query'):
-        raise RuntimeError('xfconf-query ausente. Configure o atalho manualmente.')
+        raise RuntimeError(tr('desktop.146'))
 
 def change_property(prop, current, desired):
     """Altera SOMENTE propriedade verificada, sem apagar a tecla de terceiros."""
+    if get(prop)!=current:raise RuntimeError(tr('lifecycle.concurrent'))
     if desired is None:
         if current is not None:
             if prop==PROPERTY: remove_key()
@@ -133,7 +151,7 @@ def change_property(prop, current, desired):
         if prop==PROPERTY: set_key(desired,current is not None)
         else: set_key(desired,current is not None,prop)
     if get(prop)!=desired:
-        raise RuntimeError('Xfce nao confirmou a atribuicao de '+prop)
+        raise RuntimeError(tr('desktop.169')+prop)
 
 
 def rebind(base, launcher, key, state, desired):
@@ -142,20 +160,20 @@ def rebind(base, launcher, key, state, desired):
     target_prop=shortcut_property(key)
     if (state.get('status')!='installed' or state.get('launcher')!=str(launcher)
             or state.get('command')!=desired or get(old_prop)!=desired):
-        print('Atalho anterior nao corresponde ao registro. Nenhuma alteracao.')
+        print(tr('desktop.147'))
         return False
     old_original=state.get('old_command')
     target_original=get(target_prop)
     if target_original==desired:
-        print('Atalho novo ja tem o mesmo comando sem controle desta instalacao.')
+        print(tr('desktop.148'))
         return False
-    print('Tecla atual:',state.get('key','Print'),'-> nova tecla:',key)
-    print('Novo atalho ocupado por:',repr(target_original))
-    print('A antiga associacao sera restaurada; a nova substituida apos SIM.')
-    if not yes('Confirma trocar a tecla do Print RC?'):
+    print(tr('desktop.122'),state.get('key','Print'),tr('desktop.123'),key)
+    print(tr('desktop.124'),repr(target_original) if target_original is not None else tr('common.none'))
+    print(tr('desktop.125'))
+    if not yes(tr('desktop.149')):
         return False
     if get(old_prop)!=desired or get(target_prop)!=target_original:
-        print('Uma associacao mudou durante a confirmacao. Nada alterado.')
+        print(tr('desktop.150'))
         return False
     recovery=dict(state)
     recovery['status']='moving'
@@ -172,10 +190,10 @@ def rebind(base, launcher, key, state, desired):
                           'old_command':target_original,'created':target_original is None})
         write_state(base,new_state)
     except (OSError,subprocess.TimeoutExpired,RuntimeError) as exc:
-        print('Troca nao concluida:',exc)
-        print('Registro de recuperacao preservado. Use a opcao Liberar para desfazer.')
+        print(tr('desktop.170'),exc)
+        print(tr('desktop.171'))
         return False
-    print('Tecla',key,'cadastrada; atalho anterior restaurado.')
+    print(tr('desktop.key'),key,tr('desktop.126'))
     return True
 
 
@@ -189,35 +207,35 @@ def install(base, launcher, key='Print'):
         if (previous_state.get('launcher') == str(launcher)
                 and previous_state.get('status') == 'installed'):
             if previous_state.get('property') == prop and get(prop) == desired:
-                print('Atalho Print RC do Xfce ja registrado corretamente.')
+                print(tr('desktop.186'))
                 return True
             if previous_state.get('property') != prop:
                 return rebind(base,launcher,key,previous_state,desired)
-        print('Existe registro anterior, inconsistente ou interrompido.')
-        print('Nao sobrescrever atalhos de terceiros. Verifique antes de reinstalar.')
+        print(tr('desktop.151'))
+        print(tr('desktop.152'))
         return False
     old = get(prop)
     default = get(default_prop)
-    print('\n===== INTEGRACAO PRINT RC NO XFCE =====')
-    print('Gerenciador de atalhos: xfconf-query / ' + CHANNEL)
-    print('Tecla fisica escolhida:',key)
-    print('Propriedade externa:', prop)
-    print('O Xfce pode gravar configuracoes em ~/.config/xfce4/xfconf/.')
-    print('Comando Print RC:', desired)
-    print('Atalho personalizado anterior:', repr(old))
-    print('Atalho padrao do Xfce:', repr(default))
+    print(tr('desktop.127'))
+    print(tr('desktop.153') + CHANNEL)
+    print(tr('desktop.128'),key)
+    print(tr('desktop.129'), prop)
+    print(tr('desktop.130'))
+    print(tr('desktop.131'), desired)
+    print(tr('desktop.132'), repr(old) if old is not None else tr('common.none'))
+    print(tr('desktop.133'), repr(default))
     if old is not None and old != desired:
-        print('O uso personalizado anterior de Print sera substituido automaticamente.')
-        print('O valor anterior ficara guardado para restauracao na desinstalacao.')
+        print(tr('desktop.154'))
+        print(tr('desktop.155'))
     if old == desired:
-        print('Comando ja igual ao Print RC, mas nao registrado por esta instalacao.')
-        print('Nao vou assumir atalho sem estado de recuperacao.')
+        print(tr('desktop.156'))
+        print(tr('desktop.157'))
         return False
-    if not yes('Atribuir Print ao Print RC no Xfce, substituindo uso anterior?'):
-        print('Cancelado: nenhuma associacao alterada.')
+    if not yes(tr('desktop.158')):
+        print(tr('desktop.159'))
         return False
     if get(prop) != old:
-        print('Outro aplicativo alterou a tecla durante a confirmacao. Cancelado.')
+        print(tr('desktop.160'))
         return False
     state = {
         'backend':'xfce', 'property':prop, 'key':key, 'launcher':str(launcher),
@@ -226,25 +244,22 @@ def install(base, launcher, key='Print'):
     }
     write_state(base, state)
     try:
-        if prop==PROPERTY:
-            set_key(desired,old is not None)
-        else:
-            set_key(desired,old is not None,prop)
+        change_property(prop,old,desired)
         if get(prop) != desired:
-            raise RuntimeError('Xfce nao confirmou o novo valor.')
+            raise RuntimeError(tr('desktop.172'))
         state['status'] = 'installed'
         write_state(base, state)
     except (OSError, subprocess.TimeoutExpired, RuntimeError) as exc:
-        print('Falha ao registrar atalho:', exc)
-        print('Registro de recuperacao preservado em', base / STATE_FILE)
+        print(tr('desktop.173'), exc)
+        print(tr('desktop.174'), base / STATE_FILE)
         return False
-    print('Atalho registrado. Pressione',key,'para verificar no Xfce.')
+    print(tr('desktop.134'),key,tr('desktop.135'))
     return True
 
 def remove(base):
     state = safe_state(base)
     if state is None:
-        print('Nenhum atalho Xfce criado pelo Print RC.')
+        print(tr('desktop.161'))
         return True
     # Desinstalacao pode ocorrer em outra sessao; melhor preservar do que
     # mexer em atalhos XFCE quando estiver logado noutro desktop.
@@ -252,7 +267,7 @@ def remove(base):
     if state.get('status')=='moving':
         move=state.get('movement')
         if not isinstance(move,dict):
-            print('Estado de troca inconsistente. Nao alterar atalhos.')
+            print(tr('desktop.175'))
             return False
         target=move.get('target_property')
         try:
@@ -266,15 +281,15 @@ def remove(base):
             for p,orig in ((target,original_target),(old_prop,old_original)):
                 observed=get(p)
                 if observed not in (desired,orig):
-                    print('Outro programa alterou',p,'; recuperacao interrompida.')
+                    print(tr('desktop.194'),p,tr('desktop.195'))
                     return False
                 if observed==desired:
                     change_property(p,desired,orig)
             (base / STATE_FILE).unlink()
-            print('Troca interrompida recuperada; atribuicoes anteriores restauradas.')
+            print(tr('desktop.176'))
             return True
         except (OSError,subprocess.TimeoutExpired,RuntimeError,ValueError,TypeError) as exc:
-            print('Recuperacao incompleta:',exc)
+            print(tr('desktop.187'),exc)
             return False
     prop = state.get('property')
     current = get(prop)
@@ -282,30 +297,26 @@ def remove(base):
     expected = state.get('command')
     if (state.get('launcher') is None or expected != app_command(state['launcher'])
             or (old is not None and not isinstance(old, str))):
-        print('Registro Xfce inconsistente: nenhum atalho removido.')
+        print(tr('desktop.162'))
         return False
     if current == old and state.get('status') == 'prepared':
-        print('Integracao interrompida antes de alterar o atalho.')
-    elif current != expected:
-        print('A tecla Print foi alterada depois pelo usuario/desktop.')
-        print('Atalho atual preservado; remocao automatica bloqueada.')
+        print(tr('desktop.163'))
+    elif current != expected and not (state.get('status')=='relocating' and isinstance(state.get('relocation'),dict) and current==app_command(state['relocation'].get('old_launcher',''))):
+        print(tr('desktop.177'))
+        print(tr('desktop.178'))
         return False
     else:
-        print('Restaurando SOMENTE o atalho Xfce registrado pelo Print RC.')
-        if old is None:
-            if prop==PROPERTY: remove_key()
-            else: remove_key(prop)
-        else:
-            if prop==PROPERTY: set_key(old,True)
-            else: set_key(old,True,prop)
+        print(tr('desktop.179'))
+        change_property(prop,current,old)
         if get(prop) != old:
-            print('Nao foi possivel confirmar a restauracao. Estado interno mantido.')
+            print(tr('desktop.188'))
             return False
     (base / STATE_FILE).unlink()
-    print('Integracao Xfce removida/restaurada com sucesso.')
+    print(tr('desktop.136'))
     return True
 
 def main():
+    localize_argparse()
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=('install', 'remove', 'inspect'))
     parser.add_argument('--base', required=True, type=Path)
@@ -313,7 +324,7 @@ def main():
     parser.add_argument('--key', default='Print')
     args = parser.parse_args()
     if os.geteuid() == 0:
-        parser.error('Nao execute como root.')
+        parser.error(tr('desktop.093'))
     base = args.base.resolve()
     try:
         if args.action == 'inspect':
@@ -322,28 +333,28 @@ def main():
             prop=state['property'] if isinstance(state,dict) else PROPERTY
             current=get(prop)
             default=get('/commands/default/'+prop.rsplit('/',1)[-1])
-            print('Gerenciador: Xfce / xfconf-query')
-            print('Tecla examinada:',prop.rsplit('/',1)[-1])
-            print('Atalho personalizado:', current or '(nenhum)')
-            print('Atalho padrao:', default or '(nenhum)')
-            print('Tecla selecionada pelo Print RC:',state.get('key','Print') if isinstance(state,dict) else '(nao configurada)')
+            print(tr('desktop.manager_xfce'))
+            print(tr('desktop.180'),prop.rsplit('/',1)[-1])
+            print(tr('desktop.181'), current or tr('common.none'))
+            print(tr('desktop.182'), default or tr('common.none'))
+            print(tr('desktop.183'),state.get('key','Print') if isinstance(state,dict) else tr('desktop.189'))
             if (isinstance(state,dict) and state.get('status')=='installed'
                     and state.get('command')==current):
-                print('Print RC controla a associacao personalizada: SIM')
-                print('Uso anterior salvo:',state.get('old_command') or '(sem atalho anterior)')
+                print(tr('desktop.190'))
+                print(tr('desktop.191'),state.get('old_command') or tr('desktop.196'))
             else:
-                print('Print RC controla a associacao personalizada: NAO ou indeterminado')
-            print('Outros atalhos do gerenciador de janelas podem existir.')
-            print('Ausencia aqui NAO confirma que a tecla esteja livre no X11.')
+                print(tr('desktop.192'))
+            print(tr('desktop.184'))
+            print(tr('desktop.185'))
         elif args.action == 'install':
             if args.launcher is None:
-                parser.error('--launcher obrigatorio.')
+                parser.error(tr('desktop.197'))
             if not install(base, args.launcher.resolve(),key=args.key):
                 raise SystemExit(1)
         elif not remove(base):
             raise SystemExit(1)
     except (OSError, subprocess.TimeoutExpired, ValueError, RuntimeError) as exc:
-        raise SystemExit('Print RC: integracao Xfce nao concluida: ' + str(exc))
+        raise SystemExit(tr('desktop.193') + str(exc))
 
 if __name__ == '__main__':
     main()

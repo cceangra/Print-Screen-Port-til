@@ -1,123 +1,146 @@
 #!/usr/bin/env bash
 # Print RC: configuracao interativa SEM pacotes externos.
 set -Eeuo pipefail
-[[ ${EUID} -ne 0 ]] || { echo 'Nao execute com sudo.'; exit 1; }
+PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
+source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
+[[ ${EUID} -ne 0 ]] || { prc_message shell.122; exit 1; }
 
-BASE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+BASE="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 CONFIG="$BASE/config/opcoes.conf"
 DEFAULT_DIR="$BASE/capturas"
+
+if [[ "${1:-}" == --language || "${1:-}" == --idioma ]]; then
+    case "${2:-}" in en-US|en_US|en) chosen_language=en-US ;; pt-BR|pt_BR|pt) chosen_language=pt-BR ;;
+      *) prc_message language.usage; exit 2 ;;
+    esac
+    [[ ! -L "$BASE/config" && ! -L "$BASE/config/language" ]] || { prc_message shell.124; exit 2; }
+    umask 077
+    mkdir -p -- "$BASE/config"
+    language_temp="$(mktemp "$BASE/config/.language-XXXXXXXX")"
+    printf '%s\n' "$chosen_language" > "$language_temp"
+    mv -T -- "$language_temp" "$BASE/config/language"
+    if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
+        python3 -B "$BASE/scripts/lifecycle.py" track --base "$BASE" --file config/language
+    fi
+    PRC_LANGUAGE="$chosen_language"
+    prc_message language.saved "$chosen_language"
+    exit 0
+fi
 
 # Configuracao deve ficar dentro da pasta real do app.
 # Links poderiam direcionar a gravacao de arquivos para locais externos.
 for relative in config config/opcoes.conf capturas; do
     if [[ -L "$BASE/$relative" ]]; then
-        echo "ERRO: link simbolico inesperado no aplicativo: $BASE/$relative"
-        echo 'Nenhuma preferencia foi modificada.'
+        prc_message shell.123 "$BASE" "$relative"
+        prc_message shell.124
         exit 2
     fi
 done
 
 echo '===================================================='
-echo '         PRINT RC - CONFIGURACAO'
+prc_message shell.125
 echo '===================================================='
-echo 'Todas as preferencias do aplicativo ficam em:'
+prc_message shell.126
 echo "  $CONFIG"
-echo 'As capturas serao arquivos PNG.'
-echo 'Se escolher uma pasta FORA do Print RC, as imagens'
-echo 'serao arquivos externos e nao serao apagadas na desinstalacao.'
+prc_message shell.127
+prc_message shell.128
+prc_message shell.129
 echo
-echo "Pasta padrao DENTRO do aplicativo: $DEFAULT_DIR"
+prc_message shell.130 "$DEFAULT_DIR"
 PREVIOUS_DIR=''
 PREVIOUS_CLIP=''
 if [[ -f "$CONFIG" && ! -L "$CONFIG" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
         case "$line" in
-            save_dir=*) PREVIOUS_DIR="${line#save_dir=}"; echo "Pasta atualmente configurada: $PREVIOUS_DIR" ;;
-            copy_clipboard=1) PREVIOUS_CLIP=1; echo 'Copia para area de transferencia: SIM' ;;
-            copy_clipboard=0) PREVIOUS_CLIP=0; echo 'Copia para area de transferencia: NAO' ;;
+            save_dir=*) PREVIOUS_DIR="${line#save_dir=}"; prc_message shell.131 "$PREVIOUS_DIR" ;;
+            copy_clipboard=1) PREVIOUS_CLIP=1; prc_message shell.132 ;;
+            copy_clipboard=0) PREVIOUS_CLIP=0; prc_message shell.133 ;;
         esac
     done < "$CONFIG"
 fi
 
-echo 'Enter mantem a pasta anterior, quando houver.'
-read -r -p 'Digite o CAMINHO COMPLETO da pasta das imagens (Enter = manter anterior/padrao): ' supplied || true
+prc_message shell.134
+read -r -p "$(prc_text shell.135)" supplied || true
 TARGET="${supplied:-${PREVIOUS_DIR:-$DEFAULT_DIR}}"
 if [[ "$TARGET" != /* || "$TARGET" == *$'\n'* || "$TARGET" == *$'\r'* ]]; then
-    echo 'ERRO: informe um caminho ABSOLUTO iniciado por /, sem quebras de linha.'
-    echo 'Nenhuma configuracao foi modificada.'
+    prc_message shell.136
+    prc_message shell.137
     exit 2
 fi
 DIR="$(realpath -m -- "$TARGET")"
 case "$DIR" in
     /|"$HOME"|"$BASE")
-        echo 'ERRO: informe uma pasta EXCLUSIVA para imagens, nao a raiz/home/pasta do app.'
+        prc_message shell.138
         exit 2;;
 esac
 if [[ "$DIR" != "$BASE/"* ]]; then
     echo
-    echo 'ATENCAO - DESTINO EXTERNO AO APLICATIVO'
-    echo "As capturas criarao arquivos PNG em: $DIR"
-    echo 'A desinstalacao NAO apagará essas imagens.'
-    read -r -p 'Confirma salvar imagens FORA da pasta do Print RC? [s/N]: ' confirm || true
-    [[ "${confirm,,}" == s || "${confirm,,}" == sim ]] || {
-        echo 'Cancelado. Configuracao anterior preservada.'; exit 1;
+    prc_message shell.139
+    prc_message shell.140 "$DIR"
+    prc_message shell.141
+    read -r -p "$(prc_text shell.142)" confirm || true
+    [[ "${confirm,,}" == s || "${confirm,,}" == sim || "${confirm,,}" == y || "${confirm,,}" == yes ]] || {
+        prc_message shell.143; exit 1;
     }
 else
-    echo "As imagens ficarao DENTRO do Print RC: $DIR"
+    prc_message shell.144 "$DIR"
 fi
 
 CREATE_DIR=0
 if [[ -e "$DIR" ]]; then
     [[ -d "$DIR" && -w "$DIR" && -x "$DIR" ]] || {
-        echo "Pasta nao e um diretorio gravavel: $DIR"
+        prc_message shell.145 "$DIR"
         exit 2
     }
 else
-    echo "Esta pasta ainda nao existe: $DIR"
-    echo 'Ela SOMENTE sera criada depois de voce confirmar as preferencias.'
+    prc_message shell.146 "$DIR"
+    prc_message shell.147
     CREATE_DIR=1
 fi
 
 echo
-echo 'Copiar CADA captura para a AREA DE TRANSFERENCIA?'
-echo 'SIM: tambem permite colar a imagem com Ctrl+V.'
-echo 'NAO: salva apenas o arquivo PNG, sem manter o processo de clipboard.'
-echo 'Enter mantem a escolha anterior; em instalacoes novas, o padrao e SIM.'
+prc_message shell.148
+prc_message shell.149
+prc_message shell.150
+prc_message shell.151
 while :; do
-    read -r -p 'Deseja copiar automaticamente para Ctrl+V? [s/n, Enter=manter]: ' choice || true
+    read -r -p "$(prc_text shell.152)" choice || true
     case "${choice,,}" in
         '') CLIP="${PREVIOUS_CLIP:-1}"; break ;;
-        s|sim) CLIP=1; break ;;
+        s|sim|y|yes) CLIP=1; break ;;
         n|nao|não) CLIP=0; break ;;
-        *) echo 'Responda s (sim) ou n (nao).' ;;
+        *) prc_message shell.153 ;;
     esac
 done
 
 echo
-echo '================ CONFIRMACAO ================'
-echo "Pasta das imagens: $DIR"
-if [[ "$CLIP" == 1 ]]; then echo 'Copiar para Ctrl+V: SIM'; else echo 'Copiar para Ctrl+V: NAO'; fi
-echo "Arquivo de configuracao: $CONFIG"
-echo 'Nenhum programa do sistema sera instalado.'
+prc_message shell.154
+prc_message shell.155 "$DIR"
+if [[ "$CLIP" == 1 ]]; then prc_message shell.156; else prc_message shell.157; fi
+prc_message shell.158 "$CONFIG"
+prc_message shell.159
 echo '============================================='
-read -r -p 'Salvar estas preferencias? [s/N]: ' confirm || true
-[[ "${confirm,,}" == s || "${confirm,,}" == sim ]] || {
-    echo 'Cancelado: opcoes anteriores mantidas.'; exit 1;
+read -r -p "$(prc_text shell.160)" confirm || true
+[[ "${confirm,,}" == s || "${confirm,,}" == sim || "${confirm,,}" == y || "${confirm,,}" == yes ]] || {
+    prc_message shell.161; exit 1;
 }
 umask 077
 if [[ "$CREATE_DIR" == 1 ]]; then
     mkdir -p -- "$DIR"
-    echo "Diretorio de imagens CRIADO: $DIR"
+    prc_message shell.162 "$DIR"
 fi
 mkdir -p -- "$BASE/config"
 temp="$(mktemp "$BASE/config/.opcoes-XXXXXXXX")"
 trap 'rm -f -- "$temp"' EXIT
 printf 'save_dir=%s\ncopy_clipboard=%s\n' "$DIR" "$CLIP" > "$temp"
+if [[ "$DIR" == "$BASE/"* ]]; then
+    printf 'save_dir_relative=%s\n' "${DIR#"$BASE/"}" >> "$temp"
+fi
 # O inventario precisa acompanhar preferencias gravadas pelo PROPRIO app,
 # senao a desinstalacao deixa config/opcoes.conf e a pasta principal para tras.
 if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
     if [[ ! -f "$BASE/scripts/inventario.sh" || -L "$BASE/scripts/inventario.sh" ]]; then
-        echo 'ERRO: nao foi possivel atualizar inventario de seguranca.' >&2
+        prc_message shell.163 >&2
         exit 2
     fi
     source "$BASE/scripts/inventario.sh"
@@ -126,13 +149,13 @@ mv -f -- "$temp" "$CONFIG"
 trap - EXIT
 if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
     if ! print_rc_atualizar_inventario_opcoes "$BASE"; then
-        echo 'AVISO: preferencias salvas, mas inventario nao atualizado.' >&2
-        echo 'Ao desinstalar, pode ser necessario revisar config/opcoes.conf.' >&2
+        prc_message shell.164 >&2
+        prc_message shell.165 >&2
         exit 2
     fi
 fi
 echo
-echo 'PREFERENCIAS SALVAS COM SUCESSO.'
-echo "Arquivo: $CONFIG"
-echo "Capturas PNG: $DIR"
-echo 'Para alterar depois, execute: bash configurar.sh'
+prc_message shell.166
+prc_message shell.167 "$CONFIG"
+prc_message shell.168 "$DIR"
+prc_message shell.169

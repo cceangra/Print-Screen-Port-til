@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "scope": "Post heap-release exact-candidate Xvfb resource/real-XFCE-services checkpoint; all five archive jobs and 68 Python tests passed. No actual Zorin/Q4OS desktop acceptance.",
+  "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156",
+  "source_commit": "f982b77373cd261bd101c42990ec2f988f6e55dc",
+  "archive_sha256": "b8aa1f534174db4bff601bec0aa31cf279ff904f12b6a8ca39807a79d92285fe",
+  "archive_bytes": 274216,
+  "files": {
+    "Print-RC-linux-x86_64-glibc.zip.sha256": "7d076adf9605cdbbec83131799b5e9b94a93460d2c15e4c5d3e12ab1506953d0",
+    "binary-sha256.txt": "97b359dbec7dbe4690efe62980f526d249cf65094688706bc8e02b72585ec332",
+    "build-manifest.json": "6839109c349f5d886e7fcd65523bbf31d82bffc16f71e1b689024b9b329025a8",
+    "legacy-build-id.txt": "a77dc64029ca535cf23c72ccbb1c9d4fd92c1c12a1776447101783a5d413c049",
+    "legacy-gdb.log": "55a20e2cc6db6581ce514ec5fa8af211b9c39b0904994f90b3a525652e7d18e3",
+    "legacy-result.txt": "30d73444b76cd3a2903ab4defff770648b39b603ec9280b36df98189348da97e",
+    "libc.txt": "2c6c80f81a99db1604b04e9bb1bef2e7e215b2322cd3e465b70f05ad2a9e8896",
+    "original-dynamic-result.txt": "aa7c3a23d1d07289168ec5e5c3303c680b45df9b9f56530b14373020da8accc5",
+    "os-release.txt": "594d5ddd35aedb47f00d9c34d140017907a5b9f93c975aba125fc924daac5c07",
+    "performance-candidate-1366x768.json": "2fbfe98d2e91fca205e63c49b0478e5b84a8c826be7cf34c0d20e210c5ab1e6a",
+    "performance-candidate-1920x1080.json": "35b3620241a1292f143f0d152cc3493429fc6f86ec80152772d114a5139bed4f",
+    "performance-candidate-3840x2160.json": "eec11b876227f7d7dd6a1d3a06bcab1a0238607f6e83c740589af7b10ab1500e",
+    "performance-original-dynamic-1366x768.json": "20648cd577f4a4721b937636948837a64ec9d82982331c28f124aab1b74e94f6",
+    "performance-original-dynamic-1920x1080.json": "e8dbabc394b21922b77d8daccf1c4b077582054db1c6de5a1b2d39ff398c850c",
+    "performance-original-dynamic-3840x2160.json": "bc488e5a6e241d5b04b2a69ece438a8701d378faf6069eceede4b6f41394b01d",
+    "performance.log": "8d0c81ba496f6c2e4b605926701c38ca279fdb35fe47cf73ee3196a935287285",
+    "shortcut-proof.log": "95ff00069db17390dfe4b4a7e5f808c9b52cbed498865379cc7d916c25cf29d0",
+    "xfce-result.txt": "293f3f476ddeef6891ad2e8660c1ab6847a66053f92b86220dbf46c33c2d92db"
+  }
+}
