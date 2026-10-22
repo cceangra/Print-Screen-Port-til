@@ -57,6 +57,7 @@ def run_one(binary,driver,directory,clipboard=False):
                 pasted=subprocess.check_output(['xclip','-selection','clipboard','-t','image/png','-o'],timeout=10)
                 photo=next(images.glob('*.png'));assert pasted==photo.read_bytes()
                 idle_start=stats(process.pid,binary);time.sleep(.2);idle_end=stats(process.pid,binary)
+                if process.poll() is not None:raise RuntimeError('Clipboard owner exited before the idle measurement')
                 process.terminate()
             pid,status,usage=os.wait4(process.pid,0);process.returncode=os.waitstatus_to_exitcode(status)
             end=time.perf_counter()

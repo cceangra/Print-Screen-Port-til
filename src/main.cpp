@@ -492,14 +492,19 @@ int run_capture_app(int argc,char** argv) {
         close_display();
         return saved?0:6;
     }
-    // Liberar bloqueio de captura antes de atender o clipboard:
-    // novos prints podem ser feitos enquanto o primeiro PNG esta pronto para Ctrl+V.
-    release_instance();
-    Window owner=XCreateSimpleWindow(display,root,-10,-10,1,1,0,0,0);
+    // XPutImage may retain a screen-sized Xlib transport scratch buffer until
+    // XCloseDisplay. Start clipboard ownership with a fresh, small connection
+    // instead of keeping the capture connection's caches resident for 30 min.
+    close_display();
+    decltype(strokes)().swap(strokes);
+    display=XOpenDisplay(nullptr);
+    if(!display) {std::cerr<<prc_tr("native.004");return saved?8:6;}
+    const Window clipboard_root=DefaultRootWindow(display);
+    Window owner=XCreateSimpleWindow(display,clipboard_root,-10,-10,1,1,0,0,0);
     const bool copied=clipboard_loop(display,owner,std::move(png),
                    Clock::now()+std::chrono::seconds(kClipboardSeconds));
     XDestroyWindow(display,owner);
-    close_display();
+    XCloseDisplay(display);
     return saved?(copied?0:8):6;
 }
 
