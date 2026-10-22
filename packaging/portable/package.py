@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ROOT_FILES = ('.gitignore', 'VERSION', 'Makefile', 'LICENSE', 'README.md', 'README.pt-BR.md',
               'CHANGELOG.md', 'CHANGELOG.pt-BR.md', 'iniciar.sh', 'instalar.sh',
               'configurar.sh', 'configurar-tecla.sh', 'diagnosticar.sh', 'desinstalar.sh')
-DIRECTORIES = ('.github', 'src', 'scripts', 'i18n', 'docs', 'tests', 'compat')
+DIRECTORIES = ('.github', 'src', 'scripts', 'packaging', 'i18n', 'docs', 'tests', 'compat')
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

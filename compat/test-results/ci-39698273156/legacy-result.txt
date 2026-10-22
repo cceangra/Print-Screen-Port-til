@@ -1,0 +1,1 @@
+SIGFPE_REPRODUCED in the Ubuntu 22.04/Xvfb/xfsettingsd substitute; inspect legacy-gdb.log. This is not Zorin desktop certification.

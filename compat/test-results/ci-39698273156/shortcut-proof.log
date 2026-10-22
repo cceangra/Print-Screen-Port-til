@@ -1,0 +1,9 @@
+
+======= LIVE SHORTCUT TEST =======
+The shortcut was saved in the desktop manager.
+Now press Insert again to check whether the desktop launches Print RC.
+This test briefly opens the interface, verifies mouse/keyboard and closes without saving images.
+Deadline: 12 seconds. No further YES confirmation is needed.
+====================================
+OVERLAY_VERIFIED: the shortcut opened and rendered the X11 interface with mouse/keyboard ready.
+Press Insert again to open a capture normally.

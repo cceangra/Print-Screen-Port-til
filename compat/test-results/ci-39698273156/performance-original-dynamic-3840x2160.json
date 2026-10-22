@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "label": "original-dynamic-glibc235-xvfb",
+  "test_kind": "Xvfb development benchmark, white root background",
+  "limitations": "Core binary only; no real desktop/shortcut or low-power hardware certification. PSS sampled every 5 ms; RSS/CPU from wait4. Startup includes a separate test-driver process. Clipboard idle sample is 200 ms, not a long-term endurance test. Null PSS/ticks means /proc access was unavailable; never treat it as zero memory/CPU.",
+  "environment": {
+    "os_release": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+    "architecture": "x86_64",
+    "libc": [
+      "glibc",
+      "2.35"
+    ],
+    "screen": [
+      3840,
+      2160
+    ],
+    "kernel": "6.8.0-1070-azure",
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "logical_cpus": 4,
+    "memory_total": "16372444 kB"
+  },
+  "binary_sha256": "2e8d142ee1b9504d5893b91a3a52234565ef11a90288d7479f20c2fd1a01faa1",
+  "driver_sha256": "83333cfe61181a1e71888af9a72165a50dca94e612350813aea097bae09af5c5",
+  "benchmark_script_sha256": "563bbca8b17c8ac42dae741d4918674dadb2771eae1b4584ae3d4e2ea3841560",
+  "binary_bytes": 578168,
+  "repetitions": 5,
+  "runs": [
+    {
+      "overlay_latency_ms": 114.69907899999043,
+      "capture_wall_ms": 825.754207999978,
+      "cpu_seconds": 0.819874,
+      "peak_rss_kib": 70528,
+      "sampled_peak_pss_kib": 67938,
+      "png_bytes": 37549,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 164.54210200004127,
+      "capture_wall_ms": 864.4683460000238,
+      "cpu_seconds": 0.8302039999999999,
+      "peak_rss_kib": 70276,
+      "sampled_peak_pss_kib": 67859,
+      "png_bytes": 37549,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 164.5296390000226,
+      "capture_wall_ms": 867.6569040000004,
+      "cpu_seconds": 0.8286769999999999,
+      "peak_rss_kib": 70660,
+      "sampled_peak_pss_kib": 68064,
+      "png_bytes": 37549,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 114.5275239999819,
+      "capture_wall_ms": 820.8604159999595,
+      "cpu_seconds": 0.81443,
+      "peak_rss_kib": 70400,
+      "sampled_peak_pss_kib": 67958,
+      "png_bytes": 37549,
+      "processes_after_capture": 0
+    },
+    {
+      "overlay_latency_ms": 164.71016200000577,
+      "capture_wall_ms": 870.5822709999893,
+      "cpu_seconds": 0.822739,
+      "peak_rss_kib": 70400,
+      "sampled_peak_pss_kib": 67927,
+      "png_bytes": 37549,
+      "processes_after_capture": 0
+    }
+  ],
+  "summary": {
+    "latency_median_ms": 864.4683460000238,
+    "latency_p95_ms": 870.5822709999893,
+    "peak_rss_kib": 70660,
+    "sampled_peak_pss_kib": 68064,
+    "median_cpu_seconds": 0.822739
+  },
+  "clipboard": {
+    "overlay_latency_ms": 114.50295199995253,
+    "capture_wall_ms": 1040.215527999976,
+    "cpu_seconds": 0.8250929999999999,
+    "peak_rss_kib": 70528,
+    "sampled_peak_pss_kib": 67951,
+    "png_bytes": 37549,
+    "processes_after_capture": 1,
+    "clipboard_pss_kib": 35609,
+    "clipboard_rss_kib": 38272,
+    "clipboard_idle_cpu_ticks_200ms": 0
+  }
+}

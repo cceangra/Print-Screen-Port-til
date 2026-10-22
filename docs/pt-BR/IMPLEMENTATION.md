@@ -91,6 +91,24 @@ O benchmark de desenvolvimento no mesmo host usou Ubuntu 24.04/glibc 2.39, Xvfb 
 
 Com cinco amostras, p95 é o maior valor observado; tempo de parede sofre variação no ambiente compartilhado. Coortes preliminares também tiveram grandes outliers. PSS local, RSS/PSS residual do clipboard e ticks ociosos são null por falta de acesso ao /proc dos filhos, nunca zero. CPU/RSS acima vêm de wait4. Cobrem núcleo da captura, excluindo supervisor transitório e X server. Compressão nível 3 troca explicitamente PNG maior por menor CPU/latência (no cenário branco 4K CI, 150.581 contra 37.549 bytes da fonte antiga dinâmica); pixels continuam sem perdas. O cenário tem baixa entropia; tamanhos PNG e amostras completas foram mantidos. A etapa de recursos CI compara candidato exato com fonte v0.5.6 inalterada recompilada dinamicamente no mesmo Ubuntu 22.04/glibc 2.35, pois o estático distribuído falha ali. Identidade/limites das duas referências devem continuar explícitos. Aceitação real em Q4OS/Zorin/laptop/dois monitores e regressões ≤20% nesses hosts continuam pendentes.
 
+## Checkpoint de pacote após otimização
+
+A [execução 39698273156](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156), fonte `f982b77373cd261bd101c42990ec2f988f6e55dc`, aprovou cinco jobs e **68 testes Python em cada ambiente do pacote**. Seu ZIP tem 274.216 bytes, SHA-256 `b8aa1f534174db4bff601bec0aa31cf279ff904f12b6a8ca39807a79d92285fe`; SHA-256 do núcleo nativo `1daf4224dddee91c3fa10a2c438ac91412688dc548bc18b02d3a9eb42da5b82c`. Mudanças posteriores de fontes/documentação/pacote recebem hashes próprios e repetem verificações. Esse checkpoint preservado não é lançamento publicado nem certificação dos desktops do usuário.
+
+Jobs: [compilação](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156/job/119560923230), [Ubuntu 20.04](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156/job/119561146736), [Ubuntu 22.04](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156/job/119561146845), [Debian 13](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156/job/119561146770), [serviços XFCE/GDB/desempenho](https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39698273156/job/119561146955).
+
+O par medido no mesmo host usou Ubuntu 22.04.5/glibc 2.35, kernel 6.8.0-1070-azure, AMD EPYC 7763, quatro CPUs lógicas expostas e 16.372.444 kB de memória, Xvfb de profundidade 24, pixels brancos e cinco amostras. A referência é fonte v0.5.6 sem alterações recompilada dinamicamente pelo compilador do host; candidato é ELF portátil construído no Ubuntu 20.04. Inclui diferenças de compilador/bibliotecas e não pode ser apresentado como medição do estático distribuído que falha.
+
+| Resolução | Mediana fonte antiga / candidato ms | p95 fonte antiga / candidato ms | CPU segundos antigo → candidato | Pico PSS KiB antigo → candidato | PSS clipboard KiB antigo → candidato |
+| --- | --- | --- | --- | --- | --- |
+| 1366×768 | 125,1 / 49,9 | 135,4 / 50,3 | 0,1099 → 0,0346 | 11325 → 11131 | 7240 → 2896 |
+| 1920×1080 | 241,8 / 97,1 | 244,4 / 103,9 | 0,2078 → 0,0647 | 19401 → 19151 | 11131 → 2978 |
+| 3840×2160 | 864,5 / 286,8 | 870,6 / 288,9 | 0,8227 → 0,2423 | 68064 → 67694 | 35609 → 3188 |
+
+CPU ociosa do clipboard candidato foi **0 ticks no intervalo medido de 200 ms** nas três resoluções; é observação curta, sem promessa genérica de 0% permanente. Em 4K, 35.609→3.188 KiB representa cerca de 91% menos PSS residual. Pico RSS antigo→candidato: 16.768→16.768 / 21.912→21.656 / 70.660→70.152 KiB. Cada núcleo sem clipboard encerrou; um núcleo nativo serviu bytes do clipboard. Amostras, PNGs em bytes, hashes de host/binário/script e limitações ficam [preservados com checksums](../../compat/test-results/ci-39698273156/evidence-index.json).
+
+O comparador recusa regressões >20% de CPU/p95/PSS no mesmo cenário e retenção proporcional à tela no clipboard (8 MiB mais duas vezes bytes PNG). Recusou a coorte anterior ao trim e aprovou os três pares posteriores. Isso sustenta a otimização implementada; laptop físico, Q4OS/Zorin reais e dois monitores continuam pendentes. A compilação final também verifica inclusão do próprio empacotador e todos os fontes correspondentes versionados, exceto evidências, e compara dois pacotes byte a byte.
+
 ## Aceitação pendente e riscos
 
 Mantenha PR como draft e issue #1 aberta até Zorin 17.3 XFCE/glibc 2.35 e Q4OS/Trinity reais testarem o **mesmo arquivo pretendido para lançamento**: instalação, Insert/Print físicos, tela escurecida/barra visível, área/tela inteira, caneta/desfazer, Escape, PNG, Ctrl+V/INCR, recuperação da tecla, movimentação e desinstalação segura. Anexe versões SO/desktop/bibliotecas ocultando dados pessoais, hashes binário/build/pacote, logs e cinco repetições de latência/CPU/RSS/PSS. Teste resoluções pedidas no Intel de baixo consumo, 4K e dois monitores. Evidência de outro pacote não libera lançamento.
@@ -103,7 +121,7 @@ A = adicionado, M = modificado, D = retirado deste branch. Assets v0.5.6 foram p
 
 | Alteração | Arquivo | Finalidade |
 | --- | --- | --- |
-| A | `.github/workflows/build.yml` | Compila candidato GNU no Ubuntu 20.04; audita ABI e envia ZIP com checksum. |
+| A | `.github/workflows/build.yml` | Compila candidato GNU no Ubuntu 20.04; audita ABI, fontes completos, ZIPs repetidos idênticos e hashes. |
 | A | `.github/workflows/release.yml` | Publicação por tag explícita após testes do pacote e evidência separada de hosts; recusa sobrescrever assets. |
 | A | `.github/workflows/test.yml` | Testa ZIP exato em três ambientes libc; serviços XFCE reais, comparação GDB e medições de recursos. |
 | M | `.github/workflows/testar.yml` | Coordena compilação/teste com permissões de leitura; sem commit automático de binário ou publicação. |
@@ -147,6 +165,25 @@ A = adicionado, M = modificado, D = retirado deste branch. Assets v0.5.6 foram p
 | A | `compat/test-results/ci-39697099560/performance.log` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
 | A | `compat/test-results/ci-39697099560/shortcut-proof.log` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
 | A | `compat/test-results/ci-39697099560/xfce-result.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/Print-RC-linux-x86_64-glibc.zip.sha256` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/binary-sha256.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/build-manifest.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/evidence-index.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/legacy-build-id.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/legacy-gdb.log` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/legacy-result.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/libc.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/original-dynamic-result.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/os-release.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-candidate-1366x768.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-candidate-1920x1080.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-candidate-3840x2160.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-original-dynamic-1366x768.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-original-dynamic-1920x1080.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance-original-dynamic-3840x2160.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/performance.log` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/shortcut-proof.log` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
+| A | `compat/test-results/ci-39698273156/xfce-result.txt` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
 | A | `compat/test-results/development-performance/dynamic-1080.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
 | A | `compat/test-results/development-performance/dynamic-2160.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |
 | A | `compat/test-results/development-performance/dynamic-768.json` | Evidência de teste preservada com hashes; excluída dos pacotes de execução. |

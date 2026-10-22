@@ -28,6 +28,17 @@ jobs:
           ./bin/print-rc --self-test
           python3 scripts/build/manifest.py --output dist/build-manifest.json --max-glibc 2.31 --max-glibcxx 3.4.28
           python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-linux-x86_64-glibc.zip
+          python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/repeated.zip
+          cmp dist/Print-RC-linux-x86_64-glibc.zip dist/repeated.zip
+          python3 - <<'PY'
+          import subprocess,zipfile
+          with zipfile.ZipFile('dist/Print-RC-linux-x86_64-glibc.zip') as archive:
+              names=set(archive.namelist())
+          tracked=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          missing=[path for path in tracked if path and not path.startswith('compat/test-results/') and 'Print-RC/'+path not in names]
+          if missing:raise SystemExit('Missing corresponding source/package files: '+repr(missing))
+          print('PASS: repeated archive bytes identical; complete tracked source except excluded evidence')
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: gnu-x86_64-candidate
