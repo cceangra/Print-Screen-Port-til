@@ -21,7 +21,7 @@
       "status": "BROKEN_IN_V0_5_6_FIX_UNVERIFIED",
       "verified_release": null,
       "last_tested": null,
-      "notes": "User reports glibc 2.35 SIGFPE at host libc offset 0x175c79. Dynamic candidate requires actual desktop/archive validation."
+      "notes": "User reports glibc 2.35 SIGFPE at host libc offset 0x175c79. Dynamic candidate requires actual desktop/archive validation. Ubuntu 22.04/glibc 2.35 substitute reproduced original SIGFPE; dynamic candidate passed real xfsettingsd shortcut/PNG tests. Exact Zorin desktop remains unverified."
     },
     {
       "id": "q4os-trinity-x86_64-x11",
@@ -60,10 +60,17 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "A",
-      "status": "UNTESTED",
+      "status": "X11_CORE_ARCHIVE_TESTED_DESKTOP_UNVERIFIED",
       "verified_release": null,
-      "last_tested": null,
-      "notes": "No runtime or desktop acceptance evidence yet."
+      "last_tested": "2026-10-21",
+      "notes": "Exact candidate archive passed non-root Xvfb regressions. This does not verify an installed desktop or a release.",
+      "evidence": {
+        "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+        "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+        "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+        "test_kind": "container-xvfb",
+        "desktop_verified": false
+      }
     },
     {
       "id": "builder-ubuntu-20.04",
@@ -81,10 +88,17 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "A",
-      "status": "UNTESTED",
+      "status": "X11_CORE_ARCHIVE_TESTED_DESKTOP_UNVERIFIED",
       "verified_release": null,
-      "last_tested": null,
-      "notes": "No runtime or desktop acceptance evidence yet."
+      "last_tested": "2026-10-21",
+      "notes": "Exact candidate archive passed non-root Xvfb regressions. This does not verify an installed desktop or a release.",
+      "evidence": {
+        "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+        "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+        "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+        "test_kind": "container-xvfb",
+        "desktop_verified": false
+      }
     },
     {
       "id": "ubuntu-22.04-x11",
@@ -102,10 +116,17 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "B",
-      "status": "UNTESTED",
+      "status": "X11_CORE_ARCHIVE_TESTED_DESKTOP_UNVERIFIED",
       "verified_release": null,
-      "last_tested": null,
-      "notes": "No runtime or desktop acceptance evidence yet."
+      "last_tested": "2026-10-21",
+      "notes": "Exact candidate archive passed non-root Xvfb regressions. This does not verify an installed desktop or a release.",
+      "evidence": {
+        "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+        "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+        "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+        "test_kind": "container-xvfb",
+        "desktop_verified": false
+      }
     },
     {
       "id": "ubuntu-24.04-x11",
@@ -210,7 +231,7 @@
       "status": "UNTESTED",
       "verified_release": null,
       "last_tested": null,
-      "notes": "Debian 11 is a legacy test target; not a support claim."
+      "notes": "No runtime or desktop acceptance evidence yet."
     },
     {
       "id": "debian-13",
@@ -228,10 +249,17 @@
       "shortcut_backend": "xfce",
       "capture_backend": "x11",
       "support_tier": "B",
-      "status": "UNTESTED",
+      "status": "X11_CORE_ARCHIVE_TESTED_DESKTOP_UNVERIFIED",
       "verified_release": null,
-      "last_tested": null,
-      "notes": "Debian 11 is a legacy test target; not a support claim."
+      "last_tested": "2026-10-21",
+      "notes": "Exact candidate archive passed non-root Xvfb regressions. This does not verify an installed desktop or a release. XFCE/Trinity shortcut regressions used isolated adapters; no real Debian desktop was tested.",
+      "evidence": {
+        "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+        "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+        "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+        "test_kind": "container-xvfb",
+        "desktop_verified": false
+      }
     },
     {
       "id": "mint-21.x-xfce",
@@ -925,6 +953,35 @@
       "verified_release": null,
       "last_tested": null,
       "notes": "No ARM64 artifact is built or claimed compatible."
+    },
+    {
+      "id": "ubuntu-22.04-xfsettingsd-xvfb",
+      "name": "Ubuntu",
+      "version": "22.04",
+      "desktop": "XFCE services on Xvfb",
+      "protocol": "x11",
+      "architecture": "x86_64",
+      "libc": "glibc",
+      "required_components": [
+        "libX11.so.6",
+        "libpng16.so.16",
+        "Python 3 for configuration/desktop helpers"
+      ],
+      "shortcut_backend": "xfce",
+      "capture_backend": "x11",
+      "support_tier": "B",
+      "status": "XFCE_SERVICES_ARCHIVE_TESTED_ZORIN_UNVERIFIED",
+      "verified_release": null,
+      "last_tested": "2026-10-21",
+      "notes": "Real xfsettingsd/xfconf in isolated D-Bus/Xvfb: Insert opened rendered overlay and saved PNG; prior Insert restored and Print preserved. Original static v0.5.6 reproduced SIGFPE; unchanged-source dynamic comparison mapped/cancelled. Not a full installed XFCE or Zorin desktop.",
+      "evidence": {
+        "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39695994801",
+        "source_commit": "0bd95a6bb8cc1d46050fefdfcb226205437bc6e9",
+        "archive_sha256": "7d5f19147fe21452de771dfd4a39071454b84bb8141dd92526baea0a40c6a83a",
+        "test_kind": "container-xvfb-real-xfsettingsd",
+        "desktop_verified": false,
+        "forensics": "test-results/ci-39695994801/evidence-index.json"
+      }
     }
   ]
 }

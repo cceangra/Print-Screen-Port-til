@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "scope": "Before clipboard heap-page release, measured exact candidate vs unchanged v0.5.6 source dynamically rebuilt on same CI host; no actual Zorin/Q4OS acceptance",
+  "run_url": "https://github.com/cceangra/Print-Screen-Port-til/actions/runs/39697099560",
+  "source_commit": "bb4e90a33e8f6c72d9d7ea66785002e84d6a7fe9",
+  "archive_sha256": "8ecb7dd7174252421d9df69306fe998e6937a05684ffa13568b4edf38187ac36",
+  "files": {
+    "Print-RC-linux-x86_64-glibc.zip.sha256": "ee642c75d71186e767117a77fd3ebbd7ae6fc2116dde04676b0269ca17f1d5b3",
+    "binary-sha256.txt": "fd36d3041f2502ea0185cf22da839496f98fb898fde041cf09e5abc5bb4e98ce",
+    "build-manifest.json": "6ebe301735a447d231cba43c05d871ac49a1eb333915b9fb51f9dde77803ab3d",
+    "legacy-build-id.txt": "a77dc64029ca535cf23c72ccbb1c9d4fd92c1c12a1776447101783a5d413c049",
+    "legacy-gdb.log": "daa97cb0d3ef851d4796ebf2651bcc609266af6d93a597245b5134cba6a7667a",
+    "legacy-result.txt": "30d73444b76cd3a2903ab4defff770648b39b603ec9280b36df98189348da97e",
+    "libc.txt": "2c6c80f81a99db1604b04e9bb1bef2e7e215b2322cd3e465b70f05ad2a9e8896",
+    "original-dynamic-result.txt": "aa7c3a23d1d07289168ec5e5c3303c680b45df9b9f56530b14373020da8accc5",
+    "os-release.txt": "594d5ddd35aedb47f00d9c34d140017907a5b9f93c975aba125fc924daac5c07",
+    "performance-candidate-1366x768.json": "d9f9a138a5e8c91537077bf3062f08642eb3fb245eea83001e2de083c610588d",
+    "performance-candidate-1920x1080.json": "a43c154c6578f09e42d877617481b46ce963a3a88eb4d43584c4809400698bac",
+    "performance-candidate-3840x2160.json": "0f8bd3d50b1d650c4c3ea2529d982e1a275b4141c1399bd7a6b6ceed9b9de48f",
+    "performance-original-dynamic-1366x768.json": "08ea7832eb1381913e17efb85d90228e1689eac5f1e05529ba62030f311ee2b6",
+    "performance-original-dynamic-1920x1080.json": "d421f80efef0c55f0b09fca07365b0dfd5c9670249c2a176f6bef305695b0f51",
+    "performance-original-dynamic-3840x2160.json": "4dd6495bb5578ec42bfc339bac1e787f25abe64946e69109d3066f55ef902404",
+    "performance.log": "9dff2ff29be8cfa0adbe97dcfb26d90a17351c0235c33427aa0cba717a75851b",
+    "shortcut-proof.log": "95ff00069db17390dfe4b4a7e5f808c9b52cbed498865379cc7d916c25cf29d0",
+    "xfce-result.txt": "293f3f476ddeef6891ad2e8660c1ab6847a66053f92b86220dbf46c33c2d92db"
+  }
+}

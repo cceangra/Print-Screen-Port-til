@@ -100,6 +100,7 @@ jobs:
             done
           done' > /tmp/xfce-test/evidence/performance.log 2>&1 || { cat /tmp/xfce-test/evidence/performance.log; exit 1; }
           cat /tmp/xfce-test/evidence/performance.log
+          python3 -B "/tmp/xfce-test/Print RC (ç)/tests/performance/compare.py" --directory /tmp/xfce-test/evidence
       - uses: actions/upload-artifact@v4
         if: always()
         with:

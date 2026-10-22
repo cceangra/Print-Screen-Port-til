@@ -6,7 +6,7 @@ A small native C++17 screenshot and annotation utility for Linux **X11**. Select
 
 ## Candidate status
 
-`0.6.0-dev` replaces the full-static GNU release build with a dynamically linked build. This addresses a packaging hypothesis behind the reported v0.5.6 **SIGFPE on Zorin OS 17.3 Lite/XFCE/glibc 2.35**. **The target desktop repair is not yet verified.** Q4OS/Trinity acceptance also remains required. Track [issue #1](https://github.com/cceangra/Print-Screen-Port-til/issues/1).
+`0.6.0-dev` replaces the full-static GNU release build with a dynamically linked build. In Ubuntu 22.04/glibc 2.35 with isolated XFCE services, the shipped static original reproduced SIGFPE while the dynamically rebuilt original and candidate opened the overlay. This supports the packaging change for the reported v0.5.6 **SIGFPE on Zorin OS 17.3 Lite/XFCE/glibc 2.35**. **The target desktop repair is not yet verified.** Q4OS/Trinity acceptance also remains required. Track [issue #1](https://github.com/cceangra/Print-Screen-Port-til/issues/1).
 
 The [compatibility catalog](compat/linux-targets.json) lists test targets, including untested distributions. Xvfb tests establish X11 core/ABI behavior; they do not certify an installed desktop. Wayland, ARM64 and musl/Alpine builds are not implemented or advertised as supported.
 
@@ -42,6 +42,6 @@ With clipboard enabled, a native process retains the **compressed PNG** for up t
 
 ## Documentation
 
-[Install](docs/en-US/INSTALL.md) · [User guide](docs/en-US/USER_GUIDE.md) · [Troubleshooting](docs/en-US/TROUBLESHOOTING.md) · [Uninstall](docs/en-US/UNINSTALL.md) · [Compatibility](docs/en-US/COMPATIBILITY.md) · [Privacy](docs/en-US/PRIVACY.md) · [Development](docs/en-US/DEVELOPMENT.md) · [Changes](CHANGELOG.md)
+[Install](docs/en-US/INSTALL.md) · [User guide](docs/en-US/USER_GUIDE.md) · [Troubleshooting](docs/en-US/TROUBLESHOOTING.md) · [Uninstall](docs/en-US/UNINSTALL.md) · [Compatibility](docs/en-US/COMPATIBILITY.md) · [Privacy](docs/en-US/PRIVACY.md) · [Development](docs/en-US/DEVELOPMENT.md) · [Changes](CHANGELOG.md) · [Implementation and test evidence](docs/en-US/IMPLEMENTATION.md)
 
 Licensed under GPL-3.0-or-later. Original version history remains in Git, including the [v0.5.6 README](https://github.com/cceangra/Print-Screen-Port-til/blob/v0.5.6/README.md).

@@ -1,0 +1,53 @@
+warning: Error disabling address space randomization: Operation not permitted
+
+Program received signal SIGFPE, Arithmetic exception.
+0x00007f6ca4e98c79 in ?? ()
+
+Thread 1 (process 5331 "legacy-static"):
+#0  0x00007f6ca4e98c79 in ?? ()
+#1  0x0000000001000000 in ?? ()
+#2  0xffffffffffffffff in ?? ()
+#3  0x00007ffe9030a8f0 in ?? ()
+#4  0x5511f0325b085b00 in ?? ()
+#5  0x00007ffe9030a8f0 in ?? ()
+#6  0x000000000061dbd7 in ?? ()
+#7  0x00000000006166c9 in ?? ()
+#8  0x000000000061cdff in ?? ()
+#9  0x00000000006166c9 in ?? ()
+#10 0x000000000061d1a2 in ?? ()
+#11 0x00000000005c4135 in ?? ()
+#12 0x00000000006166c9 in ?? ()
+#13 0x0000000000616779 in ?? ()
+#14 0x000000000063b3f1 in ?? ()
+#15 0x00000000005c420a in ?? ()
+#16 0x000000000043165e in ?? ()
+#17 0x000000000040face in ?? ()
+#18 0x0000000000409920 in ?? ()
+#19 0x0000000000588ff8 in ?? ()
+#20 0x000000000058b1c0 in ?? ()
+#21 0x000000000040bf95 in ?? ()
+rax            0xffffffffffffffff  -1
+rbx            0x0                 0
+rcx            0x1000              4096
+rdx            0x0                 0
+rsi            0x0                 0
+rdi            0x1000000           16777216
+rbp            0x7ffe9030a600      0x7ffe9030a600
+rsp            0x7ffe9030a560      0x7ffe9030a560
+r8             0x963cf85           157536133
+r9             0x7                 7
+r10            0x7ffe9030a560      140731317527904
+r11            0x246               582
+r12            0xb                 11
+r13            0x58                88
+r14            0x1                 1
+r15            0x12a67d70          312900976
+rip            0x7f6ca4e98c79      0x7f6ca4e98c79
+eflags         0x10297             [ CF PF AF SF IF RF ]
+cs             0x33                51
+ss             0x2b                43
+ds             0x0                 0
+es             0x0                 0
+fs             0x0                 0
+gs             0x0                 0
+No shared libraries loaded at this time.

@@ -45,3 +45,5 @@ Com clipboard ligado, um processo nativo guarda o **PNG comprimido** por até 30
 [Instalação](docs/pt-BR/INSTALL.md) · [Uso](docs/pt-BR/USER_GUIDE.md) · [Problemas](docs/pt-BR/TROUBLESHOOTING.md) · [Desinstalação](docs/pt-BR/UNINSTALL.md) · [Compatibilidade](docs/pt-BR/COMPATIBILITY.md) · [Privacidade](docs/pt-BR/PRIVACY.md) · [Desenvolvimento](docs/pt-BR/DEVELOPMENT.md) · [Alterações](CHANGELOG.pt-BR.md)
 
 Licença GPL-3.0-or-later. O histórico original permanece no Git, incluindo o [README da v0.5.6](https://github.com/cceangra/Print-Screen-Port-til/blob/v0.5.6/README.md).
+
+[Relatório completo de implementação e testes](docs/pt-BR/IMPLEMENTATION.md). O SIGFPE original foi reproduzido no substituto Ubuntu 22.04/glibc 2.35 com serviços XFCE isolados; compilação dinâmica abriu a interface nesse ambiente. Zorin e Q4OS reais continuam pendentes.

@@ -12,6 +12,9 @@
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <cerrno>
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
 #include <png.h>
 #include "settings.hpp"
 #include "app/runtime.hpp"
@@ -497,6 +500,11 @@ int run_capture_app(int argc,char** argv) {
     // instead of keeping the capture connection's caches resident for 30 min.
     close_display();
     decltype(strokes)().swap(strokes);
+#if defined(__GLIBC__)
+    // Freed capture/transport buffers can remain in glibc's arena. Return free
+    // pages once before a long clipboard wait; do not change allocator tunables.
+    malloc_trim(0);
+#endif
     display=XOpenDisplay(nullptr);
     if(!display) {std::cerr<<prc_tr("native.004");return saved?8:6;}
     const Window clipboard_root=DefaultRootWindow(display);

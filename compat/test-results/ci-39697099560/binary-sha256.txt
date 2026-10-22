@@ -1,0 +1,2 @@
+d31d197a90e3133a54aac2b07ae2a51ebd1bd316f0459e4a6e6b5b854e0ebe7e  /tmp/xfce-test/legacy-static
+1a64c3eb55f5178323ae4effb2769d074b2f315a475a352f34f46300265a166e  /tmp/xfce-test/Print RC (ç)/bin/print-rc
