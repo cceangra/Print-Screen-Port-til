@@ -8,7 +8,7 @@ Os fontes estão separados em ciclo de vida, configuração, codificação de im
 
 Em uma máquina X11 isolada de testes, sem root, execute `bash tests/run.sh`. Há regressões originais, adaptadores simulados, área/tela/desenho/clipboard/INCR reais no Xvfb, interface visível/escurecida em profundidades 16/24, disputa de reservas, sinais simulados e desinstalação segura. Diagnóstico somente leitura nunca envia entradas sintéticas. Uma tela de profundidade 24 normalmente usa armazenamento de 32 bits por pixel; Xvfb pode não oferecer profundidade raiz 32.
 
-Auditoria: `python3 scripts/build/manifest.py --output dist/build-manifest.json`. Pacote: `python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-linux-x86_64-glibc.zip`. Compilações locais acima do teto ABI falham; uma auditoria relaxada localmente não comprova uma versão portátil. Tags, compilador/linker, IDs, dependências, símbolos e hashes acompanham os candidatos.
+Auditoria: `python3 scripts/build/manifest.py --output dist/build-manifest.json`. Pacote: `python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-Linux-x86_64.zip`. Compilações locais acima do teto ABI falham; uma auditoria relaxada localmente não comprova uma versão portátil. Tags, compilador/linker, IDs, dependências, símbolos e hashes acompanham os candidatos.
 
 Publicar exige tag existente explícita, regressões do pacote aprovadas e evidências separadas de desktop/desempenho para o hash exato. Arquivos publicados não são sobrescritos, o CI normal só tem leitura do repositório e nenhum binário é regravado na main. ARM/musl/Wayland exigem trilhas verificadas separadamente.
 

@@ -8,7 +8,7 @@ The source is split into app lifecycle, configuration, image encoding, geometry/
 
 On an isolated X11 test machine, as a normal user, run `bash tests/run.sh`. It includes original regression tests, adapter mocks, real Xvfb area/fullscreen/drawing/clipboard/INCR, 16/24-depth mapped/dimmed-overlay tests, competing grabs, signal injection and safe-uninstall cases. Synthetic input is never sent by read-only diagnostics. A 24-depth screen commonly uses 32-bpp storage; Xvfb may not offer 32-bit root depth.
 
-Build auditing: `python3 scripts/build/manifest.py --output dist/build-manifest.json`. Package: `python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-linux-x86_64-glibc.zip`. Host builds exceeding the ABI ceiling fail; never label a locally relaxed audit a portable release. Source tags, compiler/linker, build IDs, dependencies, symbols and hashes accompany candidates.
+Build auditing: `python3 scripts/build/manifest.py --output dist/build-manifest.json`. Package: `python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-Linux-x86_64.zip`. Host builds exceeding the ABI ceiling fail; never label a locally relaxed audit a portable release. Source tags, compiler/linker, build IDs, dependencies, symbols and hashes accompany candidates.
 
 Release publication requires an explicit existing tag, passing archive regressions and separate exact-hash desktop/performance evidence. Existing assets are never overwritten, normal CI has read-only repository permission, and no binary is committed back into main. Future ARM/musl/Wayland work requires separately verified tracks.
 

@@ -56,8 +56,8 @@ bash tests/run.sh
 # Build/audit on the baseline environment, not a newer developer host.
 make -B portable
 python3 -B scripts/build/manifest.py --output dist/build-manifest.json --max-glibc 2.31 --max-glibcxx 3.4.28
-python3 -B packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-linux-x86_64-glibc.zip
-(cd dist && sha256sum -c Print-RC-linux-x86_64-glibc.zip.sha256)
+python3 -B packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-Linux-x86_64.zip
+(cd dist && sha256sum -c Print-RC-Linux-x86_64.zip.sha256)
 ```
 
 See the workflows for the exact container invocations and log artifacts. Package dependencies are installed in CI/developer environments only.

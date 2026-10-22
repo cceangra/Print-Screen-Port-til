@@ -28,8 +28,8 @@ jobs:
       - name: Verify checksum and extract one application directory
         run: |
           cd candidate
-          sha256sum -c Print-RC-linux-x86_64-glibc.zip.sha256
-          unzip -q Print-RC-linux-x86_64-glibc.zip -d /tmp/candidate
+          sha256sum -c Print-RC-Linux-x86_64.zip.sha256
+          unzip -q Print-RC-Linux-x86_64.zip -d /tmp/candidate
           useradd -m tester
           chown -R tester:tester /tmp/candidate
       - name: Regressions on the packaged binary as a non-root user
@@ -70,7 +70,7 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           mkdir -p /tmp/xfce-test/original/src /tmp/xfce-test/evidence
-          unzip -q candidate/Print-RC-linux-x86_64-glibc.zip -d /tmp/xfce-test
+          unzip -q candidate/Print-RC-Linux-x86_64.zip -d /tmp/xfce-test
           mv /tmp/xfce-test/Print-RC "/tmp/xfce-test/Print RC (ç)"
           git show v0.5.6:bin/print-rc > /tmp/xfce-test/legacy-static
           chmod +x /tmp/xfce-test/legacy-static

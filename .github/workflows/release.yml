@@ -46,11 +46,11 @@ jobs:
         run: |
           test "$RELEASE_TAG" = "v$(cat VERSION)"
           test "$(git rev-parse HEAD)" = "$(python3 -c 'import json; print(json.load(open("dist/build-manifest.json"))["git_commit"])')"
-          python3 scripts/build/release_gate.py --archive dist/Print-RC-linux-x86_64-glibc.zip --manifest dist/build-manifest.json --evidence-dir acceptance/compat/test-results
+          python3 scripts/build/release_gate.py --archive dist/Print-RC-Linux-x86_64.zip --manifest dist/build-manifest.json --evidence-dir acceptance/compat/test-results
       - name: Publish a new immutable-in-normal-operation release (never clobber assets)
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then echo 'Release already exists; refusing replacement'; exit 1; fi
-          gh release create "$RELEASE_TAG" dist/Print-RC-linux-x86_64-glibc.zip dist/Print-RC-linux-x86_64-glibc.zip.sha256 dist/build-manifest.json --verify-tag --title "Print RC $RELEASE_TAG" --notes-file docs/en-US/RELEASE.md
+          gh release create "$RELEASE_TAG" dist/Print-RC-Linux-x86_64.zip dist/Print-RC-Linux-x86_64.zip.sha256 dist/build-manifest.json --verify-tag --title "Print RC $RELEASE_TAG" --notes-file docs/en-US/RELEASE.md
