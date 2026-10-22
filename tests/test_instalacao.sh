@@ -246,10 +246,10 @@ grep -F 'cancelada com Esc' "$TEMP/teste13.log"
 
 echo 'OK: instalacao sem compilar, mover pasta completa, recusa sobrescrita.'
 
-echo '[11] Estado externo preparado em falha fica registrado e pode ser desinstalado'
-make_source "$TEMP/origem11"
-export PRINT_RC_TEST_EXTERNAL="$TEMP/owned-external11.txt"
-cat > "$TEMP/origem11/scripts/atalho.py" <<'PY'
+echo '[14] Estado externo preparado em falha fica registrado e pode ser desinstalado'
+make_source "$TEMP/origem14"
+export PRINT_RC_TEST_EXTERNAL="$TEMP/owned-external14.txt"
+cat > "$TEMP/origem14/scripts/atalho.py" <<'PY'
 import json,os,sys
 from pathlib import Path
 base=Path(sys.argv[sys.argv.index('--base')+1]);state=base/'config/atalho-state.json';external=Path(os.environ['PRINT_RC_TEST_EXTERNAL'])
@@ -261,25 +261,25 @@ if sys.argv[1]=='remove':
     assert external.read_text()=='owned test integration'
     external.unlink();state.unlink()
 PY
-cp -- "$TEMP/origem9/bin/print-rc" "$TEMP/origem11/bin/print-rc"
-if printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem11/instalar.sh"; then
+cp -- "$TEMP/origem9/bin/print-rc" "$TEMP/origem14/bin/print-rc"
+if printf '\n\n\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity bash "$TEMP/origem14/instalar.sh"; then
     echo 'ERROR: failed external transaction reported successful installation';exit 1
 fi
-test -f "$TEMP/origem11/.print-rc-installation"
-grep -F 'config/atalho-state.json' "$TEMP/origem11/config/arquivos-instalados.sha256"
-python3 - "$TEMP/origem11/config/installation-manifest.json" <<'PY'
+test -f "$TEMP/origem14/.print-rc-installation"
+grep -F 'config/atalho-state.json' "$TEMP/origem14/config/arquivos-instalados.sha256"
+python3 - "$TEMP/origem14/config/installation-manifest.json" <<'PY'
 import json,sys
 value=json.load(open(sys.argv[1]));assert value['ready'] is False
 assert value['state']=='FILES_CONFIGURED' and value['external_files']
 PY
-printf 'UNINSTALL\n' | bash "$TEMP/origem11/desinstalar.sh"
+printf 'UNINSTALL\n' | bash "$TEMP/origem14/desinstalar.sh"
 test ! -e "$PRINT_RC_TEST_EXTERNAL"
-test ! -e "$TEMP/origem11"
+test ! -e "$TEMP/origem14"
 
-echo '[12] Nao criar pastas pais externas sem registro'
-make_source "$TEMP/origem12"
-if printf '%s\ns\n' "$TEMP/uncreated-parent/Print-RC" | bash "$TEMP/origem12/instalar.sh"; then
+echo '[15] Nao criar pastas pais externas sem registro'
+make_source "$TEMP/origem15"
+if printf '%s\ns\n' "$TEMP/uncreated-parent/Print-RC" | bash "$TEMP/origem15/instalar.sh"; then
     echo 'ERROR: installer created an external parent folder';exit 1
 fi
 test ! -e "$TEMP/uncreated-parent"
-test -f "$TEMP/origem12/instalar.sh"
+test -f "$TEMP/origem15/instalar.sh"
