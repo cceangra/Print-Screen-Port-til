@@ -12,6 +12,7 @@ import tempfile
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.dont_write_bytecode=True
 from print_rc_i18n import tr, affirmative, localize_argparse
 
 CHANNEL = 'xfce4-keyboard-shortcuts'
@@ -164,7 +165,7 @@ def rebind(base, launcher, key, state, desired):
         print(tr('desktop.148'))
         return False
     print(tr('desktop.122'),state.get('key','Print'),tr('desktop.123'),key)
-    print(tr('desktop.124'),repr(target_original))
+    print(tr('desktop.124'),repr(target_original) if target_original is not None else tr('common.none'))
     print(tr('desktop.125'))
     if not yes(tr('desktop.149')):
         return False
@@ -218,7 +219,7 @@ def install(base, launcher, key='Print'):
     print(tr('desktop.129'), prop)
     print(tr('desktop.130'))
     print(tr('desktop.131'), desired)
-    print(tr('desktop.132'), repr(old))
+    print(tr('desktop.132'), repr(old) if old is not None else tr('common.none'))
     print(tr('desktop.133'), repr(default))
     if old is not None and old != desired:
         print(tr('desktop.154'))

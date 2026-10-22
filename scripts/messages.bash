@@ -2,6 +2,7 @@
 declare -A PRC_MESSAGES_EN=(
   [common.configured_key]='the configured key'
   [common.confirm]=' [y/N]: '
+  [common.missing]=missing
   [common.no]=NO
   [common.none]='(none)'
   [common.unknown]=unknown
@@ -333,6 +334,7 @@ Current location: {1}'
 declare -A PRC_MESSAGES_PT=(
   [common.configured_key]='a tecla configurada'
   [common.confirm]=' [s/N]: '
+  [common.missing]=ausente
   [common.no]=NAO
   [common.none]='(nenhum)'
   [common.unknown]=desconhecido

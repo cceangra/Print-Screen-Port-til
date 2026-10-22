@@ -4,6 +4,7 @@ struct PrcMessage { const char* id; const char* en; const char* pt; };
 inline constexpr PrcMessage kPrcMessages[] = {
     {"common.configured_key", "the configured key", "a tecla configurada"},
     {"common.confirm", " [y/N]: ", " [s/N]: "},
+    {"common.missing", "missing", "ausente"},
     {"common.no", "NO", "NAO"},
     {"common.none", "(none)", "(nenhum)"},
     {"common.unknown", "unknown", "desconhecido"},

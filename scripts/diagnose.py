@@ -12,6 +12,7 @@ import struct
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+sys.dont_write_bytecode=True
 from print_rc_i18n import tr, localize_argparse
 
 ROOT=Path(__file__).resolve().parent.parent

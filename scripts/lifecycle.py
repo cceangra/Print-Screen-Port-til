@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import sys
+sys.dont_write_bytecode=True
 from print_rc_i18n import tr, localize_argparse
 
 METADATA='config/installation-manifest.json'

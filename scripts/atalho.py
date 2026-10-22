@@ -13,6 +13,7 @@ import uuid
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.dont_write_bytecode=True
 from print_rc_i18n import tr, affirmative, localize_argparse
 
 NAME = tr('desktop.001')
@@ -265,7 +266,7 @@ def status(base):
         found=get_value(sections.get(root,''),'Name')==NAME
         print(tr('desktop.054'),root,tr('desktop.found'), tr('common.yes') if found else tr('common.no'))
         if found:
-            print(tr('desktop.099'),get_value(sections.get(root+'Triggers0',''),'Key','ausente'))
+            print(tr('desktop.099'),get_value(sections.get(root+'Triggers0',''),'Key',tr('common.missing')))
     else:
         print(tr('desktop.055'))
     alvo=own.get('key','Print') if isinstance(own,dict) else 'Print'

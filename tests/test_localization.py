@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -36,6 +37,15 @@ class LocalizationTests(unittest.TestCase):
         for lang,word in [('en-US','Usage:'),('pt-BR','Uso:')]:
             value=subprocess.check_output([str(ROOT/'bin/print-rc'),'--help'],text=True,env={**os.environ,'PRINT_RC_LANG':lang})
             self.assertIn(word,value)
+    def test_helpers_do_not_leave_bytecode_even_when_run_directly(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            shutil.copytree(ROOT/'scripts',root/'scripts',ignore=shutil.ignore_patterns('__pycache__'))
+            shutil.copytree(ROOT/'i18n',root/'i18n')
+            env=dict(os.environ);env.pop('PYTHONDONTWRITEBYTECODE',None)
+            for name in ('atalho.py','atalho_xfce.py','diagnose.py','lifecycle.py','relocate.py'):
+                subprocess.run([sys.executable,str(root/'scripts'/name),'--help'],env=env,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            self.assertEqual(list(root.rglob('__pycache__')),[])
     def test_documentation_has_matching_coverage(self):
         en={p.name for p in (ROOT/'docs/en-US').glob('*.md')}
         pt={p.name for p in (ROOT/'docs/pt-BR').glob('*.md')}
