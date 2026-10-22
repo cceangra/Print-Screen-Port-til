@@ -8,7 +8,7 @@ trap 'rm -rf -- "$TEMP"' EXIT
 APP="$TEMP/Print RC"
 mkdir -p "$APP/config" "$APP/capturas" "$APP/bin"
 cp -a "$ROOT/scripts" "$ROOT/i18n" "$APP/"
-cp "$ROOT/desinstalar.sh" "$APP/"
+cp "$ROOT/desinstalar.sh" "$ROOT/Print-RC" "$APP/"
 printf 'application binary\n' > "$APP/bin/print-rc"
 printf 'original readme\n' > "$APP/README.md"
 printf 'PRINT-RC\n%s\n' "$APP" > "$APP/.print-rc-installation"
@@ -32,4 +32,5 @@ printf 'DESINSTALAR\n' | bash "$APP/desinstalar.sh"
 test "$(cat "$APP/README.md")" = 'personal notes saved before installation'
 test "$(cat "$APP/capturas/photo.png")" = 'personal photo'
 test ! -e "$APP/bin/print-rc"
+test ! -e "$APP/Print-RC"
 echo 'PASS: pre-install modified files and images preserved; original packaged files removed'

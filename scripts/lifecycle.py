@@ -12,7 +12,8 @@ sys.dont_write_bytecode=True
 from print_rc_i18n import tr, localize_argparse
 
 METADATA='config/installation-manifest.json'
-GENERATED={'config/opcoes.conf','config/language',METADATA,'.print-rc-installation'}
+GENERATED={'config/opcoes.conf','config/language',METADATA,'.print-rc-installation',
+           'config/atalho-state.json','config/atalho-xfce.json','backups/khotkeysrc.antes'}
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -60,20 +61,35 @@ def track_generated(base,relative,existed=False):
     if path.read_bytes()!=before:raise ValueError(tr('lifecycle.concurrent'))
     atomic(path,data)
 
-def record(base,overlay='pending'):
-    safe(base,'config').mkdir(mode=0o700,exist_ok=True)
-    path=safe(base,METADATA);values=inventory(base)
-    if path.exists() and (values.get(METADATA)!=digest(path)):
-        raise ValueError(tr('lifecycle.modified'))
+def track_shortcut_write(base,relative):
+    """Track only the file the helper just wrote, including later reconfiguration."""
+    track_generated(base,relative)
+    if safe(base,'config/arquivos-instalados.sha256').is_file():record(base)
+
+def external_integrations(base):
     integrations=[]
     for statefile in ('config/atalho-xfce.json','config/atalho-state.json'):
         statepath=safe(base,statefile)
         if not statepath.is_file():continue
         state=json.loads(statepath.read_text(encoding='utf-8'))
+        backend=state.get('backend','trinity')
+        storage=state.get('file') if backend=='trinity' else state.get('storage_file')
+        if backend=='xfce' and not storage:
+            storage=str(Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml')
         integrations.append({'state_file':statefile,'state_sha256':digest(statepath),
-                             'backend':state.get('backend','trinity'),'key':state.get('key','Print'),
+                             'backend':backend,'key':state.get('key','Print'),
                              'external_resource':state.get('property',state.get('file')),
+                             'storage_file':storage,'storage_location_source':'recorded-session-default' if backend=='xfce' else 'recorded-file',
+                             'whole_file_owned':bool(state.get('created_file',False)),
                              'restoration':'compare current ownership before restoring recorded prior values'})
+    return integrations
+
+def record(base,overlay='pending'):
+    safe(base,'config').mkdir(mode=0o700,exist_ok=True)
+    path=safe(base,METADATA);values=inventory(base)
+    if path.exists() and (values.get(METADATA)!=digest(path)):
+        raise ValueError(tr('lifecycle.modified'))
+    integrations=external_integrations(base)
     config=safe(base,'config/opcoes.conf')
     settings=dict(line.split('=',1) for line in config.read_text(encoding='utf-8').splitlines() if '=' in line) if config.is_file() else {}
     output=settings.get('save_dir','')
@@ -81,6 +97,8 @@ def record(base,overlay='pending'):
     data={'schema':1,'app_id':'Print RC','root':str(base),'state':'OVERLAY_VERIFIED' if overlay=='verified' else 'FILES_CONFIGURED',
           'overlay_verified':overlay=='verified','capture_verified':False,'ready':False,
           'owned_file_inventory':'config/arquivos-instalados.sha256','external_integrations':integrations,
+          'external_files':[{'path':item['storage_file'],'managed_resource':item['external_resource'],
+                             'cleanup':'restore only this recorded shortcut; preserve unrelated configuration'} for item in integrations],
           'capture_destination':{'path':output,'inside_application':inside,'user_owned':True,'delete_on_uninstall':False},
           'other_external_files':[],'background_service':'clipboard owner only, up to 1800 seconds'}
     atomic(path,json.dumps(data,ensure_ascii=False,indent=2)+'\n')
@@ -97,7 +115,7 @@ def verify(base):
 
 def main():
     localize_argparse();p=argparse.ArgumentParser(description=tr('lifecycle.description'))
-    p.add_argument('action',choices=('record','verify','track','package-entries'))
+    p.add_argument('action',choices=('record','verify','track','package-entries','external-summary'))
     p.add_argument('--base',type=Path,required=True,help=tr('cli.base'))
     p.add_argument('--overlay-state',choices=('pending','verified'),default='pending')
     p.add_argument('--file',choices=sorted(GENERATED))
@@ -112,6 +130,9 @@ def main():
                 if not isinstance(hash,str) or len(hash)!=64 or any(c not in '0123456789abcdef' for c in hash):raise ValueError(tr('lifecycle.inventory_invalid'))
                 print(hash+'\t'+rel)
             print('COMPLETE\tpackage-index')
+        elif args.action=='external-summary':
+            for item in external_integrations(base):
+                print(tr('lifecycle.external_file',item['storage_file'],item['external_resource']))
         elif args.action=='record':record(base,args.overlay_state)
         elif args.action=='track':track_generated(base,args.file)
         else:verify(base)

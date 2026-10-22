@@ -9,3 +9,5 @@ Em um terminal X11 interativo, a prova de atalho desenha brevemente a interface,
 Há adaptadores automáticos para Trinity/KHotKeys e Xfce/xfconf-query. Outros desktops exigem atalho manual para `/bin/bash '/caminho/absoluto/Print-RC/iniciar.sh'`. Atalhos manuais precisam ser removidos manualmente. É necessário testar o desktop real antes de afirmar que um adaptador funciona nele.
 
 O pacote GNU precisa de carregador, glibc, libstdc++, libX11 e libpng16 compatíveis do sistema; auxiliares usam Bash e Python 3. O app não baixa ou instala dependências, não substitui glibc, não chama sudo e não inicia atualizador.
+
+[Executável nativo e instalação simples no terminal](QUICK_START.md). Abra `Print-RC` para capturar; `Print-RC --install` e `Print-RC --uninstall` usam o terminal. A pasta pai do destino deve existir.

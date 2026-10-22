@@ -28,7 +28,7 @@ Publicação é manual para tag existente explícita: recompila/testa essa tag e
 
 O C++ foi separado em módulos app/config/images/input/clipboard/ui/i18n. Entradas públicas com nomes portugueses e include legado de preferências continuam compatíveis. Esquemas de estado Trinity/XFCE foram mantidos, incluindo recuperação de operações antigas interrompidas.
 
-Cada catálogo contém **613 mensagens correspondentes**: interface/ajuda/erros nativos, Bash/Python de instalação/configuração/remoção e diagnóstico. O gerador rejeita chave ausente/duplicada/vazia, placeholders/printf incompatíveis, ID desconhecido e tabelas desatualizadas. Precedência: PRINT_RC_LANG → config/language salvo → LC_ALL → LC_MESSAGES → LANG → inglês. Rótulos X11 de fonte fixa convertem acentos portugueses suportados sem Qt/GTK. A documentação cobre os mesmos tópicos nos dois idiomas. Fluxos CLI, ajuda e propriedades de idioma da interface foram testados; revisão visual de fonte/texto nos desktops reais continua pendente.
+Cada catálogo agora contém **624 mensagens correspondentes**: interface/ajuda/erros nativos, Bash/Python de instalação/configuração/remoção e diagnóstico. O gerador rejeita chave ausente/duplicada/vazia, placeholders/printf incompatíveis, ID desconhecido e tabelas desatualizadas. Precedência: PRINT_RC_LANG → config/language salvo → LC_ALL → LC_MESSAGES → LANG → inglês. Rótulos X11 de fonte fixa convertem acentos portugueses suportados sem Qt/GTK. A documentação cobre os mesmos tópicos nos dois idiomas. Fluxos CLI, ajuda e propriedades de idioma da interface foram testados; revisão visual de fonte/texto nos desktops reais continua pendente.
 
 ## Instalação, migração e alterações externas
 
@@ -276,3 +276,53 @@ A = adicionado, M = modificado, D = retirado deste branch. Assets v0.5.6 foram p
 | A | `tests/test_visual_png.sh` | Confere RGBA branco exato em dimensão ímpar 301×173 e visuais de profundidade 16/24. |
 | M | `tests/test_xfce_integracao.sh` | Mantém regressões de integração XFCE simulada e prova de interface correspondente. |
 | A | `tests/test_xfce_real.sh` | Executa Insert/gravação/restauração com xfsettingsd real preservando Print; compara original estático/dinâmico via GDB. |
+
+
+## Conclusão pontual: entrada nativa e limpeza seletiva
+
+A entrada pública agora é um ELF real `Print-RC` na raiz; a instalação continua no terminal. Sem configuração, o primeiro uso abre instalação; a captura instalada preserva a inicialização X11 monitorada existente. `--install`, `--configure`, `--shortcut`, `--uninstall` e `--diagnose --read-only` expõem as ferramentas sem exigir abrir um arquivo shell. Nenhum processo extra de captura permanece residente. Consulte o [guia rápido](QUICK_START.md).
+
+Gravações posteriores de estado/backup de atalho agora atualizam hashes de posse e registro de arquivos/recursos externos. Backups modificados não são assumidos novamente. A prévia de remoção lista recursos externos, restaura somente alterações ainda próprias e inclui o novo ELF. A instalação recusa criar pastas pais externas sem registro. Uma transação externa nova preparada e interrompida recebe recibo de propriedade sem ativação concluída, permitindo desfazer pela remoção. Capturas, relatórios solicitados, arquivos desconhecidos e alterações de terceiros continuam dados pessoais. O armazenamento XFCE é o caminho padrão registrado da sessão; a unidade própria é a propriedade do canal, não o arquivo inteiro do serviço.
+
+A orientação de falha da tecla recomenda desativar a atribuição conflitante do desktop ou executar configurar-tecla.sh / Print-RC --shortcut. Escape e modificadores sozinhos continuam reservados. Outros desktops X11 mantêm integração manual; Wayland/ARM/musl ainda exigem edições validadas separadamente.
+
+Verificação pontual: entrada nativa compilada com avisos habilitados; dois testes novos da entrada, nove de ciclo de instalação e todos os 71 testes Python passaram localmente em cerca de dois segundos. Os testes CLI locais usaram núcleo/supervisor auditados anteriores e a entrada nativa recém-compilada; CI recompila os três a partir desta fonte. Sintaxe Bash e geração de idiomas aprovadas (624 chaves por idioma). O benchmark do clipboard agora espera os bytes da imagem após criar PNG: existir arquivo não comprova posse do clipboard. Não foi acrescentada campanha ampla de testes manuais. As verificações finais do pacote/X11 sem root usam o CI existente.
+
+| Arquivo | Alteração |
+| --- | --- |
+| `.gitignore` | Mantém o ELF gerado da raiz fora do histórico de fontes. |
+| `CHANGELOG.md` | Registra entrada nativa e mudanças de limpeza seletiva. |
+| `CHANGELOG.pt-BR.md` | Histórico equivalente em português. |
+| `Makefile` | Compila/remove símbolos da entrada nativa junto ao núcleo e supervisor. |
+| `README.md` | Apresenta executável nativo e guia rápido. |
+| `README.pt-BR.md` | Instruções equivalentes em português. |
+| `configurar-tecla.sh` | Atualiza registros de integração externa e traduz confirmação de liberação. |
+| `desinstalar.sh` | Exibe arquivos/recursos externos registrados antes da confirmação. |
+| `docs/en-US/IMPLEMENTATION.md` | Registra esta conclusão pontual e seu inventário de arquivos/testes. |
+| `docs/en-US/INSTALL.md` | Documenta instalação pelo terminal a partir da entrada nativa. |
+| `docs/en-US/QUICK_START.md` | Guia conciso de executável/instalação/teclas/compatibilidade/limpeza. |
+| `docs/en-US/UNINSTALL.md` | Explica remoção nativa, prévia externa e recuperação de operações parciais. |
+| `docs/pt-BR/IMPLEMENTATION.md` | Registro equivalente de implementação em português. |
+| `docs/pt-BR/INSTALL.md` | Instruções equivalentes de instalação em português. |
+| `docs/pt-BR/QUICK_START.md` | Guia rápido equivalente em português. |
+| `docs/pt-BR/UNINSTALL.md` | Instruções equivalentes de limpeza em português. |
+| `i18n/en-US.json` | Completa inglês para entrada nativa, terminal, limpeza e orientação de teclas. |
+| `i18n/pt-BR.json` | Mensagens portuguesas equivalentes; 624 chaves em cada idioma. |
+| `instalar.sh` | Restaura permissão da entrada nativa, exige pasta pai existente, explica falhas de tecla e mantém recibo para limpeza de operação interrompida. |
+| `packaging/portable/package.py` | Empacota executável na raiz com localização e permissão corretas. |
+| `scripts/atalho.py` | Rastreia estado/backups Trinity recém-gravados após instalação inicial. |
+| `scripts/atalho_xfce.py` | Registra armazenamento da sessão e gravações posteriores de estado próprio. |
+| `scripts/build/manifest.py` | Audita o ELF da raiz e registra caminho de cada binário. |
+| `scripts/inventario.sh` | Registra novo ELF, fonte, auxiliar do terminal, guias rápidos e testes da entrada. |
+| `scripts/lifecycle.py` | Lista registros/recursos externos e rastreia gravações posteriores sem assumir posse de backups alterados. |
+| `scripts/messages.bash` | Regenera traduções Bash com escape de dados. |
+| `scripts/terminal-action.sh` | Mantém resultados visíveis no terminal; aceita somente scripts do aplicativo. |
+| `src/app/entrypoint.cpp` | Executável nativo com argumentos seguros, ações no terminal e instalação no primeiro uso. |
+| `src/i18n/generated.hpp` | Regenera traduções nativas incorporadas. |
+| `tests/performance/benchmark.py` | Espera PNG completo e correspondente no clipboard após gravar arquivo, corrigindo corrida do teste. |
+| `tests/test_entrypoint.py` | Dois testes pontuais da entrada nativa: argumentos, links, CLI, terminal e scripts inseguros. |
+| `tests/test_instalacao.sh` | Exige pastas pais do usuário; testa recibo/remoção após gravação externa interrompida. |
+| `tests/test_lifecycle.py` | Regressão de estado/backups posteriores e preservação de backups modificados. |
+| `tests/test_packaged_ownership.sh` | Verifica remoção do ELF próprio na raiz preservando dados do usuário. |
+| `.github/workflows/build.yml` | Remove o segundo ZIP de teste de reprodutibilidade antes do envio, deixando um pacote do aplicativo no download. |
+| `.github/workflows/testar.yml` | Executa verificações de branches pelo PR uma vez, evitando pipelines duplicadas de push/PR. |

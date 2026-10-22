@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.dont_write_bytecode=True
 from print_rc_i18n import tr, affirmative, localize_argparse
+from lifecycle import track_shortcut_write
 
 NAME = tr('desktop.001')
 # O X11 fornece nomes de keysym: F12, a, Insert, XF86AudioMute, Return etc.
@@ -359,6 +360,7 @@ def rebind(base, command, key, state):
     if not check_unchanged(original): return False
     write_atomic(FILE,updated)
     write_atomic(statepath,json.dumps(new_state,ensure_ascii=False,indent=2)+'\n')
+    track_shortcut_write(base,'config/atalho-state.json')
     print(tr('desktop.019'),key,tr('desktop.020'))
     reload_trinity_shortcuts()
     return True
@@ -466,6 +468,7 @@ def install(base, command, key='Print'):
         raise SystemExit(tr('desktop.083'))
     backup.write_text(original,encoding='utf-8')
     os.chmod(backup,0o600)
+    track_shortcut_write(base,'backups/khotkeysrc.antes')
     state={
         'file':str(FILE),'group':root,'conflicts':entries,
         'created_file':not existed,
@@ -478,6 +481,7 @@ def install(base, command, key='Print'):
     state['key']=key
     state['created_sections']=list(parse(created).keys())
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+    track_shortcut_write(base,'config/atalho-state.json')
     if not check_unchanged(original):
         # Arquivo externo intacto pelo Print RC: limpar registros internos criados agora.
         statepath.unlink()
@@ -486,6 +490,7 @@ def install(base, command, key='Print'):
     write_atomic(FILE,updated)
     state['status']='installed'
     write_atomic(statepath,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+    track_shortcut_write(base,'config/atalho-state.json')
     print(tr('desktop.027'), tr('desktop.created') if not existed else tr('desktop.modified'), FILE)
     print(tr('desktop.028'), backup)
     print(tr('desktop.029'))

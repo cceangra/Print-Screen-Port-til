@@ -12,6 +12,8 @@ The [compatibility catalog](compat/linux-targets.json) lists test targets, inclu
 
 ## Download and run
 
+**Open the native `Print-RC` executable after terminal setup.** [Quick start](docs/en-US/QUICK_START.md).
+
 Use a **candidate artifact from a passing Actions run**, or a future tagged release that passed the desktop release gate. GitHub's source **Download ZIP** contains source and does not contain a prebuilt executable. The old v0.5.6 binary and release are retained in their original tag/assets for investigation.
 
 Extract the application ZIP: it contains one `Print-RC` directory. Run `instalar.sh` as your normal user. The installer keeps the extracted folder or moves it to a destination you select. It does not install packages, use sudo, download dependencies or start an updater.

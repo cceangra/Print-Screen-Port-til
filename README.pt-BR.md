@@ -12,6 +12,8 @@ O [catálogo de compatibilidade](compat/linux-targets.json) lista alvos de teste
 
 ## Baixar e executar
 
+**Abra o executável nativo `Print-RC` após a instalação pelo terminal.** [Guia rápido](docs/pt-BR/QUICK_START.md).
+
 Use um **artefato candidato de uma execução aprovada no Actions**, ou uma futura versão publicada após passar pela validação dos desktops. A opção **Download ZIP** do código do GitHub contém fontes e não contém executável pronto. O binário e a publicação antigos da v0.5.6 permanecem nos arquivos e na tag originais para investigação.
 
 Extraia o ZIP do aplicativo: haverá uma única pasta `Print-RC`. Execute `instalar.sh` como usuário normal. O instalador mantém a pasta extraída ou a move para um destino escolhido por você. Não instala pacotes, não usa sudo, não baixa dependências e não inicia atualizador.

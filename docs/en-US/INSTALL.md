@@ -9,3 +9,5 @@ In an interactive X11 terminal, the shortcut proof briefly draws the overlay, ob
 Automatic adapters exist for Trinity/KHotKeys and Xfce/xfconf-query. Other desktops require a manual shortcut to `/bin/bash '/absolute/path/Print-RC/iniciar.sh'`. Manual shortcuts must be removed manually. A real desktop test is required before claiming an adapter works there.
 
 The GNU package needs a compatible system loader, glibc, libstdc++, libX11 and libpng16; helpers use Bash and Python 3. The app never downloads or installs dependencies, replaces glibc, calls sudo or starts an updater.
+
+[Native executable and simple terminal setup](QUICK_START.md). Open `Print-RC` for captures; `Print-RC --install` and `Print-RC --uninstall` use the terminal. The destination parent must exist.

@@ -51,6 +51,7 @@ echo '======================================================'
 prc_message shell.225
 echo '======================================================'
 prc_message shell.226 "$BASE"
+python3 -B "$BASE/scripts/lifecycle.py" external-summary --base "$BASE" || exit 2
 echo
 prc_message shell.227
 prc_message shell.228

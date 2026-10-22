@@ -32,10 +32,13 @@ def main():
                 files[path.relative_to(ROOT).as_posix()] = path
     for binary in manifest['binaries']:
         name = binary['file']
-        path = ROOT/'bin'/name
+        relative=binary.get('path','bin/'+name)
+        if Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise ValueError('Unsafe binary path')
+        path = ROOT/relative
         if hashlib.sha256(path.read_bytes()).hexdigest() != binary['sha256']:
             raise ValueError('Binary changed since ELF audit: '+name)
-        files['bin/'+name] = path
+        files[relative] = path
     payload = {name: path.read_bytes() for name, path in files.items()}
     payload['build-manifest.json'] = args.manifest.read_bytes()
     def version(s): return tuple(map(int,s.split('.')))
@@ -51,7 +54,7 @@ def main():
         for name, data in sorted(payload.items()):
             info = zipfile.ZipInfo('Print-RC/'+name, date_time=date)
             info.create_system = 3
-            mode = 0o755 if name.startswith('bin/') or name.endswith('.sh') else 0o644
+            mode = 0o755 if name=='Print-RC' or name.startswith('bin/') or name.endswith('.sh') else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
             archive.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     digest = hashlib.sha256(args.output.read_bytes()).hexdigest()

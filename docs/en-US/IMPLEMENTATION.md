@@ -28,7 +28,7 @@ Publication is manual for an explicit existing tag. It rebuilds/tests that exact
 
 Native code is split into app/config/images/input/clipboard/UI/i18n modules; Portuguese public entrypoints and the legacy settings include remain compatible. Existing Trinity and XFCE state schemas are retained, including recovery of interrupted older operations.
 
-Both catalogs have **613 matching messages** covering native UI/help/errors, Bash/Python setup/configuration/uninstall and diagnostics. The generator rejects missing/duplicate/blank keys, incompatible braces/printf specifiers, unknown source IDs and stale generated tables. Locale precedence is PRINT_RC_LANG → saved config/language → LC_ALL → LC_MESSAGES → LANG → English. Native fixed-font X11 labels convert supported Portuguese accents without loading Qt/GTK. Both languages have equivalent documentation. CLI flows, help and native label properties are tested; final visual wording/font acceptance on the two real desktops is pending.
+Both catalogs now have **624 matching messages** covering native UI/help/errors, Bash/Python setup/configuration/uninstall and diagnostics. The generator rejects missing/duplicate/blank keys, incompatible braces/printf specifiers, unknown source IDs and stale generated tables. Locale precedence is PRINT_RC_LANG → saved config/language → LC_ALL → LC_MESSAGES → LANG → English. Native fixed-font X11 labels convert supported Portuguese accents without loading Qt/GTK. Both languages have equivalent documentation. CLI flows, help and native label properties are tested; final visual wording/font acceptance on the two real desktops is pending.
 
 ## Installation, migration and external changes
 
@@ -276,3 +276,53 @@ A = added, M = modified, D = removed from this branch. Historical v0.5.6 assets 
 | A | `tests/test_visual_png.sh` | Check exact white RGBA at odd 301×173 sizes and 16/24-depth visuals. |
 | M | `tests/test_xfce_integracao.sh` | Keep simulated XFCE integration regressions and matching fake overlay proof. |
 | A | `tests/test_xfce_real.sh` | Run real xfsettingsd Insert launch/save/restore with Print preserved; GDB original-static/dynamic comparison. |
+
+
+## Focused completion: native entrypoint and exact cleanup
+
+The public entrypoint is now a real root ELF, `Print-RC`; setup remains in the terminal. First use without configuration opens setup, while installed capture keeps the existing monitored X11 startup path. `--install`, `--configure`, `--shortcut`, `--uninstall` and `--diagnose --read-only` expose the existing tools without requiring users to launch a shell file. No extra capture process remains resident. See [quick guide](QUICK_START.md).
+
+Later shortcut state/backup writes now update ownership hashes and the external-file/resource record. Modified backups are not claimed again. The uninstall preview lists external resources, restores only still-owned changes, and includes the new native ELF. Setup refuses to create untracked external parent folders. A failed/interrupted newly prepared external transaction receives a non-ready ownership receipt so uninstall can reverse it. Captures, user-requested reports, unknown files and foreign changes remain user data. XFCE storage is the recorded default session path; the owned unit is the channel property, not the entire daemon-managed file.
+
+Key failure guidance recommends disabling the conflicting desktop assignment or running configurar-tecla.sh / Print-RC --shortcut. Escape and standalone modifiers remain reserved. Other X11 desktops retain manual integration; Wayland/ARM/musl still require separate validated editions.
+
+Focused verification: the native entrypoint compiled with warnings enabled; two new entrypoint tests, nine lifecycle tests and all 71 Python tests passed locally in about two seconds. Local CLI-only checks used the prior audited core/supervisor and the newly compiled native entrypoint; CI rebuilds all three from this source. Bash syntax and locale generation checks passed (624 keys per locale). The clipboard benchmark was corrected to wait for matching image bytes after PNG file creation; creating a file alone does not prove clipboard ownership. No broad new manual test campaign was added. Final packaged/non-root X11 checks run through the existing CI.
+
+| File | Change |
+| --- | --- |
+| `.gitignore` | Keep the generated root ELF out of source history. |
+| `CHANGELOG.md` | Record the native entrypoint and precise cleanup changes. |
+| `CHANGELOG.pt-BR.md` | Equivalent Portuguese changelog. |
+| `Makefile` | Build/strip the root native entrypoint alongside the core and supervisor. |
+| `README.md` | Lead with the native executable and quick guide. |
+| `README.pt-BR.md` | Equivalent Portuguese entry instructions. |
+| `configurar-tecla.sh` | Refresh external integration records and translate the release confirmation. |
+| `desinstalar.sh` | Show recorded external registry files/resources before confirmation. |
+| `docs/en-US/IMPLEMENTATION.md` | Record this focused follow-up and its file/test inventory. |
+| `docs/en-US/INSTALL.md` | Document terminal installation from the native entrypoint. |
+| `docs/en-US/QUICK_START.md` | Concise executable/install/key/compatibility/cleanup guide. |
+| `docs/en-US/UNINSTALL.md` | Explain native uninstall, external preview and partial-operation recovery. |
+| `docs/pt-BR/IMPLEMENTATION.md` | Equivalent Portuguese implementation record. |
+| `docs/pt-BR/INSTALL.md` | Equivalent Portuguese installation instructions. |
+| `docs/pt-BR/QUICK_START.md` | Equivalent Portuguese quick guide. |
+| `docs/pt-BR/UNINSTALL.md` | Equivalent Portuguese cleanup instructions. |
+| `i18n/en-US.json` | Complete English native-entrypoint, terminal, cleanup and key guidance. |
+| `i18n/pt-BR.json` | Matching Portuguese messages; 624 keys in each language. |
+| `instalar.sh` | Restore native-entry permission, require an existing parent, explain failed keys and retain interrupted-operation cleanup receipts. |
+| `packaging/portable/package.py` | Package the root executable with its proper location and execute permission. |
+| `scripts/atalho.py` | Track freshly written Trinity state/backups after initial setup. |
+| `scripts/atalho_xfce.py` | Record session registry storage and track subsequent owned state writes. |
+| `scripts/build/manifest.py` | Audit the root ELF and record each binary path. |
+| `scripts/inventario.sh` | Own the new ELF, source, terminal helper, quick guides and entrypoint tests. |
+| `scripts/lifecycle.py` | List external registry files/resources and track later shortcut writes without claiming changed backups. |
+| `scripts/messages.bash` | Regenerate quoted Bash translations. |
+| `scripts/terminal-action.sh` | Keep terminal action results visible; accept only application scripts. |
+| `src/app/entrypoint.cpp` | Native executable with argv-safe dispatch, terminal setup/actions and first-use installation. |
+| `src/i18n/generated.hpp` | Regenerate embedded native translations. |
+| `tests/performance/benchmark.py` | Wait for complete matching clipboard PNG after file save, fixing a test race. |
+| `tests/test_entrypoint.py` | Two focused native-entrypoint tests for quoting, symlinks, CLI, terminal actions and unsafe scripts. |
+| `tests/test_instalacao.sh` | Require user-owned destination parents; exercise interrupted external-write receipt/uninstall. |
+| `tests/test_lifecycle.py` | Regression for later shortcut state/backups and preservation of modified backups. |
+| `tests/test_packaged_ownership.sh` | Verify the owned native root ELF is removed while user data survives. |
+| `.github/workflows/build.yml` | Remove the second reproducibility-test ZIP before uploading, leaving one application archive in the download. |
+| `.github/workflows/testar.yml` | Run feature-branch checks through the PR once, avoiding duplicate push/PR pipelines. |

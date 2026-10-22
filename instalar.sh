@@ -13,7 +13,7 @@ source_dir="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 # Nao seguir links inesperados que possam escapar da pasta portatil.
 # Executar essa verificacao TAMBEM apos mover a pasta (--continuar).
 for relative in \
-    bin bin/print-rc config config/opcoes.conf \
+    Print-RC bin bin/print-rc config config/opcoes.conf \
     config/atalho-state.json config/atalho-xfce.json config/arquivos-instalados.sha256 config/installation-manifest.json \
     backups backups/khotkeysrc.antes capturas scripts \
     scripts/inventario.sh scripts/atalho.py \
@@ -129,7 +129,10 @@ if [[ "${1:-}" != '--continuar' ]]; then
         [[ "${conf,,}" == s || "${conf,,}" == sim || "${conf,,}" == y || "${conf,,}" == yes ]] || {
             prc_message shell.037; exit 0;
         }
-        mkdir -p -- "$(dirname -- "$dest")"
+        # Do not create untracked parent directories outside the application.
+        [[ -d "$(dirname -- "$dest")" ]] || {
+            prc_message shell.parent_missing "$(dirname -- "$dest")";exit 2;
+        }
         mv -- "$source_dir" "$dest" || {
             prc_message shell.038
             exit 2
@@ -139,6 +142,7 @@ if [[ "${1:-}" != '--continuar' ]]; then
 fi
 
 dest="$source_dir"
+if [[ -f "$dest/Print-RC" && ! -L "$dest/Print-RC" ]]; then chmod u+x -- "$dest/Print-RC"; fi
 FRESH_INSTALL=1
 if [[ -f "$dest/.print-rc-installation" ]]; then
     FRESH_INSTALL=0
@@ -245,16 +249,36 @@ desktop_id="${XDG_CURRENT_DESKTOP:-}"
 desktop_id="${desktop_id,,}"
 atalho_registrado=0
 overlay_state=pending
+recovery_state=''
+print_rc_partial_recovery() {
+    local result=$?
+    trap - EXIT
+    # A prepared external transaction must remain uninstallable after failure
+    # or interruption. An ownership receipt does not mean activation succeeded.
+    if [[ "$result" != 0 && -n "$recovery_state" && -f "$recovery_state" && ! -L "$recovery_state" &&
+          ! -e "$dest/.print-rc-installation" && ! -L "$dest/.print-rc-installation" &&
+          ! -e "$dest/config/arquivos-instalados.sha256" && ! -L "$dest/config/arquivos-instalados.sha256" ]]; then
+        if python3 -B "$dest/scripts/lifecycle.py" record --base "$dest" --overlay-state pending &&
+           (set -C; printf 'PRINT-RC\n%s\n' "$dest" > "$dest/.print-rc-installation"); then
+            source "$dest/scripts/inventario.sh"
+            if print_rc_criar_inventario "$dest"; then prc_message shell.partial_recorded "$dest"; fi
+        fi
+    fi
+    return "$result"
+}
+trap print_rc_partial_recovery EXIT
 if [[ "$desktop_id" == *trinity* ]]; then
     prc_message shell.071 "${TDEHOME:-$HOME/.trinity}"
     if ! command -v python3 >/dev/null 2>&1; then
         prc_message shell.072
     elif key_name="$(print_rc_detectar)"; then
+        [[ -e "$dest/config/atalho-state.json" || -L "$dest/config/atalho-state.json" ]] || recovery_state="$dest/config/atalho-state.json"
         if python3 -B "$dest/scripts/atalho.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
             atalho_registrado=1
         else
             prc_message shell.073
             prc_message shell.074
+            prc_message shell.shortcut_next "$dest"
             exit 1
         fi
     else
@@ -268,11 +292,13 @@ elif [[ "$desktop_id" == *xfce* ]]; then
         prc_message shell.079 "$print_rc_launcher"
     elif key_name="$(print_rc_detectar)"; then
         prc_message shell.080 "$key_name"
+        [[ -e "$dest/config/atalho-xfce.json" || -L "$dest/config/atalho-xfce.json" ]] || recovery_state="$dest/config/atalho-xfce.json"
         if python3 -B "$dest/scripts/atalho_xfce.py" install --base "$dest" --launcher "$dest/iniciar.sh" --key "$key_name"; then
             atalho_registrado=1
         else
             prc_message shell.081
             prc_message shell.074
+            prc_message shell.shortcut_next "$dest"
             exit 1
         fi
     else
@@ -335,6 +361,7 @@ if [[ "$atalho_registrado" == 1 ]]; then
 else
     prc_message shell.110
 fi
+prc_message shell.shortcut_next "$dest"
 prc_message shell.111
 echo '=========================================='
 python3 -B "$dest/scripts/lifecycle.py" record --base "$dest" --overlay-state "$overlay_state"

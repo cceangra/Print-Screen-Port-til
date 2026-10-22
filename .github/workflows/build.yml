@@ -30,6 +30,7 @@ jobs:
           python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-linux-x86_64-glibc.zip
           python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/repeated.zip
           cmp dist/Print-RC-linux-x86_64-glibc.zip dist/repeated.zip
+          rm -- dist/repeated.zip dist/repeated.zip.sha256
           python3 - <<'PY'
           import subprocess,zipfile
           with zipfile.ZipFile('dist/Print-RC-linux-x86_64-glibc.zip') as archive:

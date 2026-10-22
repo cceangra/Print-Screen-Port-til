@@ -10,3 +10,5 @@
 - Keep data-preserving installation/uninstallation, read-only diagnostics and resource measurements under regression tests. See the implementation report for exact completed checks and pending acceptance.
 
 Original release history remains in Git and the unchanged v0.5.6 documentation/tag.
+
+- Add the native root `Print-RC` executable and terminal setup/actions. Track later shortcut writes and external registry files, retain uninstall receipts after interrupted external operations, avoid untracked destination parent folders, and fix the clipboard benchmark readiness race.

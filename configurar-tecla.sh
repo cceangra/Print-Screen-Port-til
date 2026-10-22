@@ -129,6 +129,9 @@ configurar() {
     else
         prc_message shell.198
     fi
+    if [[ -f "$BASE/.print-rc-installation" && -f "$BASE/config/arquivos-instalados.sha256" ]]; then
+        python3 -B "$BASE/scripts/lifecycle.py" record --base "$BASE"
+    fi
 }
 provar() {
     if [[ ! -f "$BASE/scripts/provar-atalho.sh" ]]; then
@@ -142,7 +145,7 @@ liberar() {
     prc_message shell.200
     prc_message shell.201
     prc_message shell.202
-    if ! sim 'Confirma desfazer o atalho do Print RC?'; then
+    if ! sim "$(prc_text shell.shortcut_release_confirm)"; then
         prc_message shell.203
         return 0
     fi
@@ -153,6 +156,9 @@ liberar() {
     else
         prc_message shell.204
         return 2
+    fi
+    if [[ -f "$BASE/.print-rc-installation" && -f "$BASE/config/arquivos-instalados.sha256" ]]; then
+        python3 -B "$BASE/scripts/lifecycle.py" record --base "$BASE"
     fi
 }
 if [[ $EUID == 0 ]]; then

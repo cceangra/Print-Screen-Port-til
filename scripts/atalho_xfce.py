@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.dont_write_bytecode=True
 from print_rc_i18n import tr, affirmative, localize_argparse
+from lifecycle import track_shortcut_write
 
 CHANNEL = 'xfce4-keyboard-shortcuts'
 PROPERTY = '/commands/custom/Print'
@@ -110,6 +111,7 @@ def write_state(base, data):
         raise RuntimeError(tr('desktop.142'))
     if not path.parent.is_dir() or path.parent.is_symlink():
         raise RuntimeError(tr('desktop.143'))
+    data.setdefault('storage_file',str(Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml'))
     fd, tmp = tempfile.mkstemp(prefix='.atalho-xfce-', dir=path.parent)
     try:
         os.fchmod(fd, 0o600)
@@ -119,6 +121,7 @@ def write_state(base, data):
             output.flush()
             os.fsync(output.fileno())
         os.replace(tmp, path)
+        track_shortcut_write(base,STATE_FILE)
     finally:
         if os.path.lexists(tmp):
             os.unlink(tmp)

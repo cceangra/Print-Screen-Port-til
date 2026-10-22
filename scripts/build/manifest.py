@@ -53,8 +53,11 @@ def main():
     parser.add_argument('--max-glibc', default='2.31')
     parser.add_argument('--max-glibcxx', default='3.4.28')
     args = parser.parse_args()
-    binaries = [inspect_elf(ROOT/'bin'/name, args.max_glibc, args.max_glibcxx)
-                for name in ('print-rc', 'print-rc-launcher')]
+    binaries=[]
+    for relative in ('Print-RC','bin/print-rc','bin/print-rc-launcher'):
+        binary=inspect_elf(ROOT/relative,args.max_glibc,args.max_glibcxx)
+        binary['path']=relative
+        binaries.append(binary)
     data = {'schema': 1, 'version': (ROOT/'VERSION').read_text().strip(),
             'git_commit': command('git', '-c', 'safe.directory='+str(ROOT), '-C', str(ROOT), 'rev-parse', 'HEAD'),
             'source_dirty': bool(command('git', '-c', 'safe.directory='+str(ROOT), '-C', str(ROOT), 'status', '--porcelain')),

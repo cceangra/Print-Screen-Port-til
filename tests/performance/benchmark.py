@@ -54,8 +54,18 @@ def run_one(binary,driver,directory,clipboard=False):
                     if time.monotonic()>deadline:raise RuntimeError('No saved capture')
                     time.sleep(.01)
                 # Verify that the resident process actually serves an image.
-                pasted=subprocess.check_output(['xclip','-selection','clipboard','-t','image/png','-o'],timeout=10)
-                photo=next(images.glob('*.png'));assert pasted==photo.read_bytes()
+                # Saving precedes clipboard ownership. Wait for matching bytes,
+                # rather than treating a newly created file as ownership proof.
+                photo=next(images.glob('*.png'))
+                deadline=time.monotonic()+10
+                while True:
+                    pasted=subprocess.run(['xclip','-selection','clipboard','-t','image/png','-o'],
+                                          stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=10)
+                    expected=photo.read_bytes()
+                    if pasted.returncode==0 and expected.startswith(b'\x89PNG\r\n\x1a\n') and pasted.stdout==expected:break
+                    if process.poll() is not None or time.monotonic()>deadline:
+                        raise RuntimeError('Clipboard did not serve the saved PNG: '+pasted.stderr.decode(errors='replace'))
+                    time.sleep(.02)
                 idle_start=stats(process.pid,binary);time.sleep(.2);idle_end=stats(process.pid,binary)
                 if process.poll() is not None:raise RuntimeError('Clipboard owner exited before the idle measurement')
                 process.terminate()

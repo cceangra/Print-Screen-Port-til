@@ -11,3 +11,5 @@
 O histórico original permanece no Git e na documentação/tag intactas da v0.5.6.
 
 A investigação reproduziu SIGFPE no original estático em Ubuntu 22.04/glibc 2.35 com serviços XFCE isolados. Original recompilado dinamicamente e candidato abriram a interface nesse substituto; Zorin/Q4OS reais continuam pendentes. O PNG é codificado uma vez por linhas; clipboard usa eventos e libera conexão X11 da captura e dados da caneta antes de permanecer residente.
+
+- Adiciona executável nativo `Print-RC` na raiz e ações/instalação no terminal. Rastreia atalhos posteriores e registros externos, mantém recibos de remoção em operações externas interrompidas, evita pastas pais externas sem registro e corrige corrida de prontidão no benchmark do clipboard.

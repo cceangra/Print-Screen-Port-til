@@ -42,6 +42,17 @@ class LifecycleTests(unittest.TestCase):
         self.prepare(False)
         data=json.loads((self.old/lifecycle.METADATA).read_text())
         self.assertFalse(data['ready']);self.assertFalse(data['capture_verified']);self.assertEqual(data['state'],'FILES_CONFIGURED')
+    def test_late_shortcut_writes_are_tracked_without_claiming_modified_backups(self):
+        self.prepare(False)
+        self.assertTrue(atalho.install(self.old,self.old/'iniciar.sh',key='Insert'))
+        values=lifecycle.inventory(self.old)
+        for relative in ('config/atalho-state.json','backups/khotkeysrc.antes'):
+            self.assertEqual(values[relative],lifecycle.digest(self.old/relative))
+        data=json.loads((self.old/lifecycle.METADATA).read_text())
+        self.assertEqual(data['external_files'][0]['path'],str(self.file))
+        backup=self.old/'backups/khotkeysrc.antes';backup.write_text('personal modified backup')
+        self.assertTrue(atalho.install(self.old,self.old/'iniciar.sh',key='F12'))
+        self.assertNotEqual(lifecycle.inventory(self.old)['backups/khotkeysrc.antes'],lifecycle.digest(backup))
     def test_relocation_updates_only_owned_paths(self):
         self.prepare();new=self.root/'novo ç (Print RC)';self.old.rename(new)
         (new/'capturas/personal.png').write_bytes(b'keep image')

@@ -1,7 +1,7 @@
 name: Print RC candidate checks
 on:
   push:
-    branches: [main, 'fix/**']
+    branches: [main] # Feature branches are tested by pull_request, once.
   pull_request:
   workflow_dispatch:
 permissions:
