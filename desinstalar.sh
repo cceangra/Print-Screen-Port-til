@@ -51,7 +51,9 @@ echo '======================================================'
 prc_message shell.225
 echo '======================================================'
 prc_message shell.226 "$BASE"
-python3 -B "$BASE/scripts/lifecycle.py" external-summary --base "$BASE" || exit 2
+if [[ -f "$BASE/scripts/lifecycle.py" && ! -L "$BASE/scripts/lifecycle.py" ]]; then
+    python3 -B "$BASE/scripts/lifecycle.py" external-summary --base "$BASE" || exit 2
+fi
 echo
 prc_message shell.227
 prc_message shell.228
@@ -68,7 +70,7 @@ fi
 if [[ -f "$STATE" ]]; then
     prc_message shell.235 "$EXTERNAL"
     prc_message shell.236
-else
+elif [[ ! -f "$STATE_XFCE" ]]; then
     prc_message shell.237
     prc_message shell.238
 fi
