@@ -4,6 +4,7 @@ import shutil
 import configparser
 import shlex
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -49,9 +50,14 @@ class NativeEntrypointTests(unittest.TestCase):
         (self.root/'instalar.sh').write_text('printf "INSTALL:%s\\n" "$@"\n')
         commands=self.root/'commands';commands.mkdir()
         terminal=commands/'sakura'
-        terminal.write_text('#!/bin/bash\n[[ "$1" == -x ]] || exit 20\nshift\nexec "$@"\n')
+        terminal.write_text('#!/bin/bash\n[[ "$1" == -x && "$#" == 2 ]] || exit 20\nexec /bin/bash -c "$2"\n')
         terminal.chmod(0o755)
         installer=self.root/'Instalar';renamed=self.root/'Install again';installer.rename(renamed)
+        result=subprocess.run([str(renamed),'literal $(false)'],capture_output=True,text=True,
+                              env={**os.environ,'DISPLAY':':test','PATH':str(commands)})
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('INSTALL:literal $(false)',result.stdout)
+        (commands/'x-terminal-emulator').symlink_to(terminal)
         result=subprocess.run([str(renamed),'literal $(false)'],capture_output=True,text=True,
                               env={**os.environ,'DISPLAY':':test','PATH':str(commands)})
         self.assertEqual(result.returncode,0,result.stderr)
@@ -73,15 +79,31 @@ class NativeEntrypointTests(unittest.TestCase):
         self.assertEqual(before,sorted(str(p) for p in self.root.rglob('*')))
 
     def test_desktop_installer_accepts_file_paths_and_uris_without_shell_interpolation(self):
+        shutil.copytree(ROOT/'scripts',self.root/'scripts',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT/'i18n',self.root/'i18n')
+        # Keep this fixture noninteractive; real terminal argv is tested separately.
+        (self.root/'scripts/terminal-action.sh').write_text('exec /bin/bash "$@"\n')
+        commands=self.root/'commands';commands.mkdir()
+        terminal=commands/'x-terminal-emulator';terminal.write_text('#!/bin/bash\nshift\nexec "$@"\n');terminal.chmod(0o755)
         launcher=self.root/'Instalar.desktop';shutil.copy2(ROOT/'Instalar.desktop',launcher)
         (self.root/'instalar.sh').write_text('printf "DESKTOP-INSTALL\\n"\n')
         config=configparser.ConfigParser(interpolation=None);config.read(launcher)
         command=shlex.split(config['Desktop Entry']['Exec'])
         self.assertEqual(command[-1],'%k')
         for location in (str(launcher),launcher.as_uri()):
-            result=subprocess.run([*command[:-1],location],cwd='/',capture_output=True,text=True)
+            (self.root/'Instalar').chmod(0o644)
+            result=subprocess.run([*command[:-1],location],cwd='/',capture_output=True,text=True,
+                                  env={**os.environ,'DISPLAY':':test','PATH':str(commands)+':'+os.environ['PATH']})
             self.assertEqual(result.returncode,0,result.stderr)
             self.assertIn('DESKTOP-INSTALL',result.stdout)
+            self.assertTrue((self.root/'Instalar').stat().st_mode & 0o100)
+        outside=Path(self.temp.name)/'outside';outside.write_text('personal file');outside.chmod(0o644)
+        (self.root/'Instalar').unlink();(self.root/'Instalar').symlink_to(outside)
+        result=subprocess.run([sys.executable,*command[1:-1],str(launcher)],cwd='/',capture_output=True,text=True,
+                              env={**os.environ,'DISPLAY':'','WAYLAND_DISPLAY':'','PATH':str(commands)})
+        self.assertEqual(result.returncode,2)
+        self.assertEqual(outside.stat().st_mode & 0o777,0o644)
+        self.assertEqual(outside.read_text(),'personal file')
 
     def test_early_shell_failure_from_graphical_launch_is_visible(self):
         shutil.copy2(ROOT/'iniciar.sh',self.root/'iniciar.sh')

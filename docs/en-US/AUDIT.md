@@ -10,15 +10,15 @@ Reviewed base: `main` at `2ea3420e91c716a89c370de2c03b188b160fcdab`. Entry point
 | High | Missing Python could be discovered only after creating folders/settings. | Require working Python 3.8+ before configuration. No automatic dependency downloads. |
 | High | Supervisor or pre-exec failures could appear only on stderr, making a file-manager launch seem inert. | Optional native error dialog; forward script failures before the supervisor too. Handle failed exec explicitly because Bash can clear its EXIT trap at that point. |
 | Medium | Print-RC opens setup only on first use; no separate obvious executable reopened installation by click. | Native **Instalar** compiled from the same source with fixed installer mode, including after renaming. |
-| Medium | Terminal selection omitted direct Sakura and /opt/trinity/bin/konsole outside PATH. | Add both entries with no shell interpolation of paths/arguments. |
-| Medium | Not every file manager allows double-clicking ELF; trust rules differ. | Portable **Instalar.desktop**, Terminal=true, pt-BR/en-US names, own-folder discovery including escaped file: URIs. No copy outside the app. Desktop may still request launch authorization for this file. |
+| Medium | Terminal selection omitted direct Sakura and /opt/trinity/bin/konsole outside PATH. | Add both entries. Sakura receives one command string with every argument quoted, including through an x-terminal-emulator symlink, avoiding incorrect joining of paths with spaces. |
+| Medium | Not every file manager allows double-clicking ELF; trust rules differ. | Portable **Instalar.desktop**, short-lived bootstrap, pt-BR/en-US names, own-folder discovery including escaped file: URIs. No copy outside the app. Desktop may still request launch authorization for this file. |
 | Medium | A long distribution catalog and test priorities could look like certified support; Wayland/musl/ARM were merely “untested”. | Explicit architecture/libc/protocol matrix; distinguish missing implementations/packages and NixOS adaptation. Historical evidence stays tied to its hashes. |
 | Medium | Dynamic package relies on system libraries; it is not self-contained. | Document dependencies and limits. Bundling libraries remains a future validated improvement; fully static glibc should not conceal this requirement. |
 
 ## Changed files by group
 
 - `src/app/entrypoint.cpp`, `src/app/dialog.hpp`, `src/app/launcher.cpp`, `Makefile`: native Instalar, additional terminals and failure messages; no new toolkit in the capture core.
-- `Instalar.desktop`, `packaging/portable/package.py`, `scripts/build/manifest.py`: click alternative, fourth audited ELF, execution bits and ZIP hashes.
+- `Instalar.desktop`, `scripts/desktop_install.py`, `packaging/portable/package.py`, `scripts/build/manifest.py`: click alternative, fourth audited ELF, execution bits and ZIP hashes.
 - `instalar.sh`, `iniciar.sh`: early checks and visible failures; still no sudo, package installation or broad desktop changes.
 - `scripts/inventario.sh`: Instalar, desktop entry, new header and this documentation join the application ownership allowlist. Removal remains hash-based.
 - `i18n/*.json`, generated C++/Bash tables: 626 matching messages, updated prerequisite, failure and usage text in both languages.
@@ -42,3 +42,5 @@ Still missing: click installation in the real laptop's file manager, Zorin and Q
 4. Make setup fully graphical only if clicking into the terminal remains difficult. This requires no extra resident GUI process.
 
 Architecture choices and official references are in the [matrix](COMPATIBILITY.md). Capture/PNG/clipboard were not rewritten in this revision; the focus was installation, observable failure and platform boundaries.
+
+CI also tests real Sakura on Xvfb, directly and through x-terminal-emulator, with spaces, accents, quotes and literal arguments. The desktop bootstrap in scripts/desktop_install.py restores only the regular Instalar execute bit and replaces itself with the native process. Argument-handling reference: [xdg-terminal-exec](https://sources.debian.org/src/xdg-terminal-exec/0.12.3-1/README.md/).

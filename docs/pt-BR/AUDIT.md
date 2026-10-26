@@ -10,15 +10,15 @@ Base revisada: `main` em `2ea3420e91c716a89c370de2c03b188b160fcdab`. Foram lidos
 | Alta | Python faltando podia ser percebido só depois de criar pastas/configuração. | Exigir Python 3.8+ funcional antes da configuração. Sem download automático de dependências. |
 | Alta | Pelo gerenciador de arquivos, erro do supervisor ou falha antes de exec podia aparecer apenas em stderr e a abertura parecia não fazer nada. | Aviso gráfico opcional no processo nativo; erros de script anteriores ao supervisor também são encaminhados. Corrigido o tratamento explícito de exec falhando, pois Bash pode limpar o trap EXIT nesse ponto. |
 | Média | Print-RC abre configuração só no primeiro uso; faltava uma entrada separada, óbvia, para instalar novamente com clique. | Executável nativo **Instalar**, compilado do mesmo fonte com modo fixo de instalação, inclusive se renomeado. |
-| Média | A seleção de terminal não contemplava Sakura diretamente nem /opt/trinity/bin/konsole fora do PATH. | Acrescentadas essas duas entradas sem interpolação shell dos caminhos/argumentos. |
-| Média | Nem todo gerenciador permite abrir ELF pelo duplo clique; regras de confiança não são iguais. | **Instalar.desktop** portátil, com Terminal=true, nomes pt-BR/en-US e descoberta da própria pasta, inclusive URI file: com caracteres escapados. Nenhuma cópia para fora do app. O desktop ainda pode pedir autorização para executar esse arquivo. |
+| Média | A seleção de terminal não contemplava Sakura diretamente nem /opt/trinity/bin/konsole fora do PATH. | Acrescentadas essas entradas. Sakura usa uma string com cada argumento protegido (inclusive por symlink x-terminal-emulator), evitando a junção incorreta de caminhos com espaços. |
+| Média | Nem todo gerenciador permite abrir ELF pelo duplo clique; regras de confiança não são iguais. | **Instalar.desktop** portátil, com bootstrap curto e nomes pt-BR/en-US e descoberta da própria pasta, inclusive URI file: com caracteres escapados. Nenhuma cópia para fora do app. O desktop ainda pode pedir autorização para executar esse arquivo. |
 | Média | Lista longa de distribuições e rótulos de prioridade podiam parecer suporte confirmado; Wayland/musl/ARM apareciam apenas como “não testados”. | Matriz explícita por arquitetura/libc/protocolo; estados sem implementação/pacote separados; NixOS marcado como adaptação necessária. Evidências antigas continuam vinculadas aos respectivos hashes. |
 | Média | O pacote dinâmico depende de bibliotecas do sistema; não é autossuficiente. | Dependências e limites documentados. Embutir bibliotecas continua sendo melhoria futura a validar; não se deve voltar a glibc totalmente estática para ocultar esse requisito. |
 
 ## Arquivos alterados por grupo
 
 - `src/app/entrypoint.cpp`, `src/app/dialog.hpp`, `src/app/launcher.cpp`, `Makefile`: Instalar nativo, terminais adicionais e mensagens de falha; sem toolkit novo no núcleo da captura.
-- `Instalar.desktop`, `packaging/portable/package.py`, `scripts/build/manifest.py`: alternativa de clique, quarto ELF auditado, bits de execução e hashes no ZIP.
+- `Instalar.desktop`, `scripts/desktop_install.py`, `packaging/portable/package.py`, `scripts/build/manifest.py`: alternativa de clique, quarto ELF auditado, bits de execução e hashes no ZIP.
 - `instalar.sh`, `iniciar.sh`: verificações antecipadas e falhas visíveis; continuam sem sudo, instalações de pacotes ou mudanças gerais no desktop.
 - `scripts/inventario.sh`: Instalar, entrada de desktop, header novo e esta documentação entram na lista de propriedade da aplicação. Remoção continua baseada em hashes.
 - `i18n/*.json`, tabelas geradas C++/Bash: 626 mensagens correspondentes; textos de pré-requisitos, falhas e modo de uso atualizados nos dois idiomas.
@@ -42,3 +42,5 @@ Ainda faltam: instalação por clique no gerenciador do notebook real, aceitaç�
 4. Tornar a configuração totalmente gráfica apenas se o uso por clique no terminal não resolver a dificuldade. Isso não exige deixar um processo gráfico extra residente.
 
 As escolhas de arquitetura e referências oficiais estão na [matriz](COMPATIBILITY.md). Captura/PNG/clipboard não foram reescritos nesta revisão; a investigação concentrou-se em instalação, erro observável e delimitação de plataformas.
+
+O CI também testa Sakura real em Xvfb, diretamente e pelo symlink x-terminal-emulator, com espaços, acentos, aspas e argumentos literais. O bootstrap de desktop fica em scripts/desktop_install.py, recupera apenas o bit do Instalar regular e é substituído pelo processo nativo. Referência sobre a diferença de argumentos: [xdg-terminal-exec](https://sources.debian.org/src/xdg-terminal-exec/0.12.3-1/README.md/).

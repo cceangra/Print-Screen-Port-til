@@ -22,7 +22,7 @@ The package **does not bundle runtime libraries**. It requires compatible system
 
 The folder must be writable and allow execution. Prefer a Linux filesystem in your home folder when a USB drive or `noexec` mount blocks launching. Changing system mount options is unnecessary. `Instalar` and `Print-RC` need execute permission; extractors can discard it. The script/desktop installer restores execute bits only on regular application files.
 
-Open **Instalar** in the folder. If the file manager blocks binaries, use **Instalar.desktop / Install (terminal)** and allow execution of that file when prompted. It opens the desktop's chosen terminal and locates its own folder, without typing paths. It stays inside the application and is not copied into menus/autostart. Exact double-click behavior still needs checking on the real laptop's file manager.
+Open **Instalar** in the folder. If the file manager blocks binaries, use **Instalar.desktop / Install (terminal)** and allow execution of that file when prompted. It locates its own folder and calls Instalar, which opens an available terminal without typing paths. It stays inside the application and is not copied into menus/autostart. Exact double-click behavior still needs checking on the real laptop's file manager.
 
 Capture needs no persistent terminal. The native entrypoint recognizes x-terminal-emulator, Konsole, Trinity Konsole in /opt/trinity, Sakura, xfce4-terminal, xterm and gnome-terminal for interactive tasks. Error dialogs use zenity, kdialog or xmessage only when already available; none is installed by the application. Without these tools, stderr remains available in a terminal.
 

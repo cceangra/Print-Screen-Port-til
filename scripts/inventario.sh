@@ -110,6 +110,8 @@ PRINT_RC_KNOWN=(
   'docs/pt-BR/IMPLEMENTATION.md'
   'docs/en-US/AUDIT.md'
   'docs/pt-BR/AUDIT.md'
+  'scripts/desktop_install.py'
+  'tests/test_sakura_x11.sh'
 )
 
 print_rc_criar_inventario() {

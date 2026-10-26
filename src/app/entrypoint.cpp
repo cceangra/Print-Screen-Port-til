@@ -23,6 +23,44 @@ static void execute(const std::vector<std::string>& arguments) {
     execvp(argv[0],argv.data());
 }
 
+static bool sakura_terminal(const std::string& program) {
+    std::vector<std::string> candidates;
+    if (program.find('/')!=std::string::npos) candidates.push_back(program);
+    else {
+        const char* environment=std::getenv("PATH");
+        const std::string paths=environment?environment:"/usr/bin:/bin";
+        size_t start=0;
+        do {
+            const size_t end=paths.find(':',start);
+            const std::string directory=paths.substr(start,end==std::string::npos?end:end-start);
+            candidates.push_back((directory.empty()?".":directory)+"/"+program);
+            if (end==std::string::npos) break;
+            start=end+1;
+        } while (start<=paths.size());
+    }
+    for (const auto& candidate:candidates) {
+        if (access(candidate.c_str(),X_OK)!=0) continue;
+        char resolved[PATH_MAX+1]{};
+        if (!realpath(candidate.c_str(),resolved)) return false;
+        const char* name=std::strrchr(resolved,'/');
+        return std::strcmp(name?name+1:resolved,"sakura")==0;
+    }
+    return false;
+}
+
+static std::string quoted_command(const std::vector<std::string>& arguments) {
+    // Sakura -x parses one command string with g_shell_parse_argv. Quoting each
+    // argument preserves spaces/quotes literally; no shell expansion is used.
+    std::string command;
+    for (const auto& argument:arguments) {
+        if (!command.empty()) command+=' ';
+        command+='\'';
+        for (char character:argument) command+=character=='\''?"'\\''":std::string(1,character);
+        command+='\'';
+    }
+    return command;
+}
+
 static int failure(const std::string& message, int code=2) {
     std::fputs(message.c_str(),stderr);
     prc_error_dialog(message);
@@ -85,7 +123,7 @@ int main(int argc,char** argv) {
         std::snprintf(message,sizeof(message),prc_tr("native.entry_exec_failed"),std::strerror(errno));
         return failure(message,126);
     }
-    // No shell interpolation: spaces, accents and user arguments remain argv.
+    // No shell interpolation: spaces, accents and user arguments stay literal.
     if(std::getenv("DISPLAY") || std::getenv("WAYLAND_DISPLAY")) {
         const std::vector<std::vector<std::string>> terminals={
             {"x-terminal-emulator","-e"},{"konsole","-e"},
@@ -94,8 +132,11 @@ int main(int argc,char** argv) {
             {"gnome-terminal","--wait","--"}
         };
         for(auto terminal_command:terminals) {
-            terminal_command.insert(terminal_command.end(),{"/bin/bash",base+"/scripts/terminal-action.sh",path});
-            for(int i=first_argument;i<argc;++i) terminal_command.emplace_back(argv[i]);
+            std::vector<std::string> action{"/bin/bash",base+"/scripts/terminal-action.sh",path};
+            for(int i=first_argument;i<argc;++i) action.emplace_back(argv[i]);
+            if (sakura_terminal(terminal_command[0]))
+                terminal_command={terminal_command[0],"-x",quoted_command(action)};
+            else terminal_command.insert(terminal_command.end(),action.begin(),action.end());
             execute(terminal_command);
         }
     }
