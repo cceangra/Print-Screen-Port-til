@@ -1,31 +1,30 @@
-# Começar pelo executável
+# Instalar sem digitar caminhos
 
-Baixe o **pacote binário candidato** de uma execução Actions aprovada e extraia o ZIP interno. O pacote contém uma única pasta `Print-RC/`; o executável **`Print-RC` fica na raiz**, e os componentes nativos ficam em `bin/`. O Download ZIP dos fontes precisa de compilação.
+1. Baixe o **pacote binário candidato** do [Actions](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml), em uma execução aprovada. O artefato chama-se **Print-RC-Linux-x86_64**. Dentro dele está o ZIP do aplicativo **Print-RC-Linux-x86_64.zip**. Extraia esse ZIP interno.
+2. Abra a pasta única **Print-RC** e dê duplo clique em **Instalar**. Ele abre a instalação no terminal automaticamente. Não é preciso escrever `bash` nem o caminho completo.
+3. Se o gerenciador bloquear binários, abra **Instalar.desktop**, exibido como **Instalar (terminal)**. Autorize a execução desse arquivo quando o desktop perguntar. Essa alternativa permanece dentro da pasta do app.
+4. Confirme o destino (Enter mantém a pasta), a pasta de capturas e o clipboard. Pressione a tecla desejada, leia o conflito detectado e confirme a associação. Quando solicitado, pressione novamente para testar o acionamento. Sem prova de interface, a ativação permanece pendente.
+5. Depois, abra **Print-RC** para capturar ou use a tecla configurada.
 
-Para instalar pelo terminal, abra a pasta extraída no terminal e execute:
+**Code → Download ZIP contém apenas fontes.** Os arquivos novos `Instalar`, `Print-RC` e `bin/` só aparecem no pacote binário compilado. A release **0.5.6 é antiga** e não contém esta atualização. O nome do ZIP é o mesmo; verifique a versão em `VERSION` e o commit em `build-manifest.json`.
 
-```bash
-./Print-RC --install
-# A entrada antiga também continua disponível:
-bash instalar.sh
-```
+A pasta pai do destino deve existir. Não execute como root. O aplicativo não instala dependências. Veja a [matriz de compatibilidade](COMPATIBILITY.md): esta edição usa GNU/Linux x86_64, glibc e **X11**. Wayland, ARM e musl não têm pacote compatível nesta edição.
 
-Escolha manter a pasta ou movê-la. A pasta pai do destino deve existir: o instalador não cria pastas externas sem registro. Se o ZIP perder permissão de execução, use `bash instalar.sh`, que restaura a permissão do executável presente no pacote. Não execute como root. O aplicativo não instala dependências.
+Se a permissão de executar tiver sido perdida, marque **Propriedades → Permissões → Permitir executar** no arquivo, ou use `Instalar.desktop`. Se a montagem bloquear execução, extraia em uma pasta Linux na sua pasta pessoal. Não é preciso mudar configurações de montagem nem a política geral do gerenciador de arquivos.
 
-Depois, abra **Print-RC** pelo gerenciador de arquivos ou execute `./Print-RC`. No primeiro uso sem configuração, ele tenta abrir a instalação em um terminal disponível. Quando um terminal novo é usado, ele aguarda Enter ao terminar para manter erros e instruções visíveis.
-
-| Ação | Comando |
+| Ação | Clique ou comando opcional |
 | --- | --- |
-| Capturar | `./Print-RC` |
+| Instalar ou revisar instalação | **Instalar** ou **Instalar (terminal)** |
+| Capturar | **Print-RC** |
 | Preferências/idioma | `./Print-RC --configure` |
-| Escolher, verificar ou liberar tecla | `./Print-RC --shortcut` |
+| Escolher, verificar ou liberar tecla | `./Print-RC --shortcut` ou `configurar-tecla.sh` |
 | Diagnóstico somente leitura | `./Print-RC --diagnose --read-only` |
 | Desinstalar com prévia | `./Print-RC --uninstall` |
 
-Escolha uma tecla física reconhecida pelo X11. Print e Insert são independentes. Escape e modificadores sozinhos são reservados. Letras, Enter e espaço podem prejudicar a digitação se usados globalmente. Uma tecla pode estar ocupada pelo desktop ou por outro programa; o aplicativo não pode garanti-la em toda sessão. Se o cadastro/prova falhar, desative o conflito no gerenciador de atalhos e execute `bash configurar-tecla.sh` para verificar ou escolher outra tecla. Sem prova de interface, a ativação permanece pendente.
+As entradas antigas `bash instalar.sh` e `bash iniciar.sh` continuam disponíveis em um terminal aberto na própria pasta. Não é preciso escrever o caminho completo.
 
-A captura usa X11 e bibliotecas do sistema compatíveis, em GNU/Linux x86_64. Ela não depende do nome da distribuição. Trinity e XFCE têm adaptadores automáticos; outros desktops X11 recebem instruções para atalho manual. Um atalho criado manualmente pelo usuário deve ser removido manualmente. Wayland, ARM64 e musl exigem edições próprias e continuam sem suporte anunciado neste pacote. O catálogo de distribuições diferencia testes realizados de alvos futuros.
+Escolha uma tecla física reconhecida pelo X11. Print e Insert são independentes; Escape e modificadores sozinhos são reservados. Letras, Enter e espaço podem prejudicar a digitação como teclas globais. Se o cadastro/prova falhar, desative o conflito no gerenciador de atalhos e abra `configurar-tecla.sh` para verificar ou escolher outra tecla. Apenas Trinity e XFCE têm adaptadores automáticos; outros desktops X11 precisam de associação manual.
 
-O registro `config/installation-manifest.json` declara os recursos externos e os arquivos de registro conhecidos: `khotkeysrc` no Trinity ou o arquivo de sessão padrão do canal XFCE, junto com a propriedade exata alterada. O XFCE mantém esse arquivo pelo seu próprio serviço; a remoção desfaz somente a propriedade registrada, sem apagar a configuração inteira. Estados e backups criados ao reconfigurar também entram no inventário. Uma operação interrompida com estado externo preparado mantém recibo de propriedade e instrução de desinstalação, sem alegar ativação concluída.
+Configurações, estados, backups, executáveis e capturas padrão ficam dentro da pasta. O manifesto `config/installation-manifest.json` declara a propriedade XFCE ou as seções Trinity externas registradas pelo app; a remoção restaura somente o que ainda pertence à instalação. Atalhos criados manualmente pelo usuário precisam de remoção manual. O gerenciador de arquivos pode guardar seus próprios metadados de confiança/histórico; o app não controla esses arquivos do desktop.
 
-Na desinstalação, confira a prévia e digite `DESINSTALAR` ou `UNINSTALL`. Só alterações do aplicativo ainda reconhecidas são revertidas. Arquivos desconhecidos, arquivos modificados por você, capturas e relatórios solicitados pelo usuário são dados pessoais e permanecem. Se terceiros mudarem a integração, a remoção para e informa o que precisa de recuperação. Consulte [detalhes de remoção](UNINSTALL.md) e o [relatório técnico](IMPLEMENTATION.md).
+Ao desinstalar, confira a prévia e digite `DESINSTALAR` ou `UNINSTALL`. Capturas, relatórios pedidos pelo usuário e arquivos desconhecidos/modificados permanecem. Consulte [remoção](UNINSTALL.md) e [auditoria](AUDIT.md).

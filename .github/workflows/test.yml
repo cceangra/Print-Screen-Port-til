@@ -23,7 +23,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends ca-certificates g++ make pkg-config libx11-dev libpng-dev binutils file python3 unzip xvfb xauth xdotool xclip x11-xserver-utils passwd
       - uses: actions/download-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: candidate
       - name: Verify checksum and extract one application directory
         run: |
@@ -64,7 +64,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: candidate
       - name: Prepare actual candidate and preserved v0.5.6 comparison
         run: |

@@ -38,7 +38,7 @@ jobs:
           path: acceptance
       - uses: actions/download-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: dist
       - name: Refuse publication without exact tag, ABI and desktop evidence
         env:

@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Let a failed exec return so its error can be reported explicitly.
+shopt -s execfail
 PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
 source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
 BASE="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
+print_rc_early_failure() {
+    local result="${1:-$?}"
+    trap - EXIT
+    if [[ "$result" != 0 && "${PRINT_RC_GUI_ERRORS:-}" == 1 && -x "$BASE/Print-RC" && ! -L "$BASE/Print-RC" ]]; then
+        "$BASE/Print-RC" --startup-error "$result" || true
+    fi
+    return "$result"
+}
+trap print_rc_early_failure EXIT
 case "${1:-}" in
   --diagnose) shift; exec bash "$BASE/diagnosticar.sh" "$@" ;;
   --version|--help|--self-test|--show-config|--build-info) ;;
@@ -51,4 +62,7 @@ if [[ -f "$PROVA" && ! -L "$PROVA" && ! -e "$RESPOSTA" && ! -L "$RESPOSTA" ]]; t
         fi
     fi
 fi
+# Bash resets EXIT traps while preparing exec. Handle an exec failure explicitly.
+set +e
 exec "$BASE/bin/print-rc-launcher" "$BASE/bin/print-rc" "$@"
+print_rc_early_failure "$?"

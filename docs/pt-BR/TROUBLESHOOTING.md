@@ -11,3 +11,14 @@ Para CONFIG_MISSING/CONFIG_INVALID, execute `bash configurar.sh`. UNSUPPORTED_DI
 A integração Trinity pede que `khotkeysd` releia a configuração. Se a ativação continuar pendente, consulte o gerenciador de serviços ou saia e entre na sessão. Nenhum processo do desktop é encerrado. Atalhos alterados por terceiros bloqueiam a restauração. Preserve `backups/` e `config/` para recuperação.
 
 Depurador e despejos de falha são ações opcionais de desenvolvimento. O app não instala depurador, não ativa despejos e não envia logs. Oculte caminhos pessoais antes de publicar evidências adicionais.
+
+## A instalação não abre ou parece sumir
+
+- Confira `VERSION`: 0.5.6 é a release antiga. O ZIP de código da main não tem binários. Use o pacote **Print-RC-Linux-x86_64.zip** da execução candidata desejada, cujo manifesto identifica a fonte.
+- Abra **Instalar** ou **Instalar.desktop / Instalar (terminal)**. Se o desktop pedir autorização de execução, autorize apenas esse arquivo. Não é preciso digitar o caminho em um terminal.
+- Permissão negada: confira a permissão de executar e extraia em uma pasta Linux gravável que permita execução. O app não muda configurações de montagem.
+- `error while loading shared libraries`, `GLIBCXX ... not found` ou carregador ausente: falta dependência/ABI compatível. Este ZIP não embute bibliotecas; não substitua a libc do sistema. Envie a mensagem exata e o diagnóstico somente leitura para identificar a dependência.
+- Wayland/ARM/musl/32 bits: esta edição não atende. Veja a [matriz](COMPATIBILITY.md).
+- Falha antes de iniciar a captura pode aparecer em diálogo, quando zenity/kdialog/xmessage já existe; pelo instalador, o resultado fica visível até Enter. Sem esses diálogos, use a saída do terminal para obter o erro.
+
+[Auditoria e testes](AUDIT.md). O erro do notebook real continua necessário para atribuir a causa exata.

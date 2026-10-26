@@ -3,7 +3,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/i18n.sh"
 # Lista FIXA de arquivos criados/distribuidos pelo Print RC.
 # Capturas (PNG/JPG e qualquer arquivo desconhecido) NUNCA entram nesta lista.
 PRINT_RC_KNOWN=(
-  'Print-RC' 'src/app/entrypoint.cpp' 'scripts/terminal-action.sh' 'tests/test_entrypoint.py'
+  'Print-RC' 'Instalar' 'Instalar.desktop' 'src/app/entrypoint.cpp' 'src/app/dialog.hpp' 'scripts/terminal-action.sh' 'tests/test_entrypoint.py'
   'bin/print-rc' 'bin/print-rc-launcher'
   'src/app/launcher.cpp' 'src/app/runtime.hpp'
   'tests/test_overlay_ready.cpp' 'tests/test_launcher.sh'
@@ -108,6 +108,8 @@ PRINT_RC_KNOWN=(
   'docs/pt-BR/QUICK_START.md'
   'docs/en-US/IMPLEMENTATION.md'
   'docs/pt-BR/IMPLEMENTATION.md'
+  'docs/en-US/AUDIT.md'
+  'docs/pt-BR/AUDIT.md'
 )
 
 print_rc_criar_inventario() {

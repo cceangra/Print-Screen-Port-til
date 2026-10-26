@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 import shutil
+import configparser
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -12,6 +14,7 @@ class NativeEntrypointTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)/'Print RC ç (native)';self.root.mkdir()
         shutil.copy2(ROOT/'Print-RC',self.root/'Print-RC')
+        shutil.copy2(ROOT/'Instalar',self.root/'Instalar')
         (self.root/'scripts').mkdir();(self.root/'config').mkdir()
         (self.root/'scripts/terminal-action.sh').write_text('exec /bin/bash "$@"\n')
         (self.root/'iniciar.sh').write_text('printf "ARG:%s\\n" "$@";exit 7\n')
@@ -40,3 +43,54 @@ class NativeEntrypointTests(unittest.TestCase):
         self.assertEqual(self.run_app().returncode,7)
         (self.root/'iniciar.sh').unlink();(self.root/'iniciar.sh').symlink_to('/bin/true')
         self.assertEqual(self.run_app().returncode,2)
+
+    def test_installer_remains_clickable_after_configuration_and_renaming(self):
+        (self.root/'config/opcoes.conf').write_text('already configured\n')
+        (self.root/'instalar.sh').write_text('printf "INSTALL:%s\\n" "$@"\n')
+        commands=self.root/'commands';commands.mkdir()
+        terminal=commands/'sakura'
+        terminal.write_text('#!/bin/bash\n[[ "$1" == -x ]] || exit 20\nshift\nexec "$@"\n')
+        terminal.chmod(0o755)
+        installer=self.root/'Instalar';renamed=self.root/'Install again';installer.rename(renamed)
+        result=subprocess.run([str(renamed),'literal $(false)'],capture_output=True,text=True,
+                              env={**os.environ,'DISPLAY':':test','PATH':str(commands)})
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('INSTALL:literal $(false)',result.stdout)
+        result=subprocess.run([str(renamed),'--version'],capture_output=True,text=True)
+        self.assertEqual(result.returncode,7)
+        self.assertIn('ARG:--version',result.stdout)
+
+    def test_missing_terminal_has_visible_error_without_writing_app_files(self):
+        (self.root/'instalar.sh').write_text('exit 0\n')
+        commands=self.root/'commands';commands.mkdir()
+        dialog=commands/'zenity'
+        dialog.write_text('#!/bin/bash\nprintf "DIALOG:%s\\n" "$@"\n')
+        dialog.chmod(0o755)
+        before=sorted(str(p) for p in self.root.rglob('*'))
+        result=self.run_app('--install',DISPLAY=':test',PATH=str(commands))
+        self.assertEqual(result.returncode,2)
+        self.assertIn('No terminal could be opened',result.stdout)
+        self.assertEqual(before,sorted(str(p) for p in self.root.rglob('*')))
+
+    def test_desktop_installer_accepts_file_paths_and_uris_without_shell_interpolation(self):
+        launcher=self.root/'Instalar.desktop';shutil.copy2(ROOT/'Instalar.desktop',launcher)
+        (self.root/'instalar.sh').write_text('printf "DESKTOP-INSTALL\\n"\n')
+        config=configparser.ConfigParser(interpolation=None);config.read(launcher)
+        command=shlex.split(config['Desktop Entry']['Exec'])
+        self.assertEqual(command[-1],'%k')
+        for location in (str(launcher),launcher.as_uri()):
+            result=subprocess.run([*command[:-1],location],cwd='/',capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn('DESKTOP-INSTALL',result.stdout)
+
+    def test_early_shell_failure_from_graphical_launch_is_visible(self):
+        shutil.copy2(ROOT/'iniciar.sh',self.root/'iniciar.sh')
+        shutil.copytree(ROOT/'scripts',self.root/'scripts',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT/'i18n',self.root/'i18n')
+        commands=self.root/'commands';commands.mkdir()
+        dialog=commands/'zenity';dialog.write_text('#!/bin/bash\nprintf "DIALOG:%s\\n" "$@"\n');dialog.chmod(0o755)
+        (self.root/'config/opcoes.conf').write_text('already configured\n')
+        # A package can fail before reaching the supervisor (e.g. missing launcher).
+        result=self.run_app(DISPLAY=':test',XDG_SESSION_TYPE='x11',PATH=str(commands)+':'+os.environ['PATH'])
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('DIALOG:',result.stdout)

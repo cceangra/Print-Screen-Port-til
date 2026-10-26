@@ -1,31 +1,30 @@
-# Start with the executable
+# Install without typing paths
 
-Download the **candidate binary package** from a passing Actions run and extract its inner ZIP. It contains one `Print-RC/` folder; the native **`Print-RC` executable is at its root**, with native components in `bin/`. The source Download ZIP needs a build.
+1. Download the **candidate binary package** from a successful [Actions run](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml). The artifact is **Print-RC-Linux-x86_64**. It contains the application ZIP **Print-RC-Linux-x86_64.zip**. Extract this inner ZIP.
+2. Open the single **Print-RC** folder and double-click **Instalar**. It opens setup in a terminal automatically; no `bash` or full path needs typing.
+3. If the file manager blocks binaries, open **Instalar.desktop**, displayed as **Install (terminal)**. Allow that file to launch when the desktop asks. This alternative stays inside the app folder.
+4. Confirm the destination (Enter keeps the folder), capture folder and clipboard. Press your chosen key, read any detected conflict and confirm the association. When asked, press it again to test activation. Without overlay proof, activation remains pending.
+5. Then open **Print-RC** to capture or use the configured key.
 
-Open a terminal in the extracted folder and install with:
+**Code → Download ZIP contains source code only.** New `Instalar`, `Print-RC` and `bin/` files appear only in the compiled binary package. Release **0.5.6 is old** and does not contain this update. The ZIP name is the same; check `VERSION` and the source commit in `build-manifest.json`.
 
-```bash
-./Print-RC --install
-# The original entrypoint remains available:
-bash instalar.sh
-```
+The destination's parent must exist. Do not run as root. The app installs no dependencies. Read the [compatibility matrix](COMPATIBILITY.md): this edition uses GNU/Linux x86_64, glibc and **X11**. Wayland, ARM and musl have no compatible package in this edition.
 
-Keep the folder or choose to move it. The destination parent must already exist: setup does not create untracked external parent folders. If ZIP extraction loses execute permission, use `bash instalar.sh`, which restores permission on the packaged executable. Do not run as root. The application does not install dependencies.
+If execute permissions were lost, enable **Properties → Permissions → Allow executing** on the file, or use `Instalar.desktop`. If a mount blocks execution, extract to a Linux folder in your home directory. Changing mount settings or the file manager's general policy is unnecessary.
 
-Then open **Print-RC** in the file manager or run `./Print-RC`. On first use without configuration, it tries to open setup in an available terminal. When opening a new terminal, it waits for Enter afterward so errors and instructions remain visible.
-
-| Action | Command |
+| Action | Click or optional command |
 | --- | --- |
-| Capture | `./Print-RC` |
+| Install or review setup | **Instalar** or **Install (terminal)** |
+| Capture | **Print-RC** |
 | Preferences/language | `./Print-RC --configure` |
-| Choose, inspect or release a key | `./Print-RC --shortcut` |
+| Choose, check or release a key | `./Print-RC --shortcut` or `configurar-tecla.sh` |
 | Read-only diagnosis | `./Print-RC --diagnose --read-only` |
 | Uninstall with preview | `./Print-RC --uninstall` |
 
-Choose a physical key recognized by X11. Print and Insert remain independent. Escape and standalone modifiers are reserved. Letters, Enter and space can interrupt typing when bound globally. A key can be occupied by the desktop or another program; no application can guarantee its availability in every session. If registration/proof fails, disable the conflict in the desktop shortcut manager and run `bash configurar-tecla.sh` to inspect it or choose another key. Missing overlay proof leaves activation pending.
+Legacy `bash instalar.sh` and `bash iniciar.sh` remain available from a terminal opened in the application folder. No full path is needed.
 
-Capture uses X11 and compatible system libraries on GNU/Linux x86_64. It does not depend on a distribution name. Trinity and XFCE have automatic adapters; other X11 desktops receive manual shortcut instructions. A shortcut created manually by the user must be removed manually. Wayland, ARM64 and musl need separate editions and are not advertised as supported by this package. The distribution registry separates observed tests from future targets.
+Choose a physical key recognized by X11. Print and Insert are separate; Escape and standalone modifiers are reserved. Letters, Enter and space can impair typing when used as global keys. If association/proof fails, disable the conflict in desktop shortcut settings and open `configurar-tecla.sh` to check or choose another key. Only Trinity and XFCE have automatic adapters; other X11 desktops need manual association.
 
-`config/installation-manifest.json` declares external resources and known registry files: Trinity's `khotkeysrc` or the XFCE channel's default session storage file, with the exact changed property. XFCE maintains that file through its own service; removal reverses the recorded property without deleting the entire configuration. Later reconfiguration state/backups are also inventoried. An interrupted operation with prepared external state retains an ownership receipt and uninstall instructions, without claiming successful activation.
+Settings, state, backups, executables and default captures remain inside the folder. `config/installation-manifest.json` declares the external XFCE property or Trinity sections registered by the app; removal restores only changes still owned by the installation. User-created manual shortcuts need manual removal. The file manager may keep its own trust/history metadata; the app does not control those desktop files.
 
-Review the uninstall preview and type `UNINSTALL` or `DESINSTALAR`. Only still-recognized application changes are reversed. Unknown files, files you modified, captures and user-requested reports are personal data and remain. If a third party changed the integration, removal stops and explains recovery requirements. See [uninstall details](UNINSTALL.md) and the [engineering report](IMPLEMENTATION.md).
+On uninstall, preview and type `DESINSTALAR` or `UNINSTALL`. Captures, explicitly requested reports and unknown/modified files remain. See [removal](UNINSTALL.md) and [audit](AUDIT.md).
