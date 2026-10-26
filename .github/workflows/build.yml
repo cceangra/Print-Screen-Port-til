@@ -16,7 +16,7 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Build dependencies (CI container only)
-        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ make pkg-config libx11-dev libpng-dev binutils file python3
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ make pkg-config libx11-dev libpng-dev binutils file python3 desktop-file-utils
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
@@ -25,6 +25,7 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make -B portable
+          desktop-file-validate Instalar.desktop
           ./bin/print-rc --self-test
           python3 scripts/build/manifest.py --output dist/build-manifest.json --max-glibc 2.31 --max-glibcxx 3.4.28
           python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-Linux-x86_64.zip
@@ -35,6 +36,10 @@ jobs:
           import subprocess,zipfile
           with zipfile.ZipFile('dist/Print-RC-Linux-x86_64.zip') as archive:
               names=set(archive.namelist())
+              for binary in ('Instalar','Print-RC','bin/print-rc','bin/print-rc-launcher'):
+                  entry=archive.getinfo('Print-RC/'+binary)
+                  assert archive.read(entry)[:4]==b'\x7fELF', binary+' is not a native executable'
+                  assert (entry.external_attr >> 16) & 0o111, binary+' lost execute permissions'
           tracked=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
           missing=[path for path in tracked if path and not path.startswith('compat/test-results/') and 'Print-RC/'+path not in names]
           if missing:raise SystemExit('Missing corresponding source/package files: '+repr(missing))
@@ -42,6 +47,6 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: dist/*
           if-no-files-found: error

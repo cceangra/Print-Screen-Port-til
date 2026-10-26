@@ -12,18 +12,21 @@ The [compatibility catalog](compat/linux-targets.json) lists test targets, inclu
 
 ## Download and run
 
-**Open the native `Print-RC` executable after terminal setup.** [Quick start](docs/en-US/QUICK_START.md).
+**Double-click `Instalar` inside the application folder.** Setup opens a terminal automatically; no `bash` or full path needs typing. If the file manager blocks binaries, open `Instalar.desktop`, displayed as **Install (terminal)**, and allow that file to launch when asked. After setup, open **Print-RC** to capture. [Step by step](docs/en-US/QUICK_START.md).
 
-Use a **candidate artifact from a passing Actions run**, or a future tagged release that passed the desktop release gate. GitHub's source **Download ZIP** contains source and does not contain a prebuilt executable. The old v0.5.6 binary and release are retained in their original tag/assets for investigation.
+**Download the binary package from a successful [Actions run](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artifact **Print-RC-Linux-x86_64**, containing **Print-RC-Linux-x86_64.zip**. Extract the inner ZIP: it contains one `Print-RC/` folder. **Code → Download ZIP is source-only**, without ready executables. Release **0.5.6 is old** and does not contain this update.
 
-Extract the application ZIP: it contains one `Print-RC` directory. Run `instalar.sh` as your normal user. The installer keeps the extracted folder or moves it to a destination you select. It does not install packages, use sudo, download dependencies or start an updater.
+Setup keeps the extracted folder or moves it to a chosen destination after confirmation. Settings, executables, backups and default captures stay inside it. The app installs no packages, uses no sudo and downloads no dependencies. Compatible system libraries, Bash and Python 3.8+ are required; **runtime libraries are not bundled**.
 
-```bash
-bash instalar.sh
-bash iniciar.sh
-```
+| Platform/session | Status of this edition |
+| --- | --- |
+| GNU/Linux x86_64, glibc, X11 | Core tested in Ubuntu 20.04/22.04 and Debian 13 using Xvfb; real desktops still require acceptance |
+| XFCE or Trinity on X11 | Automatic key setup implemented; real Zorin/Q4OS acceptance pending |
+| Other X11 desktops | Manual key association; specific validation pending |
+| Wayland, ARM, 32-bit, Alpine/musl | No compatible implementation/package in this edition |
+| Stock NixOS, Windows, macOS | This generic package needs separate adaptation/edition |
 
-The current GNU package requires the system's compatible dynamic loader, glibc, libstdc++, libX11 and libpng16. Python 3 is needed for setup/shortcut helpers, not during capture. The primary build has an enforced GLIBC ≤ 2.31 / GLIBCXX ≤ 3.4.28 symbol ceiling; exact metadata accompanies each archive.
+Read the [full matrix](docs/en-US/COMPATIBILITY.md) and [failure/fix audit](docs/en-US/AUDIT.md). Setup checks components/Python and restores executable permissions before creating preferences or shortcuts. Legacy `bash instalar.sh` and `bash iniciar.sh` remain available from a terminal opened in the folder.
 
 ## Settings and language
 

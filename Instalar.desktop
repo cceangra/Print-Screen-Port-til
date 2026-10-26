@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install (terminal)
+Name[pt_BR]=Instalar (terminal)
+Comment=Install Print RC from this folder without typing a command
+Comment[pt_BR]=Instale o Print RC desta pasta sem digitar um comando
+Exec=python3 -B -c "import os,sys,urllib.parse; p=sys.argv[1]; u=urllib.parse.urlsplit(p); p=urllib.parse.unquote(u.path) if u.scheme=='file' and u.netloc in ('','localhost') else p; b=os.path.dirname(os.path.realpath(p)); os.execv(sys.executable,[sys.executable,'-B',os.path.join(b,'scripts','desktop_install.py')])" %k
+Icon=utilities-terminal
+Terminal=false
+StartupNotify=false

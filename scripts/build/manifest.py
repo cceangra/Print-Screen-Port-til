@@ -54,7 +54,7 @@ def main():
     parser.add_argument('--max-glibcxx', default='3.4.28')
     args = parser.parse_args()
     binaries=[]
-    for relative in ('Print-RC','bin/print-rc','bin/print-rc-launcher'):
+    for relative in ('Print-RC','Instalar','bin/print-rc','bin/print-rc-launcher'):
         binary=inspect_elf(ROOT/relative,args.max_glibc,args.max_glibcxx)
         binary['path']=relative
         binaries.append(binary)

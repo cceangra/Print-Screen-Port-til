@@ -23,7 +23,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends ca-certificates g++ make pkg-config libx11-dev libpng-dev binutils file python3 unzip xvfb xauth xdotool xclip x11-xserver-utils passwd
       - uses: actions/download-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: candidate
       - name: Verify checksum and extract one application directory
         run: |
@@ -57,14 +57,14 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Isolated Xfce/GDB dependencies (CI only)
-        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ pkg-config libx11-dev libpng-dev libxcursor1 python3 unzip xvfb xauth xdotool xclip x11-xserver-utils xfce4-settings xfconf dbus-x11 gdb binutils file passwd
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ pkg-config libx11-dev libpng-dev libxcursor1 python3 unzip xvfb xauth xdotool xclip x11-xserver-utils xfce4-settings xfconf dbus-x11 gdb binutils file passwd sakura fonts-dejavu-core
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: gnu-x86_64-candidate
+          name: Print-RC-Linux-x86_64
           path: candidate
       - name: Prepare actual candidate and preserved v0.5.6 comparison
         run: |
@@ -87,6 +87,10 @@ jobs:
         run: |
           su -s /bin/bash tester -c 'timeout 100s dbus-run-session -- xvfb-run -a -s "-screen 0 1024x768x24 -noreset" bash "/tmp/xfce-test/Print RC (ç)/tests/test_xfce_real.sh" "/tmp/xfce-test/Print RC (ç)" /tmp/xfce-test/legacy-static /tmp/xfce-test/original-dynamic /tmp/xfce-test/evidence' > /tmp/xfce-test/evidence/session.log 2>&1 || { cat /tmp/xfce-test/evidence/session.log; exit 1; }
           cat /tmp/xfce-test/evidence/session.log
+      - name: Actual Sakura terminal with literal paths and arguments
+        run: |
+          su -s /bin/bash tester -c 'timeout 45s dbus-run-session -- xvfb-run -a bash "/tmp/xfce-test/Print RC (ç)/tests/test_sakura_x11.sh"' > /tmp/xfce-test/evidence/sakura.log 2>&1 || { cat /tmp/xfce-test/evidence/sakura.log; exit 1; }
+          cat /tmp/xfce-test/evidence/sakura.log
       - name: Same-host core resource comparison (Xvfb, not desktop acceptance)
         run: |
           su -s /bin/bash tester -c 'set -eu

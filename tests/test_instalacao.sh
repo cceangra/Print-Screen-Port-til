@@ -21,6 +21,7 @@ make_source() {
 }
 echo '[1] Mantendo a pasta extraida: nao instalar pacotes nem criar segunda copia'
 make_source "$TEMP/origem1"
+chmod 644 "$TEMP/origem1/bin/print-rc" "$TEMP/origem1/bin/print-rc-launcher"
 printf '\n\n\ns\nn\n' | bash "$TEMP/origem1/instalar.sh"
 test -x "$TEMP/origem1/bin/print-rc"
 test -x "$TEMP/origem1/iniciar.sh"
@@ -67,6 +68,24 @@ if bash "$TEMP/origem4/instalar.sh"; then
     echo 'ERRO: permitiu pacote incompleto'; exit 1
 fi
 test -e "$TEMP/origem4/instalar.sh"
+echo '[4b] Recusar supervisor ausente antes de criar preferencias ou pastas'
+make_source "$TEMP/supervisor-ausente"
+rm -- "$TEMP/supervisor-ausente/bin/print-rc-launcher"
+if bash "$TEMP/supervisor-ausente/instalar.sh"; then
+    echo 'ERRO: permitiu instalar sem supervisor';exit 1
+fi
+test ! -e "$TEMP/supervisor-ausente/config"
+test ! -e "$TEMP/supervisor-ausente/capturas"
+echo '[4c] Python indisponivel falha antes de gravar configuracao'
+make_source "$TEMP/python-invalido"
+mkdir "$TEMP/comandos-python"
+printf '#!/bin/bash\nexit 127\n' > "$TEMP/comandos-python/python3"
+chmod +x "$TEMP/comandos-python/python3"
+if PATH="$TEMP/comandos-python:$PATH" bash "$TEMP/python-invalido/instalar.sh"; then
+    echo 'ERRO: permitiu instalar com Python indisponivel';exit 1
+fi
+test ! -e "$TEMP/python-invalido/config"
+test ! -e "$TEMP/python-invalido/capturas"
 echo '[5] Reinstalar em pasta preservada com prints, sem sobrescrever nada'
 make_source "$TEMP/origem5"
 FINAL5="$TEMP/pasta com fotos/Print-RC"

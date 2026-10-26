@@ -13,7 +13,7 @@ source_dir="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 # Nao seguir links inesperados que possam escapar da pasta portatil.
 # Executar essa verificacao TAMBEM apos mover a pasta (--continuar).
 for relative in \
-    Print-RC bin bin/print-rc config config/opcoes.conf \
+    Print-RC Instalar bin bin/print-rc bin/print-rc-launcher config config/opcoes.conf \
     config/atalho-state.json config/atalho-xfce.json config/arquivos-instalados.sha256 config/installation-manifest.json \
     backups backups/khotkeysrc.antes capturas scripts \
     scripts/inventario.sh scripts/atalho.py \
@@ -36,13 +36,25 @@ echo
 
 [[ "${XDG_SESSION_TYPE:-x11}" == x11 ]] || { prc_message shell.009; exit 2; }
 [[ "$(uname -m)" == x86_64 ]] || { prc_message shell.010; exit 2; }
-[[ -x "$source_dir/bin/print-rc" ]] || {
+if ! command -v python3 >/dev/null 2>&1 || ! python3 -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 2)'; then
+    prc_message shell.python_required; exit 2;
+fi
+# Repair execution bits before testing; ZIP extractors can discard Unix modes.
+# Never chmod a symlink or an external file.
+for relative in Print-RC Instalar Instalar.desktop bin/print-rc bin/print-rc-launcher; do
+    if [[ -f "$source_dir/$relative" && ! -L "$source_dir/$relative" && ! -x "$source_dir/$relative" ]]; then
+        chmod u+x -- "$source_dir/$relative" || { prc_message shell.045; exit 2; }
+    fi
+done
+[[ -x "$source_dir/bin/print-rc" && -x "$source_dir/bin/print-rc-launcher" ]] || {
     prc_message shell.011
     prc_message shell.012
     prc_message shell.013
     exit 2
 }
-"$source_dir/bin/print-rc" --self-test || {
+# This also detects a missing loader/library for the supervisor before any move,
+# preferences, directory creation or desktop shortcut transaction.
+"$source_dir/bin/print-rc-launcher" "$source_dir/bin/print-rc" --self-test || {
     prc_message shell.014
     exit 2
 }

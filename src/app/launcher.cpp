@@ -1,4 +1,5 @@
 #include "../i18n/messages.hpp"
+#include "dialog.hpp"
 // Small native parent: diagnose fatal startup signals outside the crashing app.
 // Exit after clipboard ownership, leaving only the native clipboard owner resident.
 #include <cerrno>
@@ -13,6 +14,15 @@
 static volatile sig_atomic_t child_pid = -1;
 static void forward_signal(int signal) {
     if (child_pid > 0) kill(child_pid, signal);
+}
+
+static int finish(int code) {
+    if (code && std::getenv("PRINT_RC_GUI_ERRORS")) {
+        char message[1024]{};
+        std::snprintf(message,sizeof(message),prc_tr("native.launch_failed"),code);
+        prc_error_dialog(message);
+    }
+    return code;
 }
 
 int main(int argc, char** argv) {
@@ -51,7 +61,7 @@ int main(int argc, char** argv) {
         if (count <= 0) break;
         if (stage == 'R') ready = true;
         if (stage == 'S') save_failed = true;
-        if (stage == 'C') { close(channel[0]); return save_failed ? 6 : 0; }
+        if (stage == 'C') { close(channel[0]); return finish(save_failed ? 6 : 0); }
     }
     close(channel[0]);
     int status = 0;
@@ -62,10 +72,10 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, prc_tr("native.057"),
                      signal, strsignal(signal), ready ? "yes" : "no");
         std::fputs(prc_tr("native.signal_explanation"),stderr);
-        return 128 + signal;
+        return finish(128 + signal);
     }
     const int code = WIFEXITED(status) ? WEXITSTATUS(status) : 2;
     if (code && !ready)
         std::fprintf(stderr, prc_tr("native.058"), code);
-    return code;
+    return finish(code);
 }

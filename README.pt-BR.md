@@ -12,18 +12,21 @@ O [catálogo de compatibilidade](compat/linux-targets.json) lista alvos de teste
 
 ## Baixar e executar
 
-**Abra o executável nativo `Print-RC` após a instalação pelo terminal.** [Guia rápido](docs/pt-BR/QUICK_START.md).
+**Dê duplo clique em `Instalar` na pasta do aplicativo.** A instalação abre no terminal automaticamente; você não precisa digitar `bash` nem o caminho. Se o gerenciador bloquear binários, abra `Instalar.desktop`, exibido como **Instalar (terminal)**, e autorize esse arquivo quando solicitado. Depois da configuração, abra **Print-RC** para capturar. [Passo a passo](docs/pt-BR/QUICK_START.md).
 
-Use um **artefato candidato de uma execução aprovada no Actions**, ou uma futura versão publicada após passar pela validação dos desktops. A opção **Download ZIP** do código do GitHub contém fontes e não contém executável pronto. O binário e a publicação antigos da v0.5.6 permanecem nos arquivos e na tag originais para investigação.
+**Baixe o pacote binário de uma execução aprovada do [Actions](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artefato **Print-RC-Linux-x86_64**, contendo **Print-RC-Linux-x86_64.zip**. Extraia o ZIP interno: ele contém uma única pasta `Print-RC/`. **Code → Download ZIP contém só fontes**, sem executáveis prontos. A release **0.5.6 é antiga** e não contém esta atualização.
 
-Extraia o ZIP do aplicativo: haverá uma única pasta `Print-RC`. Execute `instalar.sh` como usuário normal. O instalador mantém a pasta extraída ou a move para um destino escolhido por você. Não instala pacotes, não usa sudo, não baixa dependências e não inicia atualizador.
+O instalador mantém a pasta extraída ou a move, após confirmação, para um destino escolhido. Configurações, executáveis, backups e capturas padrão ficam dentro dela. O app não instala pacotes, não usa sudo e não baixa dependências. Requer bibliotecas do sistema compatíveis, Bash e Python 3.8+; **não é um pacote com todas as bibliotecas embutidas**.
 
-```bash
-bash instalar.sh
-bash iniciar.sh
-```
+| Plataforma/sessão | Situação desta edição |
+| --- | --- |
+| GNU/Linux x86_64, glibc, X11 | Núcleo testado em Ubuntu 20.04/22.04 e Debian 13 via Xvfb; desktop real ainda requer aceitação |
+| XFCE ou Trinity em X11 | Configuração automática da tecla implementada; Zorin/Q4OS reais pendentes |
+| Outros desktops X11 | Associação manual da tecla; validação específica pendente |
+| Wayland, ARM, 32 bits, Alpine/musl | Sem implementação/pacote compatível nesta edição |
+| NixOS padrão, Windows, macOS | Este pacote genérico não atende sem outra adaptação/edição |
 
-O pacote GNU atual precisa do carregador dinâmico e de versões compatíveis de glibc, libstdc++, libX11 e libpng16 do sistema. Python 3 serve aos auxiliares de configuração/atalhos, sem permanecer durante a captura. A compilação principal impõe teto de símbolos GLIBC ≤ 2.31 / GLIBCXX ≤ 3.4.28; cada pacote traz seus metadados exatos.
+Veja a [matriz completa](docs/pt-BR/COMPATIBILITY.md) e a [auditoria das falhas e correções](docs/pt-BR/AUDIT.md). A instalação verifica componentes/Python e recuperação de permissões antes de criar preferências ou atalhos. As entradas antigas `bash instalar.sh` e `bash iniciar.sh` continuam disponíveis em um terminal aberto na pasta.
 
 ## Configurações e idioma
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Test targets, not a list of supported distributions. Null versions must be pinned before testing.",
+  "description": "Test targets, not a list of supported distributions. support_tier is test priority, not compatibility. Evidence applies only to the recorded commit/archive. See docs/*/COMPATIBILITY.md for this edition.",
   "targets": [
     {
       "id": "zorin-17.3-lite-x86_64-x11",
@@ -186,7 +186,7 @@
       "shortcut_backend": "manual",
       "capture_backend": null,
       "support_tier": "C",
-      "status": "UNTESTED",
+      "status": "NOT_IMPLEMENTED_FOR_THIS_EDITION",
       "verified_release": null,
       "last_tested": null,
       "notes": "Future target. Wayland backend is not implemented."
@@ -637,7 +637,7 @@
       "status": "UNTESTED",
       "verified_release": null,
       "last_tested": null,
-      "notes": "No runtime or desktop acceptance evidence yet."
+      "notes": "The distribution and version alone do not identify the session. This target has no validation; modern COSMIC/Wayland requires a separate backend. X11 here is only a requested test target, not a claim about the default desktop."
     },
     {
       "id": "void",
@@ -718,10 +718,10 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "C",
-      "status": "UNTESTED",
+      "status": "GENERIC_BINARY_NOT_SUPPORTED_OUT_OF_BOX",
       "verified_release": null,
       "last_tested": null,
-      "notes": "No runtime or desktop acceptance evidence yet."
+      "notes": "Generic loader paths and /bin/bash are assumed by this edition. NixOS needs separate packaging/adaptation; no system configuration is changed automatically. See https://nix.dev/guides/faq.html"
     },
     {
       "id": "rocky-linux-8",
@@ -928,7 +928,7 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "C",
-      "status": "UNTESTED",
+      "status": "NO_BINARY_FOR_THIS_EDITION",
       "verified_release": null,
       "last_tested": null,
       "notes": "No musl artifact is built or claimed compatible."
@@ -949,7 +949,7 @@
       "shortcut_backend": "manual",
       "capture_backend": "x11",
       "support_tier": "C",
-      "status": "UNTESTED",
+      "status": "NO_BINARY_FOR_THIS_EDITION",
       "verified_release": null,
       "last_tested": null,
       "notes": "No ARM64 artifact is built or claimed compatible."
@@ -983,5 +983,22 @@
         "forensics": "test-results/ci-39698273156/evidence-index.json"
       }
     }
-  ]
+  ],
+  "edition": {
+    "platform": "GNU/Linux",
+    "architecture": "x86_64",
+    "protocol": "x11",
+    "libc": "glibc",
+    "tested_build_baseline": "Ubuntu 20.04",
+    "native_entries": [
+      "Instalar",
+      "Print-RC"
+    ],
+    "shortcut_adapters": [
+      "xfce",
+      "trinity"
+    ],
+    "bundled_runtime_libraries": false,
+    "other_x11_desktops": "manual shortcut only; unverified unless evidence says otherwise"
+  }
 }
