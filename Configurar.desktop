@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Configure Print RC
+Name[pt_BR]=Configurar Print RC
+Comment=Change the capture key, image folder and language without typing commands
+Comment[pt_BR]=Escolha a tecla, a pasta das imagens e o idioma sem digitar comandos
+Exec=python3 -B -c "import os,sys,urllib.parse; p=sys.argv[1]; u=urllib.parse.urlsplit(p); p=urllib.parse.unquote(u.path) if u.scheme=='file' and u.netloc in ('','localhost') else p; b=os.path.dirname(os.path.realpath(p)); os.execv(sys.executable,[sys.executable,'-B',os.path.join(b,'scripts','desktop_install.py'),'--configure'])" %k
+Icon=utilities-terminal
+Terminal=false
+StartupNotify=false

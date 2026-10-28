@@ -10,8 +10,10 @@ with tempfile.TemporaryDirectory() as temp:
     base=Path(temp);app=base/"Print ç ('quotes') $(literal)";app.mkdir()
     (app/'scripts').mkdir();(app/'commands').mkdir();(app/'home').mkdir()
     shutil.copy2(root/'Instalar',app/'Instalar')
+    shutil.copy2(root/'Configurar',app/'Configurar')
     (app/'scripts/terminal-action.sh').write_text('exec /bin/bash "$@"\n')
     (app/'instalar.sh').write_text('printf "%s\\n" "$@" > "$PRC_SAKURA_RESULT"\n')
+    (app/'configurar.sh').write_text('printf "%s\\n" "$@" > "$PRC_SAKURA_RESULT"\n')
     (app/'commands/sakura').symlink_to(sakura)
     expected="literal $(not-a-command) with 'quotes' and \"double quotes\""
     for mode in ('direct','default-terminal-symlink'):
@@ -26,4 +28,10 @@ with tempfile.TemporaryDirectory() as temp:
         assert result.returncode==0,(mode,result.returncode,result.stderr)
         assert output.read_text()==expected+'\n',(mode,output.read_text())
         print('PASS: real Sakura,',mode,'preserves path and literal arguments')
+    output=app/'settings.result';env['PRC_SAKURA_RESULT']=str(output)
+    result=subprocess.run([str(app/'Configurar')],env=env,stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=18)
+    assert result.returncode==0,result.stderr
+    assert output.read_text()=='--menu\n'
+    print('PASS: real Sakura opens the Configurar settings menu')
 PY

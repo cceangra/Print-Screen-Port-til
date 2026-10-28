@@ -26,6 +26,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make -B portable
           desktop-file-validate Instalar.desktop
+          desktop-file-validate Configurar.desktop
           ./bin/print-rc --self-test
           python3 scripts/build/manifest.py --output dist/build-manifest.json --max-glibc 2.31 --max-glibcxx 3.4.28
           python3 packaging/portable/package.py --manifest dist/build-manifest.json --output dist/Print-RC-Linux-x86_64.zip
@@ -36,7 +37,7 @@ jobs:
           import subprocess,zipfile
           with zipfile.ZipFile('dist/Print-RC-Linux-x86_64.zip') as archive:
               names=set(archive.namelist())
-              for binary in ('Instalar','Print-RC','bin/print-rc','bin/print-rc-launcher'):
+              for binary in ('Instalar','Configurar','Print-RC','bin/print-rc','bin/print-rc-launcher'):
                   entry=archive.getinfo('Print-RC/'+binary)
                   assert archive.read(entry)[:4]==b'\x7fELF', binary+' is not a native executable'
                   assert (entry.external_attr >> 16) & 0o111, binary+' lost execute permissions'

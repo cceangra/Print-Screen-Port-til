@@ -211,7 +211,7 @@ printf '\n\n\ns\ns\ns\n' | XDG_CURRENT_DESKTOP=Trinity \
     bash "$TEMP/origem11/instalar.sh" > "$TEMP/teste11.log" 2>&1
 test "$(wc -l < "$PRINT_RC_TEST_ATTEMPTS")" -eq 2
 test "$(cat "$PRINT_RC_TEST_REGISTER")" = 'Print cadastrado'
-grep -F 'Tentar novamente? [s/N]:' "$TEMP/teste11.log"
+grep -F 'Tentar novamente? [1 = Sim, 2 = Não; Enter = Não]:' "$TEMP/teste11.log"
 test -f "$TEMP/origem11/.print-rc-installation"
 
 echo '[12] Se responder NAO ao timeout, encerrar leitura sem registrar atalho'
@@ -238,7 +238,7 @@ printf '\n\n\ns\nn\n' | XDG_CURRENT_DESKTOP=Trinity \
 test "$(wc -l < "$PRINT_RC_TEST_ATTEMPTS")" -eq 1
 test ! -e "$TEMP/origem12/config/atalho-state.json"
 test -f "$TEMP/origem12/.print-rc-installation"
-grep -F 'Tentar novamente? [s/N]:' "$TEMP/teste12.log"
+grep -F 'Tentar novamente? [1 = Sim, 2 = Não; Enter = Não]:' "$TEMP/teste12.log"
 grep -F 'nenhuma tecla sera associada' "$TEMP/teste12.log"
 
 echo '[13] Esc cancela sem perguntar tentar novamente'

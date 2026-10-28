@@ -88,6 +88,9 @@ int main(int argc,char** argv) {
 #ifdef PRINT_RC_INSTALLER
     std::string script="instalar.sh";
     bool terminal=true;
+#elif defined(PRINT_RC_SETTINGS_ENTRY)
+    std::string script="configurar.sh";
+    bool terminal=true;
 #else
     std::string script="iniciar.sh";
     bool terminal=false;
@@ -100,10 +103,10 @@ int main(int argc,char** argv) {
     else if(flag=="--diagnose" || flag=="--version" || flag=="--build-info" || flag=="--show-config" || flag=="--self-test") {
         script="iniciar.sh";terminal=false;
     }
-    else if(argc==1 && !regular(base+"/config/opcoes.conf")) {
+    else if(script=="iniciar.sh" && argc==1 && !regular(base+"/config/opcoes.conf")) {
         script="instalar.sh";terminal=true;
     }
-    else if(argc==1) {
+    else if(script=="iniciar.sh" && argc==1) {
         const char* session=std::getenv("XDG_SESSION_TYPE");
         // Let the existing localized X11 limitation remain visible on Wayland.
         if(session && std::strcmp(session,"x11")!=0) terminal=true;
@@ -114,8 +117,13 @@ int main(int argc,char** argv) {
         std::snprintf(message,sizeof(message),prc_tr("native.entry_missing"),base.c_str());
         return failure(message);
     }
+    std::vector<std::string> arguments;
+#ifdef PRINT_RC_SETTINGS_ENTRY
+    if (argc==1) arguments.emplace_back("--menu");
+#endif
+    for(int i=first_argument;i<argc;++i) arguments.emplace_back(argv[i]);
     std::vector<std::string> command{"/bin/bash",path};
-    for(int i=first_argument;i<argc;++i) command.emplace_back(argv[i]);
+    command.insert(command.end(),arguments.begin(),arguments.end());
     if(!terminal || (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO))) {
         if (!terminal && argc==1 && !isatty(STDERR_FILENO)) setenv("PRINT_RC_GUI_ERRORS","1",1);
         execute(command);
@@ -133,7 +141,7 @@ int main(int argc,char** argv) {
         };
         for(auto terminal_command:terminals) {
             std::vector<std::string> action{"/bin/bash",base+"/scripts/terminal-action.sh",path};
-            for(int i=first_argument;i<argc;++i) action.emplace_back(argv[i]);
+            action.insert(action.end(),arguments.begin(),arguments.end());
             if (sakura_terminal(terminal_command[0]))
                 terminal_command={terminal_command[0],"-x",quoted_command(action)};
             else terminal_command.insert(terminal_command.end(),action.begin(),action.end());

@@ -67,3 +67,70 @@ test ! -e "$TEMP/externa-app6/opcoes.conf"
 test "$(cat "$TEMP/externa-app6/pessoal.txt")" = 'DOCUMENTO INTACTO'
 
 echo 'OK: diretório interno/externo, Ctrl+V, caminhos e cancelamento testados.'
+
+echo '[7] Configuracao iniciante aceita escolhas numeradas'
+mkdir -p "$TEMP/app7"
+cp "$ROOT/configurar.sh" "$TEMP/app7/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app7/"
+printf '1\n1\n1\n' | bash "$TEMP/app7/configurar.sh" > "$TEMP/numeros.log" 2>&1
+grep -Fx "save_dir=$TEMP/app7/capturas" "$TEMP/app7/config/opcoes.conf"
+grep -Fx 'copy_clipboard=1' "$TEMP/app7/config/opcoes.conf"
+
+echo '[8] Resposta desconhecida na confirmacao pede novamente; NAO encerra sem salvar'
+mkdir -p "$TEMP/app8"
+cp "$ROOT/configurar.sh" "$TEMP/app8/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app8/"
+if printf '1\n2\nresposta-invalida\n2\n' | bash "$TEMP/app8/configurar.sh" > "$TEMP/invalido.log" 2>&1; then
+  echo 'ERRO: salvou sem confirmacao';exit 1
+fi
+grep -F 'Digite 1 para Sim ou 2 para Não' "$TEMP/invalido.log"
+test ! -e "$TEMP/app8/config/opcoes.conf"
+test ! -e "$TEMP/app8/capturas"
+
+echo '[9] Fim da entrada antes da confirmacao nao cria preferencias'
+mkdir -p "$TEMP/app9"
+cp "$ROOT/configurar.sh" "$TEMP/app9/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app9/"
+if printf '1\n1\n' | bash "$TEMP/app9/configurar.sh"; then
+  echo 'ERRO: salvou sem uma resposta explicita';exit 1
+fi
+test ! -e "$TEMP/app9/config/opcoes.conf"
+
+echo '[10] Menu permite trocar idioma sem digitar comandos nem mudar imagens'
+mkdir -p "$TEMP/app10"
+cp "$ROOT/configurar.sh" "$TEMP/app10/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app10/"
+printf '3\n2\n0\n' | bash "$TEMP/app10/configurar.sh" --menu > "$TEMP/menu.log" 2>&1
+grep -Fx en-US "$TEMP/app10/config/language"
+grep -F 'WHAT WOULD YOU LIKE TO CHANGE?' "$TEMP/menu.log"
+test ! -e "$TEMP/app10/config/opcoes.conf"
+
+echo '[11] Manter pasta interna usa o local atual depois de mover o aplicativo'
+mkdir -p "$TEMP/app11/config"
+cp "$ROOT/configurar.sh" "$TEMP/app11/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app11/"
+printf 'save_dir=%s\ncopy_clipboard=0\nsave_dir_relative=capturas\n' "$TEMP/pasta-antiga/capturas" > "$TEMP/app11/config/opcoes.conf"
+printf '1\n\n1\n' | bash "$TEMP/app11/configurar.sh" > "$TEMP/movida.log" 2>&1
+grep -Fx "save_dir=$TEMP/app11/capturas" "$TEMP/app11/config/opcoes.conf"
+grep -Fx 'copy_clipboard=0' "$TEMP/app11/config/opcoes.conf"
+test ! -e "$TEMP/pasta-antiga"
+
+echo '[12] Alterar pasta atualiza o manifesto de uma instalacao existente'
+mkdir -p "$TEMP/app12/config" "$TEMP/app12/capturas" "$TEMP/fotos12"
+cp "$ROOT/configurar.sh" "$ROOT/desinstalar.sh" "$TEMP/app12/"
+cp -a "$ROOT/scripts" "$ROOT/i18n" "$TEMP/app12/"
+printf 'PRINT-RC\n%s\n' "$TEMP/app12" > "$TEMP/app12/.print-rc-installation"
+printf 'save_dir=%s\ncopy_clipboard=1\nsave_dir_relative=capturas\n' "$TEMP/app12/capturas" > "$TEMP/app12/config/opcoes.conf"
+python3 -B "$TEMP/app12/scripts/lifecycle.py" record --base "$TEMP/app12"
+source "$ROOT/scripts/inventario.sh"
+print_rc_criar_inventario "$TEMP/app12"
+printf '2\n%s\n1\n2\n1\n' "$TEMP/fotos12" | bash "$TEMP/app12/configurar.sh" > "$TEMP/manifesto.log" 2>&1
+python3 -B - "$TEMP/app12" "$TEMP/fotos12" <<'PY'
+import json,sys
+from pathlib import Path
+app=Path(sys.argv[1]);destination=json.loads((app/'config/installation-manifest.json').read_text())['capture_destination']
+assert destination['path']==sys.argv[2]
+assert destination['inside_application'] is False
+assert destination['delete_on_uninstall'] is False
+assert 'copy_clipboard=0' in (app/'config/opcoes.conf').read_text()
+PY

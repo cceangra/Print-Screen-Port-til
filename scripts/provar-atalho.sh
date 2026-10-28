@@ -11,6 +11,10 @@ if [[ "${XDG_SESSION_TYPE:-x11}" != x11 || -z "${DISPLAY:-}" ]]; then
     prc_message shell.283
     exit 2
 fi
+if [[ -L "$BASE/config" || -L "$BASE/iniciar.sh" ]]; then
+    prc_message shell.unsafe_path
+    exit 2
+fi
 if [[ ! -d "$BASE/config" || ! -f "$BASE/iniciar.sh" ]]; then
     prc_message shell.284
     exit 2

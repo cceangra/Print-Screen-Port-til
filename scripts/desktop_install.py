@@ -12,12 +12,14 @@ from print_rc_i18n import tr
 ROOT=Path(__file__).resolve().parent.parent
 
 def main():
-    installer=ROOT/'Instalar'
+    if sys.argv[1:] not in ([],['--configure']):return 2
+    settings=bool(sys.argv[1:])
+    installer=ROOT/('Configurar' if settings else 'Instalar')
     try:
         mode=installer.lstat().st_mode
         if not stat.S_ISREG(mode):raise OSError(tr('shell.unsafe_path'))
         if not mode & stat.S_IXUSR:installer.chmod(stat.S_IMODE(mode)|stat.S_IXUSR)
-        os.execv(str(installer),[str(installer),'--install'])
+        os.execv(str(installer),[str(installer)] if settings else [str(installer),'--install'])
     except OSError as error:
         message=(tr('native.entry_exec_failed') % str(error))+'\n'+tr('shell.012')
         print(message,file=sys.stderr)

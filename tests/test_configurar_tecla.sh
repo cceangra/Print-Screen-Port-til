@@ -12,7 +12,7 @@ mkdir -p "$HOME/.trinity/share/config"
 APP="$TMP/Print RC/Print-RC"
 mkdir -p "$APP/bin" "$APP/scripts" "$APP/config"
 cp -a "$ROOT/i18n" "$APP/"
-cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/print_rc_i18n.py" "$ROOT/scripts/lifecycle.py" "$ROOT/scripts/relocate.py" "$APP/scripts/"
+cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/prompts.sh" "$ROOT/scripts/print_rc_i18n.py" "$ROOT/scripts/lifecycle.py" "$ROOT/scripts/relocate.py" "$APP/scripts/"
 cp -- "$ROOT/configurar-tecla.sh" "$ROOT/iniciar.sh" "$APP/"
 cp -- "$ROOT/scripts/atalho.py" "$APP/scripts/"
 printf 'FOTO PESSOAL\n' > "$APP/minha-foto.png"
@@ -122,5 +122,14 @@ if printf 'n\n' | bash "$APP/configurar-tecla.sh" --configurar > "$TMP/never.txt
     exit 1
 fi
 cmp "$K" "$TMP/antes-esc"
+test ! -e "$APP/config/atalho-state.json"
+echo '[7] Menu nao anuncia tecla salva quando o adaptador falha'
+export TEST_MODE=sysreq
+printf 'raise SystemExit(43)\n' > "$APP/scripts/atalho.py"
+printf '2\n0\n' | bash "$APP/configurar-tecla.sh" > "$TMP/backend-failed.txt" 2>&1
+grep -F 'A tecla NÃO foi configurada' "$TMP/backend-failed.txt"
+if grep -F 'O próximo passo é testar' "$TMP/backend-failed.txt"; then
+    echo 'ERRO: menu anunciou sucesso apos falha do adaptador';exit 1
+fi
 test ! -e "$APP/config/atalho-state.json"
 echo 'OK: diagnostico, associacao, retry, rebind, liberar, Esc e NAO.'

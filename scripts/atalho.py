@@ -14,7 +14,7 @@ import uuid
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.dont_write_bytecode=True
-from print_rc_i18n import tr, affirmative, localize_argparse
+from print_rc_i18n import tr, affirmative, confirm, localize_argparse
 from lifecycle import track_shortcut_write
 
 NAME = tr('desktop.001')
@@ -129,10 +129,7 @@ def conflicts(text, target='Print'):
 
 
 def yes(question):
-    try:
-        return input(question+tr('common.confirm')).strip().lower() in ('s','sim','y','yes')
-    except EOFError:
-        return False
+    return confirm(question)
 
 
 def command_for_launcher(command):
@@ -407,26 +404,33 @@ def install(base, command, key='Print'):
     except (OSError, UnicodeError, RuntimeError) as error:
         print(tr('desktop.103'), error)
         return False
-    print('\n'+'='*60)
-    print(tr('desktop.021'))
-    print((tr('desktop.104') if existed else tr('desktop.105'))+str(FILE))
-    print(tr('desktop.072')+(tr('desktop.nothing') if existed else str(FILE)))
-    print(tr('desktop.022'))
-    print(tr('desktop.073')+str(base))
-    print(tr('desktop.074')+(tr('desktop.106') if existed else tr('desktop.107')))
-    print(tr('desktop.023'))
-    print('='*60)
+    simple=os.environ.get('PRINT_RC_SETUP_SIMPLE')=='1'
+    if simple:
+        print(tr('shell.key_offer',key))
+        print(tr('shell.key_external',str(FILE)))
+        print(tr('shell.key_restore'))
+    else:
+        print('\n'+'='*60)
+        print(tr('desktop.021'))
+        print((tr('desktop.104') if existed else tr('desktop.105'))+str(FILE))
+        print(tr('desktop.072')+(tr('desktop.nothing') if existed else str(FILE)))
+        print(tr('desktop.022'))
+        print(tr('desktop.073')+str(base))
+        print(tr('desktop.074')+(tr('desktop.106') if existed else tr('desktop.107')))
+        print(tr('desktop.023'))
+        print('='*60)
     entries=conflicts(original,target=key)
     if entries:
         print(tr('desktop.075'),key,tr('desktop.076'))
         for conflict in entries:
-            print('  -', conflict['name'],'|',conflict['command'],'|',conflict['section'])
-        print(tr('desktop.077'))
-        print(tr('desktop.078'))
-        print(tr('desktop.079'))
+            print('  -', conflict['name'],'|',conflict['command'])
+        if not simple:
+            print(tr('desktop.077'))
+            print(tr('desktop.078'))
+            print(tr('desktop.079'))
     else:
         print(tr('desktop.080'))
-    print(tr('desktop.024'))
+    if not simple:print(tr('desktop.024'))
     if not yes(tr('desktop.081')):
         print(tr('desktop.082'))
         return False

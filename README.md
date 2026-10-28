@@ -12,7 +12,7 @@ The [compatibility catalog](compat/linux-targets.json) lists test targets, inclu
 
 ## Download and run
 
-**Double-click `Instalar` inside the application folder.** Setup opens a terminal automatically; no `bash` or full path needs typing. If the file manager blocks binaries, open `Instalar.desktop`, displayed as **Install (terminal)**, and allow that file to launch when asked. After setup, open **Print-RC** to capture. [Step by step](docs/en-US/QUICK_START.md).
+**Double-click `Instalar` inside the application folder.** Setup opens a terminal automatically; no `bash` or full path needs typing. If the file manager blocks binaries, open `Instalar.desktop`, displayed as **Install (terminal)**, and allow that file to launch when asked. After setup, open **Print-RC** to capture or **Configurar** for a numbered settings menu. [Step by step](docs/en-US/QUICK_START.md).
 
 **Download the binary package from a successful [Actions run](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artifact **Print-RC-Linux-x86_64**, containing **Print-RC-Linux-x86_64.zip**. Extract the inner ZIP: it contains one `Print-RC/` folder. **Code → Download ZIP is source-only**, without ready executables. Release **0.5.6 is old** and does not contain this update.
 
@@ -29,6 +29,10 @@ Setup keeps the extracted folder or moves it to a chosen destination after confi
 Read the [full matrix](docs/en-US/COMPATIBILITY.md) and [failure/fix audit](docs/en-US/AUDIT.md). Setup checks components/Python and restores executable permissions before creating preferences or shortcuts. Legacy `bash instalar.sh` and `bash iniciar.sh` remain available from a terminal opened in the folder.
 
 ## Settings and language
+
+Open **Configurar** in the app folder. Choose 1 for images/Ctrl+V, 2 for the key, 3 for language, 4 for diagnosis or 5 to uninstall with confirmation. For save/change confirmations: 1 = Yes, 2 = No, Enter = No. No commands need typing.
+
+Legacy commands remain available:
 
 ```bash
 bash configurar.sh

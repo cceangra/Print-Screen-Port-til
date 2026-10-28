@@ -7,7 +7,7 @@ from pathlib import Path
 import shlex
 import sys
 sys.dont_write_bytecode=True
-from print_rc_i18n import tr, affirmative, localize_argparse
+from print_rc_i18n import tr, confirm as ask_confirmation, localize_argparse
 from lifecycle import safe, atomic, inventory, digest, track_generated, record, METADATA
 
 def owned_file(base,relative,values):
@@ -44,7 +44,7 @@ def relocate(base,confirm=None):
             raise ValueError(tr('lifecycle.concurrent'))
         jobs.append(('trinity',adapter,state))
     print(tr('lifecycle.relocate_preview',str(old),str(new)))
-    if confirm is None:confirm=lambda:affirmative(input(tr('lifecycle.relocate_question')+tr('common.confirm')))
+    if confirm is None:confirm=lambda:ask_confirmation(tr('lifecycle.relocate_question'))
     if not confirm():print(tr('lifecycle.cancelled'));return False
     for backend,adapter,state in jobs:
         updated=dict(state)

@@ -44,7 +44,7 @@ APP="$TMP/Pasta com espacos/Print-RC"
 cp -a "$ROOT/instalar.sh" "$ROOT/configurar.sh" "$ROOT/iniciar.sh" \
     "$ROOT/desinstalar.sh" "$ROOT/bin" "$ROOT/src" "$ROOT/i18n" "$APP/"
 mkdir -p "$APP/scripts"
-cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$APP/scripts/"
+cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/prompts.sh" "$APP/scripts/"
 # Nunca distribuir __pycache__ ou qualquer artefato gerado na CI.
 cp -a "$ROOT/scripts/"*.py "$ROOT/scripts/inventario.sh" "$APP/scripts/"
 # Simular a pessoa pressionando Print somente neste teste de integracao.

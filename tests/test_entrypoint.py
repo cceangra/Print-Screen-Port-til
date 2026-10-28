@@ -16,6 +16,7 @@ class NativeEntrypointTests(unittest.TestCase):
         self.root=Path(self.temp.name)/'Print RC ç (native)';self.root.mkdir()
         shutil.copy2(ROOT/'Print-RC',self.root/'Print-RC')
         shutil.copy2(ROOT/'Instalar',self.root/'Instalar')
+        shutil.copy2(ROOT/'Configurar',self.root/'Configurar')
         (self.root/'scripts').mkdir();(self.root/'config').mkdir()
         (self.root/'scripts/terminal-action.sh').write_text('exec /bin/bash "$@"\n')
         (self.root/'iniciar.sh').write_text('printf "ARG:%s\\n" "$@";exit 7\n')
@@ -116,3 +117,23 @@ class NativeEntrypointTests(unittest.TestCase):
         result=self.run_app(DISPLAY=':test',XDG_SESSION_TYPE='x11',PATH=str(commands)+':'+os.environ['PATH'])
         self.assertNotEqual(result.returncode,0)
         self.assertIn('DIALOG:',result.stdout)
+
+    def test_configuration_click_opens_menu_before_and_after_setup(self):
+        shutil.copytree(ROOT/'scripts',self.root/'scripts',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT/'i18n',self.root/'i18n')
+        (self.root/'scripts/terminal-action.sh').write_text('exec /bin/bash "$@"\n')
+        (self.root/'configurar.sh').write_text('printf "SETTINGS:%s\\n" "$@"\n')
+        commands=self.root/'commands';commands.mkdir()
+        terminal=commands/'x-terminal-emulator';terminal.write_text('#!/bin/bash\nshift\nexec "$@"\n');terminal.chmod(0o755)
+        env={**os.environ,'DISPLAY':':test','PATH':str(commands)+':'+os.environ['PATH']}
+        for configured in (False,True):
+            if configured:(self.root/'config/opcoes.conf').write_text('configured\n')
+            result=subprocess.run([str(self.root/'Configurar')],env=env,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn('SETTINGS:--menu',result.stdout)
+        launcher=self.root/'Configurar.desktop';shutil.copy2(ROOT/'Configurar.desktop',launcher)
+        config=configparser.ConfigParser(interpolation=None);config.read(launcher)
+        command=shlex.split(config['Desktop Entry']['Exec']);command[-1]=launcher.as_uri()
+        (self.root/'Configurar').chmod(0o644)
+        result=subprocess.run(command,env=env,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('SETTINGS:--menu',result.stdout)

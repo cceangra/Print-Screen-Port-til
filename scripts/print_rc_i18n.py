@@ -22,7 +22,15 @@ def tr(key,*args):
         _CATALOGS[locale]=json.loads((ROOT/'i18n'/f'{locale}.json').read_text(encoding='utf-8'))
     return _CATALOGS[locale][key].format(*args)
 
-def affirmative(value):return value.strip().casefold() in ('y','yes','s','sim')
+def affirmative(value):return value.strip().casefold() in ('1','y','yes','s','sim')
+
+def confirm(question):
+    while True:
+        try:answer=input(question+tr('common.confirm')).strip().casefold()
+        except EOFError:return False
+        if affirmative(answer):return True
+        if answer in ('','2','n','no','nao','não'):return False
+        print(tr('shell.answer_invalid'))
 
 
 def localize_argparse():
