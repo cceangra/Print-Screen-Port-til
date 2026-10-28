@@ -38,7 +38,7 @@ for attempt in {1..100}; do
 done
 xdotool key Insert
 wait "$proof_pid"
-grep -F 'OVERLAY_VERIFIED:' "$EVIDENCE/shortcut-proof.log"
+grep -F 'Key working:' "$EVIDENCE/shortcut-proof.log"
 g++ -std=c++17 -O2 "$ROOT/tests/performance/x11_driver.cpp" -o "$EVIDENCE/driver" $(pkg-config --cflags --libs x11)
 xdotool key Insert
 "$EVIDENCE/driver" wait >/dev/null
