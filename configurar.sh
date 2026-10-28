@@ -3,11 +3,40 @@
 set -Eeuo pipefail
 PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
 source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
+source "$PRC_APP_ROOT/scripts/prompts.sh"
 [[ ${EUID} -ne 0 ]] || { prc_message shell.122; exit 1; }
 
 BASE="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 CONFIG="$BASE/config/opcoes.conf"
 DEFAULT_DIR="$BASE/capturas"
+
+if [[ "${1:-}" == --menu ]]; then
+    while true; do
+        echo
+        prc_message shell.menu_title
+        prc_message shell.menu_options
+        choice=''
+        IFS= read -r -p "$(prc_text shell.menu_prompt)" choice || exit 0
+        case "$choice" in
+            1) bash "$BASE/configurar.sh" || true ;;
+            2) bash "$BASE/configurar-tecla.sh" || true ;;
+            3)
+                prc_message shell.menu_language
+                language=''; IFS= read -r -p "$(prc_text shell.menu_prompt)" language || exit 0
+                case "$language" in
+                    1) bash "$BASE/configurar.sh" --language pt-BR && PRC_LANGUAGE=pt-BR && export PRINT_RC_LANG=pt-BR ;;
+                    2) bash "$BASE/configurar.sh" --language en-US && PRC_LANGUAGE=en-US && export PRINT_RC_LANG=en-US ;;
+                    ''|0) ;;
+                    *) prc_message shell.215 ;;
+                esac ;;
+            4) bash "$BASE/diagnosticar.sh" --read-only || true ;;
+            5) bash "$BASE/desinstalar.sh"; exit "$?" ;;
+            ''|0) exit 0 ;;
+            *) prc_message shell.215 ;;
+        esac
+    done
+fi
+[[ -z "${1:-}" || "${1:-}" == --language || "${1:-}" == --idioma ]] || { prc_message shell.208;exit 2; }
 
 if [[ "${1:-}" == --language || "${1:-}" == --idioma ]]; then
     case "${2:-}" in en-US|en_US|en) chosen_language=en-US ;; pt-BR|pt_BR|pt) chosen_language=pt-BR ;;
@@ -40,27 +69,36 @@ done
 echo '===================================================='
 prc_message shell.125
 echo '===================================================='
-prc_message shell.126
-echo "  $CONFIG"
 prc_message shell.127
-prc_message shell.128
-prc_message shell.129
 echo
 prc_message shell.130 "$DEFAULT_DIR"
 PREVIOUS_DIR=''
 PREVIOUS_CLIP=''
+PREVIOUS_RELATIVE=''
 if [[ -f "$CONFIG" && ! -L "$CONFIG" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
         case "$line" in
-            save_dir=*) PREVIOUS_DIR="${line#save_dir=}"; prc_message shell.131 "$PREVIOUS_DIR" ;;
-            copy_clipboard=1) PREVIOUS_CLIP=1; prc_message shell.132 ;;
-            copy_clipboard=0) PREVIOUS_CLIP=0; prc_message shell.133 ;;
+            save_dir=*) PREVIOUS_DIR="${line#save_dir=}" ;;
+            save_dir_relative=*) PREVIOUS_RELATIVE="${line#save_dir_relative=}" ;;
+            copy_clipboard=1) PREVIOUS_CLIP=1 ;;
+            copy_clipboard=0) PREVIOUS_CLIP=0 ;;
         esac
     done < "$CONFIG"
 fi
+if [[ -n "$PREVIOUS_RELATIVE" && "$PREVIOUS_RELATIVE" != /* && "/$PREVIOUS_RELATIVE/" != *'/../'* ]]; then
+    PREVIOUS_DIR="$BASE/$PREVIOUS_RELATIVE"
+fi
+if [[ -n "$PREVIOUS_DIR" ]]; then prc_message shell.131 "$PREVIOUS_DIR"; fi
+case "$PREVIOUS_CLIP" in 1) prc_message shell.132 ;; 0) prc_message shell.133 ;; esac
 
 prc_message shell.134
 read -r -p "$(prc_text shell.135)" supplied || true
+case "$supplied" in
+    1) supplied='' ;;
+    2) IFS= read -r -p "$(prc_text shell.folder_path)" supplied || { prc_message shell.161;exit 1; }
+       [[ -n "$supplied" ]] || { prc_message shell.161;exit 1; } ;;
+esac
+if [[ "$supplied" == "~/"* ]]; then supplied="$HOME/${supplied:2}"; fi
 TARGET="${supplied:-${PREVIOUS_DIR:-$DEFAULT_DIR}}"
 if [[ "$TARGET" != /* || "$TARGET" == *$'\n'* || "$TARGET" == *$'\r'* ]]; then
     prc_message shell.136
@@ -78,8 +116,7 @@ if [[ "$DIR" != "$BASE/"* ]]; then
     prc_message shell.139
     prc_message shell.140 "$DIR"
     prc_message shell.141
-    read -r -p "$(prc_text shell.142)" confirm || true
-    [[ "${confirm,,}" == s || "${confirm,,}" == sim || "${confirm,,}" == y || "${confirm,,}" == yes ]] || {
+    prc_confirm "$(prc_text shell.142)" || {
         prc_message shell.143; exit 1;
     }
 else
@@ -107,8 +144,8 @@ while :; do
     read -r -p "$(prc_text shell.152)" choice || true
     case "${choice,,}" in
         '') CLIP="${PREVIOUS_CLIP:-1}"; break ;;
-        s|sim|y|yes) CLIP=1; break ;;
-        n|nao|não) CLIP=0; break ;;
+        1|s|sim|y|yes) CLIP=1; break ;;
+        2|n|no|nao|não) CLIP=0; break ;;
         *) prc_message shell.153 ;;
     esac
 done
@@ -117,11 +154,9 @@ echo
 prc_message shell.154
 prc_message shell.155 "$DIR"
 if [[ "$CLIP" == 1 ]]; then prc_message shell.156; else prc_message shell.157; fi
-prc_message shell.158 "$CONFIG"
 prc_message shell.159
 echo '============================================='
-read -r -p "$(prc_text shell.160)" confirm || true
-[[ "${confirm,,}" == s || "${confirm,,}" == sim || "${confirm,,}" == y || "${confirm,,}" == yes ]] || {
+prc_confirm "$(prc_text shell.160)" || {
     prc_message shell.161; exit 1;
 }
 umask 077
@@ -153,9 +188,11 @@ if [[ -f "$BASE/config/arquivos-instalados.sha256" ]]; then
         prc_message shell.165 >&2
         exit 2
     fi
+    if ! python3 -B "$BASE/scripts/lifecycle.py" record --base "$BASE"; then
+        prc_message shell.metadata_failed;exit 2
+    fi
 fi
 echo
 prc_message shell.166
-prc_message shell.167 "$CONFIG"
 prc_message shell.168 "$DIR"
 prc_message shell.169

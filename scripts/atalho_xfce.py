@@ -13,7 +13,7 @@ import tempfile
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.dont_write_bytecode=True
-from print_rc_i18n import tr, affirmative, localize_argparse
+from print_rc_i18n import tr, affirmative, confirm, localize_argparse
 from lifecycle import track_shortcut_write
 
 CHANNEL = 'xfce4-keyboard-shortcuts'
@@ -127,10 +127,7 @@ def write_state(base, data):
             os.unlink(tmp)
 
 def yes(question):
-    try:
-        return input(question + tr('common.confirm')).strip().casefold() in ('s', 'sim', 'y', 'yes')
-    except EOFError:
-        return False
+    return confirm(question)
 
 def check_environment():
     if not desktop_is_xfce():
@@ -216,14 +213,21 @@ def install(base, launcher, key='Print'):
         return False
     old = get(prop)
     default = get(default_prop)
-    print(tr('desktop.127'))
-    print(tr('desktop.153') + CHANNEL)
-    print(tr('desktop.128'),key)
-    print(tr('desktop.129'), prop)
-    print(tr('desktop.130'))
-    print(tr('desktop.131'), desired)
+    simple=os.environ.get('PRINT_RC_SETUP_SIMPLE')=='1'
+    if simple:
+        storage=Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml'
+        print(tr('shell.key_offer',key))
+        print(tr('shell.key_external',str(storage)))
+        print(tr('shell.key_restore'))
+    else:
+        print(tr('desktop.127'))
+        print(tr('desktop.153') + CHANNEL)
+        print(tr('desktop.128'),key)
+        print(tr('desktop.129'), prop)
+        print(tr('desktop.130'))
+        print(tr('desktop.131'), desired)
     print(tr('desktop.132'), repr(old) if old is not None else tr('common.none'))
-    print(tr('desktop.133'), repr(default))
+    if not simple:print(tr('desktop.133'), repr(default))
     if old is not None and old != desired:
         print(tr('desktop.154'))
         print(tr('desktop.155'))

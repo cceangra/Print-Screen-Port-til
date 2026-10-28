@@ -10,7 +10,7 @@ import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-ROOT_FILES = ('.gitignore', 'VERSION', 'Makefile', 'LICENSE', 'README.md', 'README.pt-BR.md', 'Instalar.desktop',
+ROOT_FILES = ('.gitignore', 'VERSION', 'Makefile', 'LICENSE', 'README.md', 'README.pt-BR.md', 'Instalar.desktop', 'Configurar.desktop',
               'CHANGELOG.md', 'CHANGELOG.pt-BR.md', 'iniciar.sh', 'instalar.sh',
               'configurar.sh', 'configurar-tecla.sh', 'diagnosticar.sh', 'desinstalar.sh')
 DIRECTORIES = ('.github', 'src', 'scripts', 'packaging', 'i18n', 'docs', 'tests', 'compat')
@@ -54,7 +54,7 @@ def main():
         for name, data in sorted(payload.items()):
             info = zipfile.ZipInfo('Print-RC/'+name, date_time=date)
             info.create_system = 3
-            mode = 0o755 if name in ('Print-RC','Instalar') or name.startswith('bin/') or name.endswith(('.sh','.desktop')) else 0o644
+            mode = 0o755 if name in ('Print-RC','Instalar','Configurar') or name.startswith('bin/') or name.endswith(('.sh','.desktop')) else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
             archive.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     digest = hashlib.sha256(args.output.read_bytes()).hexdigest()

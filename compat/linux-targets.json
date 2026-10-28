@@ -992,7 +992,8 @@
     "tested_build_baseline": "Ubuntu 20.04",
     "native_entries": [
       "Instalar",
-      "Print-RC"
+      "Print-RC",
+      "Configurar"
     ],
     "shortcut_adapters": [
       "xfce",

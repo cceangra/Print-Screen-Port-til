@@ -3,6 +3,8 @@
 set -Eeuo pipefail
 PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
 source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
+source "$PRC_APP_ROOT/scripts/prompts.sh"
+export PRINT_RC_SETUP_SIMPLE=1
 BASE="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 DESKTOP="${XDG_CURRENT_DESKTOP:-}"
 DESKTOP="${DESKTOP,,}"
@@ -15,10 +17,7 @@ header() {
     prc_format shell.171 "${XDG_CURRENT_DESKTOP:-$(prc_text common.unknown)}" "${XDG_SESSION_TYPE:-$(prc_text common.unknown)}"
 }
 sim() {
-    local resposta
-    printf '%s%s' "$1" "$(prc_text common.confirm)"
-    IFS= read -r resposta || return 1
-    case "${resposta,,}" in s|sim|y|yes) return 0 ;; *) return 1 ;; esac
+    prc_confirm "$1"
 }
 verificar() {
     header
@@ -80,16 +79,8 @@ ler_tecla() {
         fi
         case "$codigo" in
           4)
-             prc_format shell.184 >&2
-             resposta=''
-             if ! IFS= read -r resposta; then
-                 prc_message shell.185 >&2
-                 return 4
-             fi
-             case "${resposta,,}" in
-               s|sim|y|yes) ((tent+=1)); continue ;;
-               *) prc_message shell.186 >&2; return 4 ;;
-             esac ;;
+             if prc_confirm "$(prc_text shell.184)"; then ((tent+=1));continue; fi
+             prc_message shell.186 >&2;return 4 ;;
           5) prc_message shell.187 >&2; return 5 ;;
           *) prc_message shell.188 >&2; return "$codigo" ;;
         esac
@@ -106,7 +97,7 @@ configurar() {
         prc_message shell.191 "$BASE"
         return 2
     fi
-    local tecla
+    local tecla overlay_state=pending
     if ! tecla="$(ler_tecla)"; then return 1; fi
     echo
     prc_message shell.192 "$tecla"
@@ -114,23 +105,29 @@ configurar() {
     prc_message shell.194
     prc_message shell.195
     if [[ "$DESKTOP" == *trinity* ]]; then
-        python3 -B "$BASE/scripts/atalho.py" install --base "$BASE" \
-            --launcher "$BASE/iniciar.sh" --key "$tecla"
+        if ! python3 -B "$BASE/scripts/atalho.py" install --base "$BASE" \
+            --launcher "$BASE/iniciar.sh" --key "$tecla"; then
+            prc_message shell.key_not_configured;return 1
+        fi
     else
-        python3 -B "$BASE/scripts/atalho_xfce.py" install --base "$BASE" \
-            --launcher "$BASE/iniciar.sh" --key "$tecla"
+        if ! python3 -B "$BASE/scripts/atalho_xfce.py" install --base "$BASE" \
+            --launcher "$BASE/iniciar.sh" --key "$tecla"; then
+            prc_message shell.key_not_configured;return 1
+        fi
     fi
     echo
     prc_message shell.196 "$tecla"
     if [[ -n "${DISPLAY:-}" && -t 0 ]]; then
-        if ! bash "$BASE/scripts/provar-atalho.sh" "$tecla"; then
+        if bash "$BASE/scripts/provar-atalho.sh" "$tecla"; then
+            overlay_state=verified
+        else
             prc_message shell.197
         fi
     else
         prc_message shell.198
     fi
     if [[ -f "$BASE/.print-rc-installation" && -f "$BASE/config/arquivos-instalados.sha256" ]]; then
-        python3 -B "$BASE/scripts/lifecycle.py" record --base "$BASE"
+        python3 -B "$BASE/scripts/lifecycle.py" record --base "$BASE" --overlay-state "$overlay_state"
     fi
 }
 provar() {
@@ -150,9 +147,9 @@ liberar() {
         return 0
     fi
     if [[ "$DESKTOP" == *trinity* ]]; then
-        python3 -B "$BASE/scripts/atalho.py" remove --base "$BASE"
+        python3 -B "$BASE/scripts/atalho.py" remove --base "$BASE" || return 1
     elif [[ "$DESKTOP" == *xfce* ]]; then
-        python3 -B "$BASE/scripts/atalho_xfce.py" remove --base "$BASE"
+        python3 -B "$BASE/scripts/atalho_xfce.py" remove --base "$BASE" || return 1
     else
         prc_message shell.204
         return 2

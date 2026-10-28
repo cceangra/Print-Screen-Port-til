@@ -34,16 +34,30 @@ done
 test -f "$APP/config/.print-rc-prova-armada"
 bash "$APP/iniciar.sh"
 wait "$PID"
-grep -F 'OVERLAY_VERIFICADO:' "$TMP/prova-ok.log"
+grep -F 'Tecla funcionando:' "$TMP/prova-ok.log"
 test ! -e "$PRINT_RC_PROVA_LOG"
 test ! -e "$APP/config/.print-rc-prova-armada"
 test ! -e "$APP/config/.print-rc-prova-resposta"
+
+echo '[6] Pasta config simbolica nao recebe marcadores fora do app'
+mv "$APP/config" "$APP/config-original"
+mkdir "$TMP/externa"
+printf 'FOTO PESSOAL\n' > "$TMP/externa/foto.txt"
+ln -s "$TMP/externa" "$APP/config"
+CODE=0
+bash "$APP/scripts/provar-atalho.sh" > "$TMP/prova-link.log" 2>&1 || CODE=$?
+test "$CODE" -eq 2
+test "$(cat "$TMP/externa/foto.txt")" = 'FOTO PESSOAL'
+test ! -e "$TMP/externa/.print-rc-prova-armada"
+test ! -e "$TMP/externa/.print-rc-prova-resposta"
+rm "$APP/config"
+mv "$APP/config-original" "$APP/config"
 echo '[2] Sem acionamento externo, teste falha e limpa todos os arquivos'
 export PRINT_RC_PROVA_PASSOS=4
 CODE=0
 bash "$APP/scripts/provar-atalho.sh" > "$TMP/prova-falhou.log" 2>&1 || CODE=$?
 test "$CODE" -eq 1
-grep -F 'ATIVACAO_NAO_CONFIRMADA:' "$TMP/prova-falhou.log"
+grep -F 'Tecla não confirmada:' "$TMP/prova-falhou.log"
 test ! -e "$APP/config/.print-rc-prova-armada"
 test ! -e "$APP/config/.print-rc-prova-resposta"
 echo '[3] Marcador expirado NUNCA impede a captura real'

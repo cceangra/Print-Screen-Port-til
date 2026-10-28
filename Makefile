@@ -8,7 +8,7 @@ CPPFLAGS += -DPRINT_RC_VERSION=\"$(VERSION)\"
 HEADERS := $(shell find src -name '*.hpp')
 
 .PHONY: all portable debug clean test locales
-all: locales Print-RC Instalar bin/print-rc bin/print-rc-launcher
+all: locales Print-RC Instalar Configurar bin/print-rc bin/print-rc-launcher
 
 locales:
 	python3 scripts/build/locales.py --check
@@ -27,10 +27,13 @@ Print-RC: src/app/entrypoint.cpp src/app/dialog.hpp src/i18n/messages.hpp src/i1
 Instalar: src/app/entrypoint.cpp src/app/dialog.hpp src/i18n/messages.hpp src/i18n/generated.hpp Makefile
 	$(CXX) $(CXXFLAGS) -DPRINT_RC_INSTALLER=1 src/app/entrypoint.cpp -o $@ $(LDFLAGS)
 
+Configurar: src/app/entrypoint.cpp src/app/dialog.hpp src/i18n/messages.hpp src/i18n/generated.hpp Makefile
+	$(CXX) $(CXXFLAGS) -DPRINT_RC_SETTINGS_ENTRY=1 src/app/entrypoint.cpp -o $@ $(LDFLAGS)
+
 # GNU portable packages deliberately use the host's dynamic glibc and loader.
 # ABI requirements are checked again when packaging; this is not universal Linux.
 portable: all
-	strip Print-RC Instalar bin/print-rc bin/print-rc-launcher
+	strip Print-RC Instalar Configurar bin/print-rc bin/print-rc-launcher
 	@file bin/print-rc
 	@readelf -l bin/print-rc | grep -q INTERP
 
@@ -42,4 +45,4 @@ test: bin/print-rc
 	./bin/print-rc --version
 
 clean:
-	rm -f Print-RC Instalar bin/print-rc bin/print-rc-launcher
+	rm -f Print-RC Instalar Configurar bin/print-rc bin/print-rc-launcher

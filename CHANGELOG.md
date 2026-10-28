@@ -14,3 +14,5 @@ Original release history remains in Git and the unchanged v0.5.6 documentation/t
 - Add the native root `Print-RC` executable and terminal setup/actions. Track later shortcut writes and external registry files, retain uninstall receipts after interrupted external operations, avoid untracked destination parent folders, and fix the clipboard benchmark readiness race.
 
 - Installation audit: native Instalar and internal desktop entry, Sakura/Trinity terminals, early Python/supervisor/permission checks, optional graphical failures and explicit platform matrix. Artifact/ZIP use Print-RC-Linux-x86_64 naming. No new resident processes. [Report](docs/en-US/AUDIT.md).
+
+- Beginner setup: Configurar native executable and desktop alternative; one menu for images/Ctrl+V, key, language, diagnosis and removal; numbered questions, explicit defaults and safe confirmation. Fixes false key-registration success and retains overlay proof in installation metadata. [Details and tests](docs/en-US/BEGINNER_SETUP.md).

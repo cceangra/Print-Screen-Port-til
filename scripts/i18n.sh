@@ -26,4 +26,4 @@ prc_text() {
 }
 prc_message() { prc_text "$@"; printf '\n'; }
 prc_format() { local format;format="$(prc_text "$1")";shift;printf -- "$format" "$@"; }
-prc_yes() { case "${1,,}" in y|yes|s|sim) return 0 ;; *) return 1 ;; esac; }
+prc_yes() { case "${1,,}" in 1|y|yes|s|sim) return 0 ;; *) return 1 ;; esac; }

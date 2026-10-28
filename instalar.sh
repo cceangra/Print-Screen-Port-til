@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 PRC_ENTRY="$(readlink -f -- "${BASH_SOURCE[0]}")"
 source "$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)/scripts/i18n.sh"
+source "$PRC_APP_ROOT/scripts/prompts.sh"
+export PRINT_RC_SETUP_SIMPLE=1
 
 if [[ ${EUID} -eq 0 ]]; then
     prc_message shell.001
@@ -13,7 +15,7 @@ source_dir="$(cd -- "$(dirname -- "$PRC_ENTRY")" && pwd -P)"
 # Nao seguir links inesperados que possam escapar da pasta portatil.
 # Executar essa verificacao TAMBEM apos mover a pasta (--continuar).
 for relative in \
-    Print-RC Instalar bin bin/print-rc bin/print-rc-launcher config config/opcoes.conf \
+    Print-RC Instalar Configurar bin bin/print-rc bin/print-rc-launcher config config/opcoes.conf \
     config/atalho-state.json config/atalho-xfce.json config/arquivos-instalados.sha256 config/installation-manifest.json \
     backups backups/khotkeysrc.antes capturas scripts \
     scripts/inventario.sh scripts/atalho.py \
@@ -41,7 +43,7 @@ if ! command -v python3 >/dev/null 2>&1 || ! python3 -B -c 'import sys; sys.exit
 fi
 # Repair execution bits before testing; ZIP extractors can discard Unix modes.
 # Never chmod a symlink or an external file.
-for relative in Print-RC Instalar Instalar.desktop bin/print-rc bin/print-rc-launcher; do
+for relative in Print-RC Instalar Configurar Instalar.desktop Configurar.desktop bin/print-rc bin/print-rc-launcher; do
     if [[ -f "$source_dir/$relative" && ! -L "$source_dir/$relative" && ! -x "$source_dir/$relative" ]]; then
         chmod u+x -- "$source_dir/$relative" || { prc_message shell.045; exit 2; }
     fi
@@ -62,8 +64,17 @@ done
 if [[ "${1:-}" != '--continuar' ]]; then
     echo
     prc_message shell.015 "$source_dir"
-    read -r -p "$(prc_text shell.016)" target || true
-    target="${target:-$source_dir}"
+    while true; do
+        target=''
+        IFS= read -r -p "$(prc_text shell.016)" target || { prc_message shell.029;exit 1; }
+        case "$target" in
+            ''|1) target="$source_dir";break ;;
+            2) IFS= read -r -p "$(prc_text shell.install_path)" target || { prc_message shell.029;exit 1; }
+               [[ -n "$target" ]] || { prc_message shell.029;exit 1; };break ;;
+            /*|"~/"*) break ;; # Preserve the legacy absolute-path input.
+            *) prc_message shell.215 ;;
+        esac
+    done
     if [[ "$target" == "~/"* ]]; then target="$HOME/${target:2}"; fi
     if [[ "$target" == "~" ]]; then target="$HOME"; fi
     [[ "$target" != *$'\n'* && "$target" != *$'\r'* ]] || {
@@ -108,8 +119,7 @@ if [[ "${1:-}" != '--continuar' ]]; then
             prc_message shell.025 "$dest"
             prc_message shell.026
             prc_message shell.027
-            read -r -p "$(prc_text shell.028)" conf || true
-            [[ "${conf,,}" == s || "${conf,,}" == sim || "${conf,,}" == y || "${conf,,}" == yes ]] || {
+            prc_confirm "$(prc_text shell.028)" || {
                 prc_message shell.029; exit 1;
             }
             for item in "${contents[@]}"; do
@@ -137,8 +147,7 @@ if [[ "${1:-}" != '--continuar' ]]; then
         prc_message shell.033 "$source_dir"
         prc_message shell.034 "$dest"
         prc_message shell.035
-        read -r -p "$(prc_text shell.036)" conf || true
-        [[ "${conf,,}" == s || "${conf,,}" == sim || "${conf,,}" == y || "${conf,,}" == yes ]] || {
+        prc_confirm "$(prc_text shell.036)" || {
             prc_message shell.037; exit 0;
         }
         # Do not create untracked parent directories outside the application.
@@ -202,7 +211,6 @@ prc_message shell.055
 prc_message shell.056
 prc_message shell.057
 prc_message shell.058
-prc_message shell.059
 prc_message shell.060
 print_rc_launcher="/bin/bash $(printf '%q' "$dest/iniciar.sh")"
 
@@ -233,21 +241,8 @@ print_rc_detectar() {
         fi
         if [[ "$codigo" == 4 ]]; then
             prc_message shell.065 >&2
-            prc_format shell.066 >&2
-            resposta=''
-            if ! IFS= read -r resposta; then
-                echo >&2
-                prc_message shell.067 >&2
-                return 4
-            fi
-            case "${resposta,,}" in
-                s|sim|y|yes)
-                    ((tentativa+=1))
-                    continue ;;
-                *)
-                    prc_message shell.068 >&2
-                    return 4 ;;
-            esac
+            if prc_confirm "$(prc_text shell.066)"; then ((tentativa+=1));continue; fi
+            prc_message shell.068 >&2;return 4
         elif [[ "$codigo" == 5 ]]; then
             prc_message shell.069 >&2
             return 5

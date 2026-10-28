@@ -12,7 +12,7 @@ O [catálogo de compatibilidade](compat/linux-targets.json) lista alvos de teste
 
 ## Baixar e executar
 
-**Dê duplo clique em `Instalar` na pasta do aplicativo.** A instalação abre no terminal automaticamente; você não precisa digitar `bash` nem o caminho. Se o gerenciador bloquear binários, abra `Instalar.desktop`, exibido como **Instalar (terminal)**, e autorize esse arquivo quando solicitado. Depois da configuração, abra **Print-RC** para capturar. [Passo a passo](docs/pt-BR/QUICK_START.md).
+**Dê duplo clique em `Instalar` na pasta do aplicativo.** A instalação abre no terminal automaticamente; você não precisa digitar `bash` nem o caminho. Se o gerenciador bloquear binários, abra `Instalar.desktop`, exibido como **Instalar (terminal)**, e autorize esse arquivo quando solicitado. Depois da configuração, abra **Print-RC** para capturar ou **Configurar** para mudar as opções em um menu numerado. [Passo a passo](docs/pt-BR/QUICK_START.md).
 
 **Baixe o pacote binário de uma execução aprovada do [Actions](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artefato **Print-RC-Linux-x86_64**, contendo **Print-RC-Linux-x86_64.zip**. Extraia o ZIP interno: ele contém uma única pasta `Print-RC/`. **Code → Download ZIP contém só fontes**, sem executáveis prontos. A release **0.5.6 é antiga** e não contém esta atualização.
 
@@ -29,6 +29,10 @@ O instalador mantém a pasta extraída ou a move, após confirmação, para um d
 Veja a [matriz completa](docs/pt-BR/COMPATIBILITY.md) e a [auditoria das falhas e correções](docs/pt-BR/AUDIT.md). A instalação verifica componentes/Python e recuperação de permissões antes de criar preferências ou atalhos. As entradas antigas `bash instalar.sh` e `bash iniciar.sh` continuam disponíveis em um terminal aberto na pasta.
 
 ## Configurações e idioma
+
+Abra **Configurar** na pasta do app. Escolha 1 para imagens/Ctrl+V, 2 para a tecla, 3 para idioma, 4 para diagnóstico ou 5 para desinstalar com confirmação. Nas perguntas de salvar/alterar, 1 = Sim, 2 = Não e Enter = Não. Não é preciso escrever comandos.
+
+Os comandos antigos também continuam disponíveis:
 
 ```bash
 bash configurar.sh
