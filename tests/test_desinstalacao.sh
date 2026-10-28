@@ -13,7 +13,7 @@ make_app() {
     local app="$1"
     mkdir -p -- "$app/bin" "$app/src" "$app/scripts" "$app/config" "$app/capturas" "$app/backups"
     cp -a "$ROOT/i18n" "$app/"
-    cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/print_rc_i18n.py" "$ROOT/scripts/lifecycle.py" "$app/scripts/"
+    cp "$ROOT/scripts/i18n.sh" "$ROOT/scripts/messages.bash" "$ROOT/scripts/prompts.sh" "$ROOT/scripts/print_rc_i18n.py" "$ROOT/scripts/lifecycle.py" "$app/scripts/"
     cp "$ROOT/desinstalar.sh" "$app/desinstalar.sh"
     cp "$ROOT/scripts/atalho.py" "$app/scripts/atalho.py"
     cp "$ROOT/scripts/inventario.sh" "$app/scripts/inventario.sh"
