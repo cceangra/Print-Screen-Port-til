@@ -48,6 +48,7 @@ PRINT_RC_KNOWN=(
   'scripts/build/locales.py'
   'scripts/build/manifest.py'
   'scripts/build/release_gate.py'
+  'scripts/build/candidate_notes.py' 'tests/test_candidate_download.py'
   'scripts/i18n.sh'
   'scripts/messages.bash'
   'scripts/print_rc_i18n.py'

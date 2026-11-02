@@ -1,8 +1,8 @@
 # Instalar sem digitar caminhos
 
-1. Baixe o **pacote binário candidato** do [Actions](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml), em uma execução aprovada. O artefato chama-se **Print-RC-Linux-x86_64**. Dentro dele está o ZIP do aplicativo **Print-RC-Linux-x86_64.zip**. Extraia esse ZIP interno.
+1. Abra [Baixar Print RC](https://github.com/cceangra/Print-Screen-Port-til/releases). Na versão de teste mais recente, abra **Assets** e baixe **Print-RC-Linux-x86_64.zip**. Extraia o ZIP uma vez. Não precisa entrar no GitHub. Os links **Source code** e **Code → Download ZIP** são para desenvolvedores.
 2. Abra a pasta única **Print-RC** e dê duplo clique em **Instalar**. Ele abre a instalação no terminal automaticamente. Não é preciso escrever `bash` nem o caminho completo.
-3. Se o gerenciador bloquear binários, abra **Instalar.desktop**, exibido como **Instalar (terminal)**. Autorize a execução desse arquivo quando o desktop perguntar. Essa alternativa permanece dentro da pasta do app.
+3. Se o gerenciador bloquear binários, abra **Instalar.desktop**, exibido como **Instalar Print RC**. Autorize a execução desse arquivo quando o desktop perguntar. Essa alternativa permanece dentro da pasta do app.
 4. Na primeira pergunta, **1 ou Enter mantém a pasta atual**. Nas perguntas sobre imagens, **1 ou Enter mantém a pasta recomendada/atual e a escolha de Ctrl+V anterior** (no primeiro uso, copiar fica ligado). Leia o resumo e confirme com **1 = Sim**.
 5. Pressione a tecla desejada quando aparecer o pedido. Confira o nome e o conflito identificado e confirme com **1 = Sim**. Depois, no teste, aperte **a própria tecla escolhida** mais uma vez. Não é outra pergunta para responder Sim. Sem o teste bem-sucedido, o app avisa que a tecla ainda não está confirmada.
 6. Depois, abra **Print-RC** para capturar ou use a tecla configurada. Para mudar as opções, abra **Configurar**. Se o gerenciador bloquear o binário, use **Configurar.desktop**, exibido como **Configurar Print RC**.
@@ -15,7 +15,7 @@ Se a permissão de executar tiver sido perdida, marque **Propriedades → Permis
 
 | Ação | Clique ou comando opcional |
 | --- | --- |
-| Instalar ou revisar instalação | **Instalar** ou **Instalar (terminal)** |
+| Instalar ou revisar instalação | **Instalar** ou **Instalar Print RC** |
 | Capturar | **Print-RC** |
 | Preferências e idioma | **Configurar** → opção 1 (imagens/Ctrl+V) ou 3 (idioma) |
 | Escolher, verificar ou liberar tecla | **Configurar** → opção 2 |

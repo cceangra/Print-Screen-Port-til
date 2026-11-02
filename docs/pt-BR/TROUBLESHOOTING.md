@@ -15,10 +15,14 @@ Depurador e despejos de falha são ações opcionais de desenvolvimento. O app n
 ## A instalação não abre ou parece sumir
 
 - Confira `VERSION`: 0.5.6 é a release antiga. O ZIP de código da main não tem binários. Use o pacote **Print-RC-Linux-x86_64.zip** da execução candidata desejada, cujo manifesto identifica a fonte.
-- Abra **Instalar** ou **Instalar.desktop / Instalar (terminal)**. Se o desktop pedir autorização de execução, autorize apenas esse arquivo. Não é preciso digitar o caminho em um terminal.
+- Abra **Instalar** ou **Instalar.desktop / Instalar Print RC**. Se o desktop pedir autorização de execução, autorize apenas esse arquivo. Não é preciso digitar o caminho em um terminal.
 - Permissão negada: confira a permissão de executar e extraia em uma pasta Linux gravável que permita execução. O app não muda configurações de montagem.
 - `error while loading shared libraries`, `GLIBCXX ... not found` ou carregador ausente: falta dependência/ABI compatível. Este ZIP não embute bibliotecas; não substitua a libc do sistema. Envie a mensagem exata e o diagnóstico somente leitura para identificar a dependência.
 - Wayland/ARM/musl/32 bits: esta edição não atende. Veja a [matriz](COMPATIBILITY.md).
 - Falha antes de iniciar a captura pode aparecer em diálogo, quando zenity/kdialog/xmessage já existe; pelo instalador, o resultado fica visível até Enter. Sem esses diálogos, use a saída do terminal para obter o erro.
 
 [Auditoria e testes](AUDIT.md). O erro do notebook real continua necessário para atribuir a causa exata.
+
+## Ao clicar em Instalar, aparece “No such file or directory”
+
+Se a pasta se chama `Print-Screen-Port-til-main` e não contém `Instalar`, você baixou os fontes. Baixe **Print-RC-Linux-x86_64.zip** em **Assets** na versão de teste mais recente de [Releases](https://github.com/cceangra/Print-Screen-Port-til/releases), extraia em uma pasta separada e abra **Instalar** nela. Não copie por cima de configurações ou capturas existentes. O novo inicializador oferece abrir essa página com confirmação; ele não baixa nem executa programas automaticamente.

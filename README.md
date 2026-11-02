@@ -12,9 +12,9 @@ The [compatibility catalog](compat/linux-targets.json) lists test targets, inclu
 
 ## Download and run
 
-**Double-click `Instalar` inside the application folder.** Setup opens a terminal automatically; no `bash` or full path needs typing. If the file manager blocks binaries, open `Instalar.desktop`, displayed as **Install (terminal)**, and allow that file to launch when asked. After setup, open **Print-RC** to capture or **Configurar** for a numbered settings menu. [Step by step](docs/en-US/QUICK_START.md).
+**Double-click `Instalar` inside the application folder.** Setup opens a terminal automatically; no `bash` or full path needs typing. If the file manager blocks binaries, open `Instalar.desktop`, displayed as **Install Print RC**, and allow that file to launch when asked. After setup, open **Print-RC** to capture or **Configurar** for a numbered settings menu. [Step by step](docs/en-US/QUICK_START.md).
 
-**Download the binary package from a successful [Actions run](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artifact **Print-RC-Linux-x86_64**, containing **Print-RC-Linux-x86_64.zip**. Extract the inner ZIP: it contains one `Print-RC/` folder. **Code → Download ZIP is source-only**, without ready executables. Release **0.5.6 is old** and does not contain this update.
+**[Download the ready-to-run app](https://github.com/cceangra/Print-Screen-Port-til/releases)**: open **Assets** in the newest test version and choose **Print-RC-Linux-x86_64.zip**. No GitHub sign-in or nested ZIP download is needed. Extract once and open **Instalar** in `Print-RC/`. **Code → Download ZIP** and **Source code** links contain sources only. Release **0.5.6 is old**. Test versions are marked **Pre-release**, with CI results and exact source commits; they are not real-laptop certification.
 
 Setup keeps the extracted folder or moves it to a chosen destination after confirmation. Settings, executables, backups and default captures stay inside it. The app installs no packages, uses no sudo and downloads no dependencies. Compatible system libraries, Bash and Python 3.8+ are required; **runtime libraries are not bundled**.
 

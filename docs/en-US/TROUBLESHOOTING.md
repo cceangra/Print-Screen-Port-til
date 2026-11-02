@@ -15,10 +15,14 @@ Debugger use and crash dumps are optional developer actions. The app does not in
 ## Setup does not open or seems to disappear
 
 - Check `VERSION`: 0.5.6 is the old release. Main's source ZIP has no binaries. Use **Print-RC-Linux-x86_64.zip** from the intended candidate run; its manifest identifies the source.
-- Open **Instalar** or **Instalar.desktop / Install (terminal)**. If the desktop asks, allow execution of that file. No terminal path needs typing.
+- Open **Instalar** or **Instalar.desktop / Install Print RC**. If the desktop asks, allow execution of that file. No terminal path needs typing.
 - Permission denied: check execute permission and extract to a writable Linux folder that permits execution. The app changes no mount settings.
 - `error while loading shared libraries`, `GLIBCXX ... not found` or a missing loader: incompatible/missing dependency. This ZIP does not bundle libraries; do not replace system libc. Send the exact message and read-only diagnosis to identify the dependency.
 - Wayland/ARM/musl/32-bit: this edition does not serve that target. Read the [matrix](COMPATIBILITY.md).
 - Startup failures can appear in a dialog if zenity/kdialog/xmessage already exists; setup keeps results visible until Enter. Without those dialogs, use terminal output for the error.
 
 [Audit and tests](AUDIT.md). The real laptop's error is still required to establish its exact cause.
+
+## Clicking Install shows “No such file or directory”
+
+If the folder is named `Print-Screen-Port-til-main` and has no `Instalar`, it contains sources. Download **Print-RC-Linux-x86_64.zip** under **Assets** in the newest test version on [Releases](https://github.com/cceangra/Print-Screen-Port-til/releases), extract into a separate folder and open **Instalar** there. Do not overwrite existing settings or screenshots. The new launcher offers to open that page after confirmation; it never downloads or runs replacements automatically.

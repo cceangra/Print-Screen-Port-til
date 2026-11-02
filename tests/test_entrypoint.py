@@ -106,6 +106,32 @@ class NativeEntrypointTests(unittest.TestCase):
         self.assertEqual(outside.stat().st_mode & 0o777,0o644)
         self.assertEqual(outside.read_text(),'personal file')
 
+    def test_source_zip_click_offers_download_without_installing_or_changing_files(self):
+        shutil.copytree(ROOT/'scripts',self.root/'scripts',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT/'i18n',self.root/'i18n')
+        for binary in ('Instalar','Configurar','Print-RC'):(self.root/binary).unlink()
+        commands=Path(self.temp.name)/'commands';commands.mkdir()
+        browser_log=Path(self.temp.name)/'browser.log'
+        dialog=commands/'zenity';dialog.write_text('#!/bin/bash\nprintf "%s\\n" "$@"\nexit "$DIALOG_RESULT"\n');dialog.chmod(0o755)
+        browser=commands/'xdg-open';browser.write_text('#!/bin/bash\nprintf "%s\\n" "$@" > "$BROWSER_LOG"\n');browser.chmod(0o755)
+        before=sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*'))
+        for locale in ('pt-BR','en-US'):
+            for flag in ([],['--configure']):
+                for answer in ('1','0'):
+                    with self.subTest(locale=locale,flag=flag,answer=answer):
+                        browser_log.unlink(missing_ok=True)
+                        result=subprocess.run([sys.executable,'-B',str(self.root/'scripts/desktop_install.py'),*flag],
+                            cwd='/',capture_output=True,text=True,env={**os.environ,'PATH':str(commands),
+                            'PRINT_RC_LANG':locale,'DIALOG_RESULT':answer,'BROWSER_LOG':str(browser_log)})
+                        self.assertEqual(result.returncode,2,result.stderr)
+                        self.assertIn('Print-RC-Linux-x86_64.zip',result.stdout)
+                        self.assertNotIn('Errno',result.stderr)
+                        self.assertIn('--default-cancel',result.stdout)
+                        self.assertEqual(browser_log.exists(),answer=='0')
+                        if browser_log.exists():self.assertEqual(browser_log.read_text().strip(),
+                            'https://github.com/cceangra/Print-Screen-Port-til/releases')
+                        self.assertEqual(before,sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*')))
+
     def test_early_shell_failure_from_graphical_launch_is_visible(self):
         shutil.copy2(ROOT/'iniciar.sh',self.root/'iniciar.sh')
         shutil.copytree(ROOT/'scripts',self.root/'scripts',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
