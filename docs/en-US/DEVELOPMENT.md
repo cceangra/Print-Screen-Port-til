@@ -14,7 +14,7 @@ Release publication requires an explicit existing tag, passing archive regressio
 
 ## Recording release acceptance
 
-The candidate remains `0.6.0-dev` and cannot publish. For a future reviewed release, set VERSION, commit the final source, create an explicit matching `v<VERSION>` tag, and build its candidate. Test that exact ZIP before dispatching release. Put acceptance records in a separate commit/ref so adding evidence cannot change the source tag/archive hash. The `evidence_ref` input selects that ref; the tagged source remains the code being built. If a rebuild differs, retest the new archive instead of changing the old evidence hash.
+The candidate remains `0.6.0-dev` and cannot be published as a stable release. For a future reviewed release, set VERSION, commit the final source, create an explicit matching `v<VERSION>` tag, and build its candidate. Test that exact ZIP before dispatching release. Put acceptance records in a separate commit/ref so adding evidence cannot change the source tag/archive hash. The `evidence_ref` input selects that ref; the tagged source remains the code being built. If a rebuild differs, retest the new archive instead of changing the old evidence hash.
 
 `compat/test-results/<target-id>.json` is required for each target in `scripts/build/release_gate.py`: Zorin 17.3 XFCE/glibc 2.35, Q4OS/Trinity, Ubuntu 20.04 X11 and the Ubuntu 20.04 builder. Each record must contain:
 
@@ -27,3 +27,9 @@ The candidate remains `0.6.0-dev` and cannot publish. For a future reviewed rele
 Run `python3 -B scripts/build/release_gate.py --archive <exact.zip> --manifest <build-manifest.json> --evidence-dir <acceptance/compat/test-results>` locally, then dispatch the release workflow with `tag` and `evidence_ref`. Publication also requires clean non-dev source, the dynamic ABI baseline and all archive jobs. Existing releases/assets are never overwritten. Passing a JSON schema is not a substitute for executing and reviewing its actual-host evidence.
 
 The build checks that two ZIPs from identical audited input have identical bytes, and that all tracked corresponding source is present except intentionally excluded `compat/test-results/` evidence. Performance CI runs `tests/performance/compare.py` on same-host original-source-dynamic/candidate cohorts; it checks core CPU/p95/PSS regressions, no residual capture process, and clipboard PSS bounded by 8 MiB plus twice encoded PNG bytes. This is an isolated white-Xvfb fixture, not a hardware acceptance threshold for every image or machine.
+
+## Public experimental download
+
+After all build/test jobs approve the exact main commit, `testar.yml` publishes a new **prerelease** `candidate-<commit>`. The same tested ZIP, checksum and manifest are uploaded as a draft before publication. Previous assets/tags and latest stable are preserved. `scripts/build/candidate_notes.py` checks source commit, clean build, five dynamic x86_64 ELFs, hashes, permissions and ABI ceilings before generating bilingual instructions. PRs never publish. A draft left by an upload failure requires review before retrying; existing releases are not overwritten.
+
+Users can download one ZIP without an Actions account. This does not meet real Zorin/Q4OS acceptance or bypass the stable `release.yml`/`release_gate.py` gate. The app downloads no code.

@@ -10,7 +10,7 @@
   "shell.009": "This session is not X11. This edition does not capture on Wayland. Setup has stopped without changing shortcuts.",
   "shell.010": "This package was compiled for Linux x86_64.",
   "shell.011": "ERROR: incomplete binary package; bin/print-rc or bin/print-rc-launcher is missing.",
-  "shell.012": "Download Print-RC-Linux-x86_64.zip from the candidate artifacts. Code > Download ZIP contains source code, not the ready-to-run app. The v0.5.6 release is old.",
+  "shell.012": "Download Print-RC-Linux-x86_64.zip from https://github.com/cceangra/Print-Screen-Port-til/releases (Assets in the newest test version). Extract it and open Instalar. Code > Download ZIP contains sources. v0.5.6 is old.",
   "shell.013": "No folder was created or moved.",
   "shell.014": "The package could not run its self-test. A loader/library may be missing, or execution may be blocked (noexec). No folder was moved. See docs/en-US/TROUBLESHOOTING.md.",
   "shell.015": "STEP 1 OF 3 — Where should Print RC stay?\nCurrent folder: {0}",
@@ -636,5 +636,12 @@
   "shell.key_offer": "Chosen capture key: {0}",
   "shell.key_external": "To use this key, Print RC will change only its shortcut entry in: {0}",
   "shell.key_restore": "Uninstall will try to restore the previous shortcut if it still belongs to this installation. Other keys are left alone.",
-  "shell.metadata_failed": "Your choices were saved, but the installation record could not be updated. Read the error above; keep config/ and backups/."
+  "shell.metadata_failed": "Your choices were saved, but the installation record could not be updated. Read the error above; keep config/ and backups/.",
+  "desktop.source_download": "This folder does not contain the ready-to-run Print RC app. Setup cannot start here.\n\nOpen the download page? Choose Print-RC-Linux-x86_64.zip under Assets in the newest test version. Extract it, open Print-RC, then double-click Instalar.\n\nThis edition requires a 64-bit Intel/AMD Linux system with glibc and an X11 session.",
+  "desktop.download_button": "Open download",
+  "desktop.cancel_button": "Cancel",
+  "desktop.browser_failed": "The browser could not be opened. Open this address to download Print-RC-Linux-x86_64.zip:\n{0}\nExtract the ZIP and double-click Instalar in the Print-RC folder.",
+  "desktop.folder_failed": "Print RC could not open this application folder: {0}\nExtract the complete Print-RC-Linux-x86_64.zip into a separate folder and try Instalar again. Your images and settings have not been removed.",
+  "desktop.runtime_failed": "This executable could not be started on this system. This edition requires 64-bit Intel/AMD Linux with glibc; ARM, 32-bit and Alpine/musl need another build. Use an X11 session to capture.\nIf this is the correct system, extract the complete ZIP again.",
+  "desktop.permission_failed": "This location does not allow Print RC to run. Extract the ZIP into a Linux folder inside your personal folder and open Instalar.desktop again.\nDo not run as root or change system-wide permissions."
 }

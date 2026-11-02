@@ -1,6 +1,6 @@
 # Installation
 
-Download the candidate ZIP from a passing Actions run or a validated tagged release, verify its SHA-256, and extract the single `Print-RC` directory. The source Download ZIP needs a developer build. Double-click **Instalar** or **Instalar.desktop / Install (terminal)** as your regular user. Setup opens a terminal automatically without typing a path; `bash instalar.sh` remains available. Keep the extracted folder or explicitly move it to a dedicated destination. Existing conflicting files stop the operation and remain intact.
+Download **Print-RC-Linux-x86_64.zip** under **Assets** in the newest test version on [Releases](https://github.com/cceangra/Print-Screen-Port-til/releases). This ready package is available without sign-in. Extract the single `Print-RC` folder. Source code / Code → Download ZIP links contain sources and require compilation. Double-click **Instalar** or **Instalar.desktop / Install Print RC** as your regular user. Setup opens a terminal automatically without typing a path; `bash instalar.sh` remains available. Keep the extracted folder or explicitly move it to a dedicated destination. Existing conflicting files stop the operation and remain intact.
 
 Choose the PNG destination and clipboard preference. External image folders are disclosed and preserved during uninstall. Select a single X11 key and confirm once to replace recognized conflicts. Letters, Enter and space may interrupt normal typing. Escape and standalone modifiers are not accepted. Print and Insert remain separate.
 

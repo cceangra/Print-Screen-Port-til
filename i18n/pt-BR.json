@@ -10,7 +10,7 @@
   "shell.009": "Esta sessão não é X11. Esta edição não captura no Wayland. A instalação parou sem alterar atalhos.",
   "shell.010": "Este pacote foi compilado para Linux x86_64.",
   "shell.011": "ERRO: pacote binário incompleto; falta bin/print-rc ou bin/print-rc-launcher.",
-  "shell.012": "Baixe Print-RC-Linux-x86_64.zip nos artefatos candidatos. Code > Download ZIP contém fontes, não o aplicativo pronto. A release v0.5.6 é antiga.",
+  "shell.012": "Baixe Print-RC-Linux-x86_64.zip em https://github.com/cceangra/Print-Screen-Port-til/releases (Assets na versão de teste mais recente). Extraia e abra Instalar. Code > Download ZIP contém fontes. A v0.5.6 é antiga.",
   "shell.013": "Nenhuma pasta foi criada ou movida.",
   "shell.014": "O pacote não conseguiu executar o autoteste. Pode faltar carregador/biblioteca ou a pasta pode bloquear execução (noexec). Nenhuma pasta foi movida. Veja docs/pt-BR/TROUBLESHOOTING.md.",
   "shell.015": "ETAPA 1 DE 3 — Onde o Print RC vai ficar?\nPasta atual: {0}",
@@ -636,5 +636,12 @@
   "shell.key_offer": "Tecla escolhida para capturar: {0}",
   "shell.key_external": "Para usar essa tecla, o Print RC mudará somente a associação dela em: {0}",
   "shell.key_restore": "Ao desinstalar, o app tentará restaurar o atalho anterior se ele ainda pertencer a esta instalação. As outras teclas ficam como estão.",
-  "shell.metadata_failed": "Suas escolhas foram salvas, mas o registro da instalação não pôde ser atualizado. Veja o erro acima; não apague config/ nem backups/."
+  "shell.metadata_failed": "Suas escolhas foram salvas, mas o registro da instalação não pôde ser atualizado. Veja o erro acima; não apague config/ nem backups/.",
+  "desktop.source_download": "Esta pasta não contém o Print RC pronto para usar. A instalação não pode começar aqui.\n\nAbrir a página de download? Escolha Print-RC-Linux-x86_64.zip em Assets na versão de teste mais recente. Extraia o ZIP, abra a pasta Print-RC e dê duplo clique em Instalar.\n\nEsta edição precisa de Linux de 64 bits Intel/AMD, com glibc e sessão X11.",
+  "desktop.download_button": "Abrir download",
+  "desktop.cancel_button": "Cancelar",
+  "desktop.browser_failed": "Não foi possível abrir o navegador. Abra este endereço e baixe Print-RC-Linux-x86_64.zip:\n{0}\nExtraia o ZIP e dê duplo clique em Instalar na pasta Print-RC.",
+  "desktop.folder_failed": "O Print RC não conseguiu abrir esta pasta do aplicativo: {0}\nExtraia o Print-RC-Linux-x86_64.zip completo em uma pasta separada e tente abrir Instalar novamente. Suas imagens e configurações não foram removidas.",
+  "desktop.runtime_failed": "Não foi possível executar este arquivo neste sistema. Esta edição precisa de Linux de 64 bits Intel/AMD com glibc; ARM, 32 bits e Alpine/musl precisam de outra compilação. Use uma sessão X11 para capturar.\nSe este for o sistema correto, extraia novamente o ZIP completo.",
+  "desktop.permission_failed": "Esta localização não permite executar o Print RC. Extraia o ZIP em uma pasta Linux dentro da sua pasta pessoal e abra Instalar.desktop novamente.\nNão execute como root nem altere as permissões gerais do sistema."
 }

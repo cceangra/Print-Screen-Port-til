@@ -14,7 +14,7 @@ Publicar exige tag existente explícita, regressões do pacote aprovadas e evid�
 
 ## Registrar aceitação de lançamento
 
-O candidato continua `0.6.0-dev` e não pode publicar. Em lançamento futuro revisado, ajuste VERSION, faça commit da fonte final, crie tag explícita `v<VERSION>` correspondente e compile o candidato. Teste esse ZIP exato antes de disparar publicação. Guarde registros de aceitação em commit/ref separado para adicionar evidência sem alterar tag/hash do código/pacote. A entrada `evidence_ref` seleciona essa referência; a tag continua sendo o código compilado. Se a recompilação mudar o ZIP, teste o novo arquivo em vez de trocar o hash na evidência antiga.
+O candidato continua `0.6.0-dev` e não pode ser publicado como versão estável. Em lançamento futuro revisado, ajuste VERSION, faça commit da fonte final, crie tag explícita `v<VERSION>` correspondente e compile o candidato. Teste esse ZIP exato antes de disparar publicação. Guarde registros de aceitação em commit/ref separado para adicionar evidência sem alterar tag/hash do código/pacote. A entrada `evidence_ref` seleciona essa referência; a tag continua sendo o código compilado. Se a recompilação mudar o ZIP, teste o novo arquivo em vez de trocar o hash na evidência antiga.
 
 Exige-se `compat/test-results/<target-id>.json` para cada alvo de `scripts/build/release_gate.py`: Zorin 17.3 XFCE/glibc 2.35, Q4OS/Trinity, Ubuntu 20.04 X11 e base de compilação Ubuntu 20.04. Cada registro precisa conter:
 
@@ -27,3 +27,9 @@ Exige-se `compat/test-results/<target-id>.json` para cada alvo de `scripts/build
 Execute localmente `python3 -B scripts/build/release_gate.py --archive <exato.zip> --manifest <build-manifest.json> --evidence-dir <acceptance/compat/test-results>`, depois dispare workflow de publicação com `tag` e `evidence_ref`. Publicação também exige fonte limpa sem dev, base ABI dinâmica e todos os jobs do pacote. Releases/assets existentes não são sobrescritos. Passar um esquema JSON não substitui executar e revisar evidência dos hosts reais.
 
 A compilação confere que dois ZIPs de entrada auditada idêntica tenham os mesmos bytes e que todos os fontes correspondentes versionados estejam presentes, exceto evidências `compat/test-results/` excluídas intencionalmente. CI de desempenho usa `tests/performance/compare.py` em coortes fonte-original-dinâmica/candidato no mesmo host; verifica regressões de CPU/p95/PSS, ausência de processo de captura residual e PSS do clipboard limitado a 8 MiB mais duas vezes bytes PNG comprimidos. É um cenário branco Xvfb isolado, sem definir limite de hardware para toda imagem ou máquina.
+
+## Download público experimental
+
+Após todos os jobs de build e teste aprovarem o commit exato de main, `testar.yml` publica uma **prerelease** nova `candidate-<commit>`. O mesmo ZIP testado, seu SHA-256 e o manifesto são enviados primeiro em rascunho; só então a prerelease fica pública. Não substitui assets/tags anteriores nem a versão estável mais recente. `scripts/build/candidate_notes.py` verifica commit, fonte limpa, cinco executáveis ELF x86_64 dinâmicos, hashes, permissões e teto ABI antes de gerar instruções bilingues. PRs nunca publicam. Um rascunho deixado por falha deve ser revisado antes de nova tentativa; o workflow não sobrescreve releases existentes.
+
+Isso permite baixar um único ZIP sem login no Actions. Não satisfaz a aceitação do Zorin/Q4OS real nem remove o gate estável de `release.yml`/`release_gate.py`. Sem download de código dentro do aplicativo.

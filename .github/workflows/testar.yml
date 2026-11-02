@@ -19,3 +19,40 @@ jobs:
     uses: ./.github/workflows/test.yml
     with:
       source_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  candidate-download:
+    # Public download without an Actions account. Never publish pull-request code.
+    # This is a prerelease; release.yml keeps its separate desktop acceptance gate.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [build, test]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: Print-RC-Linux-x86_64
+          path: dist
+      - name: Verify exact tested package and describe experimental scope
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          cd dist
+          sha256sum -c Print-RC-Linux-x86_64.zip.sha256
+          cd ..
+          python3 -B scripts/build/candidate_notes.py --archive dist/Print-RC-Linux-x86_64.zip --manifest dist/build-manifest.json --source "$SOURCE_SHA" --repository "$GITHUB_REPOSITORY" --run-id "$GITHUB_RUN_ID" --output dist/candidate-notes.md
+      - name: Publish a new prerelease without replacing previous assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          tag="candidate-$SOURCE_SHA"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'A release for this commit already exists; leaving it and its assets unchanged.'
+            exit 0
+          fi
+          gh release create "$tag" dist/Print-RC-Linux-x86_64.zip dist/Print-RC-Linux-x86_64.zip.sha256 dist/build-manifest.json --target "$SOURCE_SHA" --title "Print RC — versão de teste X11 (${SOURCE_SHA:0:7})" --notes-file dist/candidate-notes.md --prerelease --latest=false --draft
+          gh release edit "$tag" --draft=false --prerelease --latest=false

@@ -1,6 +1,6 @@
 # Changes
 
-## 0.6.0-dev — unreleased candidate
+## 0.6.0-dev — experimental candidate
 
 - Replace full-static GNU/glibc linking with dynamic builds; preserve original v0.5.6 tag and release assets for investigation. The original SIGFPE reproduced in an Ubuntu 22.04/glibc 2.35/XFCE-services substitute; unchanged-source dynamic original and candidate mapped the overlay there. The actual Zorin repair remains unverified until target-desktop acceptance.
 - Add a native signal-monitor parent and nonce-matched proof after overlay rendering, mapping and both input grabs. Process creation alone cannot pass the test.
@@ -16,3 +16,5 @@ Original release history remains in Git and the unchanged v0.5.6 documentation/t
 - Installation audit: native Instalar and internal desktop entry, Sakura/Trinity terminals, early Python/supervisor/permission checks, optional graphical failures and explicit platform matrix. Artifact/ZIP use Print-RC-Linux-x86_64 naming. No new resident processes. [Report](docs/en-US/AUDIT.md).
 
 - Beginner setup: Configurar native executable and desktop alternative; one menu for images/Ctrl+V, key, language, diagnosis and removal; numbered questions, explicit defaults and safe confirmation. Fixes false key-registration success and retains overlay proof in installation metadata. [Details and tests](docs/en-US/BEGINNER_SETUP.md).
+
+- Fix click-install download delivery: public prerelease after full CI, one ready ZIP without Actions sign-in; friendly missing-executable guidance, confirmed download-page opening, and runtime/permission errors. No automatic replacement download or execution.

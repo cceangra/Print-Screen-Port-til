@@ -12,9 +12,9 @@ O [catálogo de compatibilidade](compat/linux-targets.json) lista alvos de teste
 
 ## Baixar e executar
 
-**Dê duplo clique em `Instalar` na pasta do aplicativo.** A instalação abre no terminal automaticamente; você não precisa digitar `bash` nem o caminho. Se o gerenciador bloquear binários, abra `Instalar.desktop`, exibido como **Instalar (terminal)**, e autorize esse arquivo quando solicitado. Depois da configuração, abra **Print-RC** para capturar ou **Configurar** para mudar as opções em um menu numerado. [Passo a passo](docs/pt-BR/QUICK_START.md).
+**Dê duplo clique em `Instalar` na pasta do aplicativo.** A instalação abre no terminal automaticamente; você não precisa digitar `bash` nem o caminho. Se o gerenciador bloquear binários, abra `Instalar.desktop`, exibido como **Instalar Print RC**, e autorize esse arquivo quando solicitado. Depois da configuração, abra **Print-RC** para capturar ou **Configurar** para mudar as opções em um menu numerado. [Passo a passo](docs/pt-BR/QUICK_START.md).
 
-**Baixe o pacote binário de uma execução aprovada do [Actions](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml)**: artefato **Print-RC-Linux-x86_64**, contendo **Print-RC-Linux-x86_64.zip**. Extraia o ZIP interno: ele contém uma única pasta `Print-RC/`. **Code → Download ZIP contém só fontes**, sem executáveis prontos. A release **0.5.6 é antiga** e não contém esta atualização.
+**[Baixar o aplicativo pronto](https://github.com/cceangra/Print-Screen-Port-til/releases)**: na versão de teste mais recente, abra **Assets** e escolha **Print-RC-Linux-x86_64.zip**. Não precisa entrar no GitHub nem baixar dois ZIPs. Extraia uma vez e abra **Instalar** na pasta `Print-RC/`. **Code → Download ZIP** e os links **Source code** contêm somente fontes. A release **0.5.6 é antiga**. As versões de teste são marcadas como **Pre-release**, com o resultado do CI e o commit exato; não equivalem à certificação no notebook real.
 
 O instalador mantém a pasta extraída ou a move, após confirmação, para um destino escolhido. Configurações, executáveis, backups e capturas padrão ficam dentro dela. O app não instala pacotes, não usa sudo e não baixa dependências. Requer bibliotecas do sistema compatíveis, Bash e Python 3.8+; **não é um pacote com todas as bibliotecas embutidas**.
 

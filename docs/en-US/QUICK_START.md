@@ -1,8 +1,8 @@
 # Install without typing paths
 
-1. Download the **candidate binary package** from a successful [Actions run](https://github.com/cceangra/Print-Screen-Port-til/actions/workflows/testar.yml). The artifact is **Print-RC-Linux-x86_64**. It contains the application ZIP **Print-RC-Linux-x86_64.zip**. Extract this inner ZIP.
+1. Open [Download Print RC](https://github.com/cceangra/Print-Screen-Port-til/releases). In the newest test version, open **Assets** and download **Print-RC-Linux-x86_64.zip**. Extract once. No GitHub sign-in is needed. **Source code** and **Code → Download ZIP** are for developers.
 2. Open the single **Print-RC** folder and double-click **Instalar**. It opens setup in a terminal automatically; no `bash` or full path needs typing.
-3. If the file manager blocks binaries, open **Instalar.desktop**, displayed as **Install (terminal)**. Allow that file to launch when the desktop asks. This alternative stays inside the app folder.
+3. If the file manager blocks binaries, open **Instalar.desktop**, displayed as **Install Print RC**. Allow that file to launch when the desktop asks. This alternative stays inside the app folder.
 4. At the first question, **1 or Enter keeps the current folder**. For image choices, **1 or Enter keeps the recommended/current folder and previous Ctrl+V choice** (copying starts on for new installs). Read the summary and explicitly confirm with **1 = Yes**.
 5. Press your chosen key when prompted. Check its name and any identified conflict; confirm with **1 = Yes**. During the test, press **the chosen key itself** once more. This is not another question asking for Yes. Without a successful test, the app says the key is not yet confirmed.
 6. Then open **Print-RC** to capture or use the configured key. To change options, open **Configurar**. If the file manager blocks the binary, use **Configurar.desktop**, displayed as **Configure Print RC**.
@@ -15,7 +15,7 @@ If execute permissions were lost, enable **Properties → Permissions → Allow 
 
 | Action | Click or optional command |
 | --- | --- |
-| Install or review setup | **Instalar** or **Install (terminal)** |
+| Install or review setup | **Instalar** or **Install Print RC** |
 | Capture | **Print-RC** |
 | Preferences and language | **Configurar** → option 1 (images/Ctrl+V) or 3 (language) |
 | Choose, check or release a key | **Configurar** → option 2 |
