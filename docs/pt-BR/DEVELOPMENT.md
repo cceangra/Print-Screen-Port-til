@@ -32,4 +32,10 @@ A compilação confere que dois ZIPs de entrada auditada idêntica tenham os mes
 
 Após todos os jobs de build e teste aprovarem o commit exato de main, `testar.yml` publica uma **prerelease** nova `candidate-<commit>`. O mesmo ZIP testado, seu SHA-256 e o manifesto são enviados primeiro em rascunho; só então a prerelease fica pública. Não substitui assets/tags anteriores nem a versão estável mais recente. `scripts/build/candidate_notes.py` verifica commit, fonte limpa, cinco executáveis ELF x86_64 dinâmicos, hashes, permissões e teto ABI antes de gerar instruções bilingues. PRs nunca publicam. Um rascunho deixado por falha deve ser revisado antes de nova tentativa; o workflow não sobrescreve releases existentes.
 
-Isso permite baixar um único ZIP sem login no Actions. Não satisfaz a aceitação do Zorin/Q4OS real nem remove o gate estável de `release.yml`/`release_gate.py`. Sem download de código dentro do aplicativo.
+Isso permite baixar um único ZIP sem login no Actions. Não satisfaz a aceitação do Zorin/Q4OS real nem remove o gate estável de `release.yml`/`release_gate.py`. Downloads de fontes incompletos agora podem buscar o pacote experimental completo após confirmação explícita; o pacote pronto e a captura não acessam a rede.
+
+## Recuperação de um ZIP de fontes
+
+`instalar.sh` e `scripts/desktop_install.py` chamam `scripts/complete_setup.py` somente quando faltam executáveis. Antes de acessar a rede, o auxiliar verifica arquitetura/sessão/glibc e pede confirmação. Seleciona uma prerelease candidate-<commit> com os três assets completos do repositório fixo, limita downloads/tamanho de extração e confere SHA-256, commit, ELFs, ABI e hashes dos arquivos. Faz o autoteste nativo antes de publicar a pasta.
+
+O estágio temporário fica dentro da pasta escolhida e é removido em falhas. A pasta final Print-RC é publicada atomicamente com renameat2(RENAME_NOREPLACE), sem substituir sequer uma pasta vazia concorrente. Em nova tentativa, só reutiliza uma pasta com arquivos de execução íntegros após confirmação. Fontes originais não são apagados: já pertenciam ao usuário; a desinstalação do app baixado preserva esses fontes e as imagens. Sem apt, compilação, sudo ou atualização de uma instalação existente.

@@ -18,3 +18,5 @@ Original release history remains in Git and the unchanged v0.5.6 documentation/t
 - Beginner setup: Configurar native executable and desktop alternative; one menu for images/Ctrl+V, key, language, diagnosis and removal; numbered questions, explicit defaults and safe confirmation. Fixes false key-registration success and retains overlay proof in installation metadata. [Details and tests](docs/en-US/BEGINNER_SETUP.md).
 
 - Fix click-install download delivery: public prerelease after full CI, one ready ZIP without Actions sign-in; friendly missing-executable guidance, confirmed download-page opening, and runtime/permission errors. No automatic replacement download or execution.
+
+- Recover missing binaries from source-only downloads: click setup and bash instalar.sh now offer a confirmed complete-package download, verify it, run the native self-test and start setup inside Print-RC without replacing sources/images. Declining makes no network request; failures clean staging.

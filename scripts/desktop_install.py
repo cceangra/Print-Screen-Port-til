@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Short-lived click launcher. Never download or execute a replacement program."""
+"""Short-lived click launcher; source-only downloads offer complete setup."""
 import errno
 import os
 from pathlib import Path
@@ -7,6 +7,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import zipfile
 sys.dont_write_bytecode=True
 from print_rc_i18n import tr
 
@@ -33,19 +34,6 @@ def dialog(message,question=False):
         except OSError:continue
     return False
 
-def offer_download():
-    if not dialog(tr('desktop.source_download'),question=True):return 2
-    for program,arguments in (('xdg-open',[]),('gio',['open']),
-                              ('/opt/trinity/bin/kfmclient',['exec'])):
-        executable=shutil.which(program)
-        if not executable:continue
-        try:
-            result=subprocess.run([executable,*arguments,DOWNLOAD_URL],check=False)
-            if result.returncode==0:return 2 # The app is still not installed.
-        except OSError:continue
-    dialog(tr('desktop.browser_failed',DOWNLOAD_URL))
-    return 2
-
 def main():
     if sys.argv[1:] not in ([],['--configure']):return 2
     settings=bool(sys.argv[1:])
@@ -53,9 +41,13 @@ def main():
     try:
         mode=installer.lstat().st_mode
     except FileNotFoundError:
-        # Source ZIPs contain the desktop entry, but none of the compiled ELFs.
-        # Do not run shell setup or change preferences in this incomplete folder.
-        return offer_download()
+        from complete_setup import prepare
+        try:
+            target=prepare(ROOT,lambda message:dialog(message,question=True))
+            if target is not None:os.execv(str(target/'Instalar'),[str(target/'Instalar'),'--install'])
+        except (OSError,ValueError,KeyError,TypeError,zipfile.BadZipFile) as error:
+            dialog(tr('bootstrap.failed',str(error),DOWNLOAD_URL))
+        return 2
     except OSError as error:
         dialog(tr('desktop.folder_failed',str(error)))
         return 2

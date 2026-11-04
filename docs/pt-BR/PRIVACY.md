@@ -1,6 +1,6 @@
 # Privacidade e arquivos
 
-A captura lê a tela raiz visível do X11 somente quando solicitada. A detecção de tecla reserva temporariamente o teclado apenas durante a configuração pedida, termina na primeira tecla válida/Escape/prazo e registra o keysym escolhido, sem histórico de digitação. Não há leitor de teclado residente, telemetria, downloads, envios ou atualizador automático.
+A captura lê a tela raiz visível do X11 somente quando solicitada. A detecção de tecla reserva temporariamente o teclado apenas durante a configuração pedida, termina na primeira tecla válida/Escape/prazo e registra o keysym escolhido, sem histórico de digitação. Não há leitor de teclado residente, telemetria, envios ou atualizador automático. Somente ao instalar a partir dos fontes sem binários, uma pergunta explícita oferece baixar o pacote completo do GitHub. Recusar não acessa a rede. A requisição HTTPS de download expõe ao GitHub o IP e os metadados usuais da conexão; não envia imagens ou configurações. A captura e o pacote pronto não fazem esse download.
 
 Preferências, idioma, registros de recuperação de atalhos, backups originais e inventário da desinstalação ficam na pasta do aplicativo. Os PNGs usam `capturas/` por padrão ou um destino externo escolhido explicitamente pelo usuário. Xfce e Trinity necessariamente guardam seus próprios registros de atalhos fora da pasta; os auxiliares informam essas mudanças e mantêm dados para restauração.
 

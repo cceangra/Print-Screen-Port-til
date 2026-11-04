@@ -16,6 +16,8 @@ The [compatibility catalog](compat/linux-targets.json) lists test targets, inclu
 
 **[Download the ready-to-run app](https://github.com/cceangra/Print-Screen-Port-til/releases)**: open **Assets** in the newest test version and choose **Print-RC-Linux-x86_64.zip**. No GitHub sign-in or nested ZIP download is needed. Extract once and open **Instalar** in `Print-RC/`. **Code → Download ZIP** and **Source code** links contain sources only. Release **0.5.6 is old**. Test versions are marked **Pre-release**, with CI results and exact source commits; they are not real-laptop certification.
 
+**Already downloaded Print-Screen-Port-til-main?** Open **Instalar.desktop** there. The new installer offers to download the complete app and continue after confirmation. `bash instalar.sh` does the same. The verified package goes into a **Print-RC** folder inside it; original sources and images are preserved. No compilation is needed. Internet is needed only for this download; the ready ZIP already includes executables.
+
 Setup keeps the extracted folder or moves it to a chosen destination after confirmation. Settings, executables, backups and default captures stay inside it. The app installs no packages, uses no sudo and downloads no dependencies. Compatible system libraries, Bash and Python 3.8+ are required; **runtime libraries are not bundled**.
 
 | Platform/session | Status of this edition |

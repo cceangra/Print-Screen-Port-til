@@ -7,6 +7,8 @@
 5. Pressione a tecla desejada quando aparecer o pedido. Confira o nome e o conflito identificado e confirme com **1 = Sim**. Depois, no teste, aperte **a própria tecla escolhida** mais uma vez. Não é outra pergunta para responder Sim. Sem o teste bem-sucedido, o app avisa que a tecla ainda não está confirmada.
 6. Depois, abra **Print-RC** para capturar ou use a tecla configurada. Para mudar as opções, abra **Configurar**. Se o gerenciador bloquear o binário, use **Configurar.desktop**, exibido como **Configurar Print RC**.
 
+Se você já baixou a pasta Print-Screen-Port-til-main, abra **Instalar.desktop** nela. O novo fluxo oferece **baixar o app completo** com confirmação e continua a instalação. `bash instalar.sh` oferece a mesma recuperação. O app completo fica em **Print-RC** dentro dessa pasta; os fontes originais permanecem intactos. Não precisa compilar.
+
 **Code → Download ZIP contém apenas fontes.** Os arquivos novos `Instalar`, `Print-RC` e `bin/` só aparecem no pacote binário compilado. A release **0.5.6 é antiga** e não contém esta atualização. O nome do ZIP é o mesmo; verifique a versão em `VERSION` e o commit em `build-manifest.json`.
 
 A pasta pai do destino deve existir. Não execute como root. O aplicativo não instala dependências. Veja a [matriz de compatibilidade](COMPATIBILITY.md): esta edição usa GNU/Linux x86_64, glibc e **X11**. Wayland, ARM e musl não têm pacote compatível nesta edição.

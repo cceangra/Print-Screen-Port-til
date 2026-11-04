@@ -41,6 +41,13 @@ echo
 if ! command -v python3 >/dev/null 2>&1 || ! python3 -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 2)'; then
     prc_message shell.python_required; exit 2;
 fi
+# Code > Download ZIP has no compiled files. Offer the complete, verified app
+# before changing permissions, moving this folder, or creating preferences.
+if [[ ! -f "$source_dir/bin/print-rc" || ! -f "$source_dir/bin/print-rc-launcher" ]]; then
+    if [[ -f "$source_dir/scripts/complete_setup.py" && ! -L "$source_dir/scripts/complete_setup.py" ]]; then
+        exec python3 -B "$source_dir/scripts/complete_setup.py" --install
+    fi
+fi
 # Repair execution bits before testing; ZIP extractors can discard Unix modes.
 # Never chmod a symlink or an external file.
 for relative in Print-RC Instalar Configurar Instalar.desktop Configurar.desktop bin/print-rc bin/print-rc-launcher; do

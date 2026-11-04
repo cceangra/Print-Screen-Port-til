@@ -1,6 +1,6 @@
 # Privacy and files
 
-Capture reads the visible X11 root screen only when requested. Key detection temporarily grabs the keyboard only during explicitly requested setup, ends on the first valid key/Escape/timeout, and records the chosen keysym rather than keystroke history. No resident keyboard listener, telemetry, network download, upload or automatic updater is present.
+Capture reads the visible X11 root screen only when requested. Key detection temporarily grabs the keyboard only during explicitly requested setup, ends on the first valid key/Escape/timeout, and records the chosen keysym rather than keystroke history. There is no resident keyboard listener, telemetry, upload or automatic updater. Only source-only setup without binaries offers to download the complete package from GitHub after explicit consent. Declining makes no network request. HTTPS downloading exposes the IP and normal connection metadata to GitHub, but sends no images or settings. Capture and ready-package setup do not perform this download.
 
 Preferences, language, shortcut recovery state, original shortcut backups and the uninstall inventory stay inside the application folder. PNGs default to `capturas/` or an explicitly selected external user-owned folder. Xfce and Trinity necessarily persist their own shortcut registry outside the folder; helpers disclose those changes and retain restoration records.
 

@@ -19,3 +19,5 @@ A investigação reproduziu SIGFPE no original estático em Ubuntu 22.04/glibc 2
 - Configuração para iniciantes: executável Configurar e alternativa de desktop; menu único para imagens/Ctrl+V, tecla, idioma, diagnóstico e remoção; perguntas numeradas, padrões explícitos e confirmação segura. Corrige mensagem de sucesso após falha no cadastro da tecla e preserva o resultado da prova no manifesto. [Detalhes e testes](docs/pt-BR/BEGINNER_SETUP.md).
 
 - Corrige o caminho de download/instalação por clique: pacote pronto público em prerelease após CI completo, ZIP único sem login no Actions; aviso amigável para fontes sem executáveis, abertura do download com confirmação e erros específicos de plataforma/permissão. Não baixa nem executa substitutos automaticamente.
+
+- Recuperação do erro “faltam bin/print-rc e bin/print-rc-launcher” ao usar o ZIP de fontes: o clique e bash instalar.sh agora oferecem baixar o pacote completo com confirmação, validam o download e o autoteste e iniciam o app em Print-RC sem substituir fontes/imagens. Cancelamento não acessa a rede; falhas limpam o estágio temporário.
