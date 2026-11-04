@@ -16,6 +16,8 @@ O [catálogo de compatibilidade](compat/linux-targets.json) lista alvos de teste
 
 **[Baixar o aplicativo pronto](https://github.com/cceangra/Print-Screen-Port-til/releases)**: na versão de teste mais recente, abra **Assets** e escolha **Print-RC-Linux-x86_64.zip**. Não precisa entrar no GitHub nem baixar dois ZIPs. Extraia uma vez e abra **Instalar** na pasta `Print-RC/`. **Code → Download ZIP** e os links **Source code** contêm somente fontes. A release **0.5.6 é antiga**. As versões de teste são marcadas como **Pre-release**, com o resultado do CI e o commit exato; não equivalem à certificação no notebook real.
 
+**Já baixou Print-Screen-Port-til-main?** Abra **Instalar.desktop** nela. O novo instalador oferece baixar o app completo e continuar, com sua confirmação. `bash instalar.sh` faz o mesmo. O pacote completo é verificado e fica em uma pasta **Print-RC** dentro dela; fontes e imagens existentes são preservados. Não precisa compilar. Internet é necessária somente para esse download; o ZIP pronto já inclui os executáveis.
+
 O instalador mantém a pasta extraída ou a move, após confirmação, para um destino escolhido. Configurações, executáveis, backups e capturas padrão ficam dentro dela. O app não instala pacotes, não usa sudo e não baixa dependências. Requer bibliotecas do sistema compatíveis, Bash e Python 3.8+; **não é um pacote com todas as bibliotecas embutidas**.
 
 | Plataforma/sessão | Situação desta edição |

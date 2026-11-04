@@ -31,3 +31,5 @@ Settings, state, backups, executables and default captures remain inside the fol
 On uninstall, preview and type `DESINSTALAR` or `UNINSTALL`. Captures, explicitly requested reports and unknown/modified files remain. See [removal](UNINSTALL.md) and [audit](AUDIT.md).
 
 For confirmations that write/change settings, **Enter means No**. Unknown answers prompt again. Legacy y/n and yes/no answers remain accepted. For another image folder, choose 2 and paste the path without quotes; ~/ is accepted. [Change details](BEGINNER_SETUP.md).
+
+If you already downloaded Print-Screen-Port-til-main, open **Instalar.desktop** there. The new flow offers to **download the complete app** after confirmation and continue setup. `bash instalar.sh` provides the same recovery. The complete app stays in **Print-RC** inside that folder; original sources remain intact. No compilation is needed.

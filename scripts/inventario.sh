@@ -113,6 +113,7 @@ PRINT_RC_KNOWN=(
   'docs/en-US/AUDIT.md'
   'docs/pt-BR/AUDIT.md'
   'scripts/desktop_install.py' 'tests/test_prompts.py'
+  'scripts/complete_setup.py' 'tests/test_complete_setup.py'
   'tests/test_sakura_x11.sh'
 )
 

@@ -32,4 +32,10 @@ The build checks that two ZIPs from identical audited input have identical bytes
 
 After all build/test jobs approve the exact main commit, `testar.yml` publishes a new **prerelease** `candidate-<commit>`. The same tested ZIP, checksum and manifest are uploaded as a draft before publication. Previous assets/tags and latest stable are preserved. `scripts/build/candidate_notes.py` checks source commit, clean build, five dynamic x86_64 ELFs, hashes, permissions and ABI ceilings before generating bilingual instructions. PRs never publish. A draft left by an upload failure requires review before retrying; existing releases are not overwritten.
 
-Users can download one ZIP without an Actions account. This does not meet real Zorin/Q4OS acceptance or bypass the stable `release.yml`/`release_gate.py` gate. The app downloads no code.
+Users can download one ZIP without an Actions account. This does not meet real Zorin/Q4OS acceptance or bypass the stable `release.yml`/`release_gate.py` gate. Source-only downloads can now fetch the complete experimental package after explicit confirmation; ready-package setup and capture do not access the network.
+
+## Recovering a source-only ZIP
+
+`instalar.sh` and `scripts/desktop_install.py` call `scripts/complete_setup.py` only when executables are missing. Before network access it checks architecture/session/glibc and asks for consent. It selects a candidate-<commit> prerelease with the three complete assets from the fixed repository, bounds downloads/extraction, and verifies SHA-256, commit, ELFs, ABI and file hashes. Native self-test runs before publication.
+
+Staging stays inside the chosen folder and is removed on failure. The final Print-RC directory is published atomically with renameat2(RENAME_NOREPLACE), never replacing even an empty concurrent destination. A retry reuses an intact runtime only after confirmation. Original sources remain user-owned; uninstalling the fetched app preserves those sources and images. No apt, compilation, sudo or updating an existing installation.
